@@ -6,7 +6,7 @@ import os from 'node:os';
 import crypto from 'node:crypto';
 import {routeVoice} from '../runner/bridge-core.mjs';
 import {invalidateVoiceSnapshot,voiceMemory} from '../runner/voice-router.mjs';
-import {invalidateTargetIndex} from '../runner/voice-targets.mjs';
+import {invalidateTargetIndex,openIntent} from '../runner/voice-targets.mjs';
 import {localDate} from '../runner/brief-voice.mjs';
 import {shiftIso} from '../runner/spoken-dates.mjs';
 
@@ -32,6 +32,55 @@ for(const appScope of ['native','web'])test(`${appScope}: the September 16 phras
  opened(await f.speak('Can you pull up the morning Intel brief for me?',{appScope,provider:'claude'}),f.intel.today);
  opened(await f.speak("Open yesterday's intel brief",{appScope}),f.intel.yesterday);
  assert.equal(f.calls.length,0);
+});
+
+for(const appScope of ['native','web'])test(`${appScope}: Portuguese navigation uses the existing note and workspace actions`,async t=>{
+ const f=fixture(t),note=f.write('projects/plano-de-integracao.md'),daily=f.write(`daily-notes/${f.yesterday}.md`);
+ for(const provider of ['codex','claude']){
+  opened(await f.speak('Abra o boletim da manhã de ontem.',{appScope,provider}),f.intel.yesterday);
+  opened(await f.speak('Abra a nota diária de ontem.',{appScope,provider}),daily);
+  const missing=await f.speak('Abra a nota Documento Inexistente de ontem.',{appScope,provider});
+  assert.match(missing.reply,/com o nome "documento inexistente" para ontem/);
+  for(const [utterance,action] of [
+   ['Abra a nota Plano de integração.',{op:'open-note',query:note}],
+   ['Abra a nota Plano de integração na barra lateral esquerda.',{op:'open-note',query:note,where:'left-sidebar'}],
+   ['Abra minha nota diária de hoje.',{op:'daily-note'}],
+   ['Abra o painel.',{op:'cockpit'}],
+   ['Abra o terminal.',{op:'command',id:'terminal:open-terminal.default.root',label:'terminal'}],
+   ['Abra o Google Agenda na barra lateral esquerda.',{op:'web',url:'https://calendar.google.com',label:'Google Agenda',where:'left-sidebar'}],
+   ['Abra o Gmail.',{op:'web',url:'https://mail.google.com',label:'Gmail',where:undefined}],
+   ['Abra o YouTube Studio.',{op:'web',url:'https://studio.youtube.com',label:'YouTube Studio',where:undefined}],
+   ['Abra o repositório ctskool/agentic-os-starter-v2.',{op:'repo',slug:'ctskool/agentic-os-starter-v2'}],
+   ...(appScope==='native'?[
+    ['Feche esta aba.',{op:'command',id:'workspace:close',label:'fechar aba'}],
+    ['Volte no histórico.',{op:'command',id:'app:go-back',label:'voltar no histórico'}],
+    ['Avance no histórico.',{op:'command',id:'app:go-forward',label:'avançar no histórico'}],
+    ['Divida a tela à direita.',{op:'command',id:'workspace:split-vertical',label:'dividir à direita'}],
+    ['Divida a tela para baixo.',{op:'command',id:'workspace:split-horizontal',label:'dividir para baixo'}],
+    ['Alterne a barra lateral esquerda.',{op:'command',id:'app:toggle-left-sidebar',label:'alternar barra lateral esquerda'}],
+    ['Alterne a barra lateral direita.',{op:'command',id:'app:toggle-right-sidebar',label:'alternar barra lateral direita'}],
+    ['Abra o gráfico do cofre.',{op:'command',id:'graph:open',label:'abrir visualização em grafo'}],
+    ['Busque no cofre por plano de integração.',{op:'search',query:'plano de integração'}],
+   ]:[]),
+  ]){
+   const result=await f.speak(utterance,{appScope,provider});
+   assert.deepEqual(result.obsidian,action,utterance);assert.equal(result.engine,'rules');assert.deepEqual(result.workIds,[]);
+  }
+ }
+ assert.deepEqual(f.calls,[]);
+});
+
+test('opening a Portuguese note does not drop other actions, conditions, or a question',()=>{
+ for(const utterance of [
+  'Não abra a nota Plano de integração.',
+  'Como abro a nota Plano de integração?',
+  'Abra a nota Plano de integração e escreva um resumo.',
+  'Abra a nota Plano de integração e me diga o que está escrito.',
+  'Crie outro documento. Abra a nota Plano de integração.',
+  'Abra a nota Plano de integração somente se eu confirmar.',
+  'Abra a nota Plano de integração quando eu terminar.',
+  'Abra a nota Plano de integração ou o boletim da manhã.',
+ ])assert.equal(openIntent(utterance),null,utterance);
 });
 
 test('a dated report that does not exist gets an honest answer and an offer that can be accepted in either language',async t=>{
@@ -87,6 +136,8 @@ test('a selected conversation reopens its registered file without a worker turn;
  assert.deepEqual(shown.reopened,{taskId:task.id,artifactId:png.id,label:'Jev preview'});assert.equal(shown.reply,'');assert.deepEqual(shown.workIds,[]);assert.equal(shown.workTarget,task.id);
  await f.speak('Now, can you just pull it up for me? Can you pull up the report so I can see it inside of Obsidian?',{workTarget:task.id});
  assert.equal(f.reopened.length,2);assert.equal(f.calls.length,0);
+ const localized=await f.speak('Mostre a imagem que você fez.',{workTarget:task.id});
+ assert.deepEqual(localized.reopened,{taskId:task.id,artifactId:png.id,label:'Jev preview'});assert.equal(f.reopened.length,3);
  // Real work follow-ups still continue the conversation.
  await f.speak('change the colors to blue',{workTarget:task.id,execute:async()=>({text:JSON.stringify({tier:3,reply:'On it.'})})});
  assert.equal(f.calls.at(-1)?.kind,'send');assert.match(f.calls.at(-1).text,/^change the colors to blue/);
@@ -94,7 +145,7 @@ test('a selected conversation reopens its registered file without a worker turn;
  f.sessions.push(html);
  const explained=await f.speak('pull it up',{workTarget:html.id});
  assert.match(explained.reply,/^O arquivo dessa conversa está no formato html e não pode ser exibido no Obsidian nem no painel\. Ele está salvo em outputs\/jev-explainer\/jev-explainer\.html\.$/);
- assert.equal(f.reopened.length,2);assert.equal(f.calls.filter(c=>c.kind==='send').length,1);
+ assert.equal(f.reopened.length,3);assert.equal(f.calls.filter(c=>c.kind==='send').length,1);
 });
 
 test('what was just read aloud can be pulled up next, and questions are untouched',async t=>{

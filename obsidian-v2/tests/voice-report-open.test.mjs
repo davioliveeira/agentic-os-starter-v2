@@ -18,6 +18,7 @@ const targets=[
  ['weekly-review','weekly review report','inbox/reports/weekly'],
  ['yt-week-review','YouTube weekly review','inbox/reports/yt-reviews'],
 ];
+const portugueseNames=['boletim da manhã','relatório do que está em alta no GitHub','radar de vídeos em destaque','resumo da caixa de entrada','revisão semanal','análise semanal do YouTube'];
 function fixture(t){
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'voice-report-open-'));
  t.after(()=>{invalidateVoiceSnapshot(root);fs.rmSync(root,{recursive:true,force:true})});
@@ -31,7 +32,7 @@ function fixture(t){
 for(const provider of ['codex','claude'])for(const scope of ['native','web']){
  test(`${provider}/${scope}: natural named report commands open their saved file without a model or dashboard scan`,async t=>{
   const f=fixture(t),workTarget=crypto.randomUUID();
-  for(const [key,name,folder] of targets){
+  for(const [index,[key,name,folder]] of targets.entries()){
    f.write(`${folder}/2020-01-01-${key}.md`);
    const expected=f.write(`${folder}/${localDate()}-${key}.md`);
    for(const utterance of [
@@ -52,6 +53,8 @@ for(const provider of ['codex','claude'])for(const scope of ['native','web']){
     `Can I see the ${name}?`,
     `Would you mind pulling up the ${name}?`,
     `Are you able to display the ${name}?`,
+    `Jarvis, abra o ${portugueseNames[index]}.`,
+    `Pode mostrar o ${portugueseNames[index]} de hoje?`,
    ]){
     const result=await f.speak(provider,scope,utterance,undefined,{workTarget});
     assert.equal(result.deliverable,expected,utterance);assert.equal(result.reveal,'open');
@@ -78,7 +81,7 @@ test('named report aliases share latest-file resolution across both morning repo
  assert.equal((await f.speak('codex','web','Open morning intel')).deliverable,preferred);
  assert.equal((await f.speak('codex','web','Pull up the morning intel briefing')).deliverable,preferred);
  const current=f.write(`inbox/research/morning-intel/${localDate()}-intel.md`);
- for(const utterance of ["Could you bring up this morning's intel brief?","Show me this morning's report."]){
+ for(const utterance of ["Could you bring up this morning's intel brief?","Show me this morning's report.",'Abra o boletim de hoje.','Abra o último boletim da manhã.']){
   assert.equal((await f.speak('claude','native',utterance)).deliverable,current,utterance);
  }
  const github=f.write('inbox/research/github-trending/2020-01-01-trending.md');
@@ -161,6 +164,11 @@ test('report navigation preserves complete requests, date constraints and worker
   'Display the morning intel brief from last week',
   'I want to see the morning intel brief and the inbox brief',
   'GitHub trending',
+  'Não abra o boletim da manhã.',
+  'Abra o boletim da manhã e depois resuma.',
+  'Abra o boletim da manhã. Depois, envie um e-mail.',
+  'Abra o boletim da manhã de ontem.',
+  'Qual foi a notícia principal do boletim da manhã?',
  ])assert.equal(rules.routeNamedReportOpen(utterance),null,utterance);
 });
 

@@ -79,13 +79,13 @@ test('the expectation is built from the validator\'s own tables and fails closed
 });
 test('post-validation equality rejects any action the validator changed, dropped or replaced',()=>{
  const parsed=parse('Open gmail on the left');
- assert.ok(sameUiAction({op:'web',url:'https://mail.google.com',label:'gmail',where:'left-sidebar'},parsed.expect));
- assert.ok(sameUiAction({where:'left-sidebar',label:'gmail',url:'https://mail.google.com',op:'web'},parsed.expect),'key order is irrelevant');
+ assert.ok(sameUiAction({op:'web',url:'https://mail.google.com',label:'Gmail',where:'left-sidebar'},parsed.expect));
+ assert.ok(sameUiAction({where:'left-sidebar',label:'Gmail',url:'https://mail.google.com',op:'web'},parsed.expect),'key order is irrelevant');
  for(const changed of [
-  {op:'web',url:'https://mail.google.com',label:'gmail'},
-  {op:'web',url:'https://mail.google.com',label:'gmail',where:'right-sidebar'},
-  {op:'web',url:'https://calendar.google.com',label:'google calendar',where:'left-sidebar'},
-  {op:'web',url:'https://mail.google.com',label:'gmail',where:'left-sidebar',extra:true},
+  {op:'web',url:'https://mail.google.com',label:'Gmail'},
+  {op:'web',url:'https://mail.google.com',label:'Gmail',where:'right-sidebar'},
+  {op:'web',url:'https://calendar.google.com',label:'Google Agenda',where:'left-sidebar'},
+  {op:'web',url:'https://mail.google.com',label:'Gmail',where:'left-sidebar',extra:true},
   {op:'open-note',query:'gmail'},null,undefined])assert.equal(sameUiAction(changed,parsed.expect),false,JSON.stringify(changed));
  // The case that motivated the check: the validator has no "tab" placement and
  // would put the calendar in the right sidebar instead.

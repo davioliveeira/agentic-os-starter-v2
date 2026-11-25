@@ -10,6 +10,7 @@ import {vaultPath} from './core.mjs';
 import {parseSpokenDate,localParts,describeDate,shiftIso} from './spoken-dates.mjs';
 import {linkedArtifacts} from './artifacts.mjs';
 import {SKILLS} from '../shared/contract.mjs';
+import {hasPortugueseOpenLead,portugueseFileIntent} from './voice-navigation-pt.mjs';
 
 export const REPORT_KINDS=[
  {name:'yt-week-review',re:/\b(?:you\s?tube|yt)\s+(?:week(?:ly)?\s+)?(?:review|report)\b/,dirs:['inbox/reports/yt-reviews'],label:'análise semanal do YouTube'},
@@ -94,6 +95,8 @@ const AFFIRM=/^(?:yes(?: please)?|yeah|yep|sure|absolutely|go ahead|do (?:it|tha
 
 export function openIntent(transcript){
  if(typeof transcript!=='string')return null;
+ const portuguese=portugueseFileIntent(transcript);
+ if(portuguese)return portuguese;
  const whole=transcript.normalize('NFKC').replace(/[’‘]/g,"'").replace(/[“”]/g,'"').toLowerCase().replace(/\s+/g,' ').trim();
  if(whole.length>300||/\n|"|https?:\/\//.test(whole))return null;
  // Spoken requests often restate themselves ("pull it up? can you pull up the
@@ -104,7 +107,7 @@ export function openIntent(transcript){
   // "Create a new diagram. Then open it." is work with a promised open, and
   // "Open the proposal. Then create a summary." is work too: any sentence of
   // work makes the utterance one request for the worker, never an open now.
-  if(clauses.some(imperativeWork))return null;
+  if(clauses.some(imperativeWork)||clauses.some(hasPortugueseOpenLead))return null;
   for(const clause of [...clauses].reverse()){const intent=openIntent(clause);if(intent)return intent}return null;
  }
  let text=whole.replace(/[.!?]+$/,'');
@@ -465,7 +468,7 @@ export function resolveOpenTarget(root,transcript,{now=new Date(),exchanges=[],s
  // 4. Named notes and files.
  const types=hint==='image'?['image']:hint==='pdf'?['pdf']:null;
  const {matches,query}=searchTargets(root,target,{when,now:nowMs,types});
- if(!matches.length)return {...base,kind:'unresolved',target:intent.target,dateLabel:when?spokenDateLabel(when,today):null};
+ if(!matches.length)return {...base,kind:'unresolved',target:intent.title??intent.target,dateLabel:when?spokenDateLabel(when,today):null};
  const [top,second]=matches,tied=matches.filter(m=>m.score>=top.score-0.01);
  if(second&&second.score>=top.score-0.01&&(query.length||!when))return {...base,kind:'ambiguous',candidates:openCandidates(tied.map(m=>m.entry),today)};
  if(!query.length&&when&&matches.length>1)return {...base,kind:'ambiguous',candidates:openCandidates(matches.map(m=>m.entry),today)};

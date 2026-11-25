@@ -14,6 +14,7 @@ import {
 import { recentExchanges } from "./voice-context.mjs";
 import { localDate } from "./brief-voice.mjs";
 import { openIntent } from "./voice-targets.mjs";
+import { portugueseFileIntent, portugueseWorkspaceIntent } from "./voice-navigation-pt.mjs";
 
 // Ported from Jarvis lib/router.ts: shared rules, snapshot prompt and action validation.
 // Model execution, provider isolation and terminal dispatch live in voice-router.mjs.
@@ -287,7 +288,7 @@ export function rulesRoute(transcript: string, state: VaultState): RouteResult {
   // Obsidian UI control — "open my daily note", "go back", "split right".
   // Reply stays EMPTY: the orb executes the action and the UI changing IS
   // the confirmation (a spoken ack would double perceived latency).
-  const ui = obsidianAnswer(t);
+  const ui = portugueseWorkspaceAction(transcript) ?? obsidianAnswer(t);
   if (ui) return { tier: 2, reply: "", engine: "rules", rule: "obsidianControl", obsidian: ui };
 
   // named reports — "open morning intel" / "open github trending" → the
@@ -439,7 +440,7 @@ function matchSkill(t: string): string | null {
 // here — openDocAnswer owns deliverables; unmatched generic opens fall back
 // to a vault-wide fuzzy open-note (see openDocAnswer's no-match branch).
 
-const OBSIDIAN_FIXED: [RegExp, ObsidianAction][] = [
+const OBSIDIAN_FIXED: [RegExp, ObsidianAction | string][] = [
   [
     /^(?:open|go to|show me|bring up|pull up)\s+(?:my\s+|the\s+|up\s+)*(?:today s\s+|todays\s+)?daily(?:\s+note)?$/,
     { op: "daily-note" },
@@ -448,32 +449,32 @@ const OBSIDIAN_FIXED: [RegExp, ObsidianAction][] = [
     /\b(?:open|show|bring up|pull up|go to)\b.*\b(?:cockpit|command center|dashboard)\b/,
     { op: "cockpit" },
   ],
-  [/^go back$/, { op: "command", id: "app:go-back", label: "back" }],
-  [/^go forward$/, { op: "command", id: "app:go-forward", label: "forward" }],
-  [/^close (?:this |the )?tab$/, { op: "command", id: "workspace:close", label: "close tab" }],
+  [/^go back$/, "app:go-back"],
+  [/^go forward$/, "app:go-forward"],
+  [/^close (?:this |the )?tab$/, "workspace:close"],
   [
     /^split (?:the )?(?:screen |pane |window )?right$/,
-    { op: "command", id: "workspace:split-vertical", label: "split right" },
+    "workspace:split-vertical",
   ],
   [
     /^split (?:the )?(?:screen |pane |window )?down$/,
-    { op: "command", id: "workspace:split-horizontal", label: "split down" },
+    "workspace:split-horizontal",
   ],
   [
     /^(?:toggle|hide|show|open|close) (?:the )?left sidebar$|^(?:toggle|hide|show) (?:the )?sidebar$/,
-    { op: "command", id: "app:toggle-left-sidebar", label: "left sidebar" },
+    "app:toggle-left-sidebar",
   ],
   [
     /^(?:toggle|hide|show|open|close) (?:the )?right sidebar$/,
-    { op: "command", id: "app:toggle-right-sidebar", label: "right sidebar" },
+    "app:toggle-right-sidebar",
   ],
   [
     /^(?:open |show )?(?:the )?graph(?: view)?$/,
-    { op: "command", id: "graph:open", label: "graph view" },
+    "graph:open",
   ],
   [
     /^(?:open|pull up|bring up|show me|show|launch|start)(?: up)? (?:a |the |my )?terminal$|^terminal$/,
-    { op: "command", id: "terminal:open-terminal.default.root", label: "terminal" },
+    "terminal:open-terminal.default.root",
   ],
 ];
 const SEARCH_RE =
@@ -550,6 +551,10 @@ const REPORT_OPEN_SEPARABLE = /^(?:pull(?:ing)?|bring(?:ing)?)\s+(.+)\s+up$/;
 // out of this shortcut; neither conversation history nor report text is needed.
 export function routeNamedReportOpen(transcript: string): RouteResult | null {
   if (transcript.length > 500 || /[;\r\n]/.test(transcript)) return null;
+  const portuguese = portugueseFileIntent(transcript);
+  if (portuguese?.report && !portuguese.where && (!portuguese.date || portuguese.date === "today")) {
+    transcript = `open ${portuguese.date ? "today's " : ""}${portuguese.report}`;
+  }
   const t = transcript.normalize("NFKC").toLowerCase().replace(/[’‘]/g, "'")
     .replace(/\b(?:um+|uh+|you know)\b/g, " ").replace(/(?<!\bwould |'d )\blike\b/g, " ")
     .replace(/[,.!?]/g, " ").replace(/\s+/g, " ").trim();
@@ -593,7 +598,7 @@ function obsidianAnswer(t: string): ObsidianAction | null {
   // fixed phrases first, on the RAW text — "toggle the right sidebar" must
   // not have its target eaten by the placement extractor
   for (const [re, action] of OBSIDIAN_FIXED) {
-    if (re.test(clean)) return action;
+    if (re.test(clean)) return typeof action === "string" ? { op: "command", id: action, label: COMMAND_ALLOW[action] } : action;
   }
   const { where, rest } = extractWhere(clean);
   // web targets — calendar defaults to the right sidebar (its natural home)
@@ -617,6 +622,12 @@ function obsidianAnswer(t: string): ObsidianAction | null {
     if (query) return { op: "search", query };
   }
   return null;
+}
+
+export function portugueseWorkspaceAction(transcript: string): ObsidianAction | null {
+  const intent = portugueseWorkspaceIntent(transcript);
+  if (!intent) return null;
+  return intent.action ?? obsidianAnswer(intent.command);
 }
 
 // --- github repos -------------------------------------------------------------

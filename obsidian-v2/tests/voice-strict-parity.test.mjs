@@ -168,13 +168,13 @@ test('a confirmed UI command goes through the unchanged validators and is record
  const runs=await arms(t,'Close this tab please');
  assert.equal(runs.off.outcome.reply,MODEL.reply);
  const receipt=runs.on.receipt;
- assert.deepEqual(receipt.obsidian,{op:'command',id:'workspace:close',label:'close tab'});assert.equal(receipt.reply,'');assert.deepEqual(runs.on.fx.calls,[]);
+ assert.deepEqual(receipt.obsidian,{op:'command',id:'workspace:close',label:'fechar aba'});assert.equal(receipt.reply,'');assert.deepEqual(runs.on.fx.calls,[]);
  assert.equal(receipt.decision.source,'rules');assert.equal(receipt.decision.rule,'router.strictUi');assert.deepEqual(receipt.decision.rawIntent,{tier:2,kind:'local-ui'});assert.deepEqual(receipt.decision.effects,['ui']);
  assert.equal(runs.on.seen.modelCalls||0,0);assert.equal(receipt.engine,'rules');assert.equal(receipt.model,null);assert.equal(receipt.tier,1);
  assert.deepEqual(runs.shadow.record.candidate,{kind:'ui',action:{obsidian:receipt.obsidian}});
  // Placement survives exactly as spoken.
  const placed=await arms(t,'Can you pull Gmail up on the right side');
- assert.deepEqual(placed.on.receipt.obsidian,{op:'web',url:'https://mail.google.com',label:'gmail',where:'right-sidebar'});assert.equal(placed.on.receipt.decision.rule,'router.strictUi');
+ assert.deepEqual(placed.on.receipt.obsidian,{op:'web',url:'https://mail.google.com',label:'Gmail',where:'right-sidebar'});assert.equal(placed.on.receipt.decision.rule,'router.strictUi');
  // "Open up my daily note": the open grammar accepts the words too, but they name no file, so there is one reading.
  const daily=await arms(t,'Bring up my daily note');
  if(STRICT.has(daily.on.receipt.decision?.rule))assert.deepEqual(daily.on.receipt.obsidian,{op:'daily-note'});else unchanged(daily,'Bring up my daily note');

@@ -71,9 +71,13 @@ Para rodar uma skill instalada em um terminal novo com o provedor selecionado, d
 
 A opção **Confirmar ações** usa `liveConfirm` em `system/v2/profile.json`. Os valores são `auto` (**Executar direto**, o padrão, com cerca de 2,5 segundos para cancelar), `voice` (**Diga “sim”**), `click` (**Clique para confirmar**) e `destructive` (**Confirmar só paradas e edições**). Os dois painéis usam a opção salva.
 
-## Consultas salvas por voz
+<a id="consultas-salvas-por-voz"></a>
+
+## Consultas e navegação por voz
 
 Para consultar a nota diária, pergunte “Quais são minhas prioridades de hoje?” ou “O que tem na minha agenda hoje?”. Para consultar o boletim salvo, experimente “Quais foram as principais notícias de IA de hoje?”, “Qual foi a notícia mais comentada no Hacker News hoje?” ou “Quais e-mails urgentes aparecem no boletim de hoje?”. As respostas usam os dados já salvos.
+
+Para abrir o arquivo, diga “Abra minha nota diária de hoje”, “Abra o boletim da manhã de ontem” ou “Abra a nota [título da nota]”. “Abra o painel” e “Abra o terminal” também funcionam nos dois aplicativos. No Obsidian, você pode dizer “Busque no cofre por [termo]”, “Feche esta aba” ou pedir que uma nota abra “na barra lateral esquerda”.
 
 Durante uma chamada, pergunte “Qual o status da tarefa?” para acompanhar o trabalho. Para pedir a interrupção de uma tarefa, diga “Pare essa tarefa do Codex” ou “Cancele a tarefa atual”. A confirmação segue o modo configurado no painel.
 

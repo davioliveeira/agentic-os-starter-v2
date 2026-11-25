@@ -11,14 +11,14 @@ export type ObsidianAction =
 // command ids the orb may execute — ALSO the allowlist for model-emitted
 // actions (a model must never invoke arbitrary command ids)
 export const COMMAND_ALLOW: Record<string, string> = {
-  "app:go-back": "back",
-  "app:go-forward": "forward",
-  "workspace:close": "close tab",
-  "workspace:split-vertical": "split right",
-  "workspace:split-horizontal": "split down",
-  "app:toggle-left-sidebar": "left sidebar",
-  "app:toggle-right-sidebar": "right sidebar",
-  "graph:open": "graph view",
+  "app:go-back": "voltar no histórico",
+  "app:go-forward": "avançar no histórico",
+  "workspace:close": "fechar aba",
+  "workspace:split-vertical": "dividir à direita",
+  "workspace:split-horizontal": "dividir para baixo",
+  "app:toggle-left-sidebar": "alternar barra lateral esquerda",
+  "app:toggle-right-sidebar": "alternar barra lateral direita",
+  "graph:open": "abrir visualização em grafo",
   // opens in a bottom split via the terminal plugin's own newInstanceBehavior.
   // id format is open-terminal.<default|integrated|external|select>.<root|current>
   // since the plugin's 3.27 update (the old open-terminal.default died silently);
@@ -29,8 +29,8 @@ export const COMMAND_ALLOW: Record<string, string> = {
 // named web targets → urls (model picks a NAME, never a raw url); opened in
 // Obsidian's core Web Viewer
 export const WEB_TARGETS: Record<string, { url: string; label: string }> = {
-  calendar: { url: "https://calendar.google.com", label: "google calendar" },
-  gmail: { url: "https://mail.google.com", label: "gmail" },
-  "youtube-studio": { url: "https://studio.youtube.com", label: "youtube studio" },
+  calendar: { url: "https://calendar.google.com", label: "Google Agenda" },
+  gmail: { url: "https://mail.google.com", label: "Gmail" },
+  "youtube-studio": { url: "https://studio.youtube.com", label: "YouTube Studio" },
 };
 

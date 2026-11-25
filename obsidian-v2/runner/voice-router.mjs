@@ -230,6 +230,8 @@ async function classify(root,{id,transcript,chosen,terminals,workTarget,appScope
  const live=transport==='live';
  const status=live&&taskStatusReply(transcript,()=> (terminals?.list?.()||[]).filter(task=>taskInScope(task,appScope)),liveTaskIds);
  if(status)return via('router.taskStatus',{tier:2,engine:'rules',reply:status.reply,context:''});
+ const workspace=rules.portugueseWorkspaceAction(transcript);
+ if(workspace)return via('router.obsidianControl',{tier:2,engine:'rules',reply:'',context:'',obsidian:workspace});
  const memory=()=>voiceMemory(root,chosen.provider,appScope,transport,liveCallId);
  // A concrete saved-report navigation request needs only its registered
  // folder. Resolve it before section/brief interpreters can mistake "pull up"

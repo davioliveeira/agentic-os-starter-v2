@@ -68,7 +68,7 @@ test('one sentence, one finished and validated action, or the stage that refused
  const opened=await ask('Pop open the streak plan');
  assert.equal(opened.stage,'confirmed');assert.deepEqual(opened.routed,{tier:2,engine:'rules',context:'',panels:['documents'],lookupRoute:'open',reply:'',obsidian:{op:'open-note',query:'projects/streak-plan.md'}});
  const ui=await ask('Close this tab please');
- assert.equal(ui.stage,'confirmed');assert.deepEqual(ui.routed,{tier:2,engine:'rules',reply:'',context:'',obsidian:{op:'command',id:'workspace:close',label:'close tab'}});
+ assert.equal(ui.stage,'confirmed');assert.deepEqual(ui.routed,{tier:2,engine:'rules',reply:'',context:'',obsidian:{op:'command',id:'workspace:close',label:'fechar aba'}});
  // A strict UI result is never a note, a report, a write or work.
  for(const say of ['Toggle the left sidebar','Open Gmail in a split','Go back','Split the screen right','Open up the graph view']){const made=await ask(say);assert.equal(made.stage,'confirmed',say);assert.deepEqual(Object.keys(made.routed).sort(),['context','engine','obsidian','reply','tier']);assert.notEqual(made.routed.obsidian.op,'open-note')}
  assert.deepEqual(await ask('What did the streak plan say about Fridays?'),{kind:null,stage:'door',reason:'ui:refused-word|open:refused-word'});
@@ -113,7 +113,7 @@ test('off runs nothing; shadow waits for the answer; on returns a rules result w
  assert.equal(await shadow.atBoundary({transcript:'Close this tab please',validateText,tables}),null);
  await tick(20);assert.equal(evaluated,0,'a would-be check ran before the answer');assert.equal(classifierProcesses().checks,1,'the pending record is owned');
  shadow.returned();await settle();
- assert.equal(evaluated,1);assert.equal(records.length,1);assert.deepEqual({...records[0],ts:null,evaluatedAt:null,ms:null},{id:'shadow-1',ts:null,mode:{open:'shadow',ui:'shadow'},blockedBy:null,candidate:{kind:'ui',action:{obsidian:{op:'command',id:'workspace:close',label:'close tab'}}},kind:'ui',stage:'confirmed',reason:null,acted:false,deferred:true,evaluatedAt:null,ms:null});
+ assert.equal(evaluated,1);assert.equal(records.length,1);assert.deepEqual({...records[0],ts:null,evaluatedAt:null,ms:null},{id:'shadow-1',ts:null,mode:{open:'shadow',ui:'shadow'},blockedBy:null,candidate:{kind:'ui',action:{obsidian:{op:'command',id:'workspace:close',label:'fechar aba'}}},kind:'ui',stage:'confirmed',reason:null,acted:false,deferred:true,evaluatedAt:null,ms:null});
  // On: a confirmed action comes back at once, as a rules result with its provenance.
  const taken=[];const on=strictRules({root,id:'on-1',config:{open:'on',ui:'on'},log:(_root,_id,record)=>taken.push(record)});
  const result=await on.atBoundary({transcript:'Pop open the streak plan',validateText,tables,preModelMs:7});on.returned();await settle();

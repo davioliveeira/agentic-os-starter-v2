@@ -75,10 +75,10 @@ export async function applyVoiceAction(app:App,reply:Partial<VoiceReply>,activat
    search.openGlobalSearch(action.query);return `Buscando por ${action.query}.`;
   }
   case 'command':{
-   if(!COMMAND_ALLOW[action.id])throw new Error('Este comando do espaço de trabalho é incompatível.');
+   const label=COMMAND_ALLOW[action.id];if(!label)throw new Error('Este comando do espaço de trabalho é incompatível.');
    if(action.id==='terminal:open-terminal.default.root'){openWork();return 'Visualização de terminais aberta.'}
    if(!(app as any).commands?.executeCommandById?.(action.id))throw new Error('Este comando do espaço de trabalho está indisponível.');
-   return `Aberto: ${action.label}.`;
+   return `Comando executado: ${label}.`;
   }
   case 'repo':case 'web':{
    if(action.op==='repo'&&!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(action.slug))throw new Error('Repositório inválido.');

@@ -104,3 +104,11 @@ test('native explicit split and sidebar requests keep their chosen destination',
   assert.deepEqual(f.created.map(item=>item.where),[where]);assert.equal(f.opened.length,1);assert.notEqual(f.revealed[0],existing);
  }
 });
+
+test('native workspace commands confirm the action in Portuguese',async()=>{
+ const commands=[];
+ const app={commands:{executeCommandById(id){commands.push(id);return true}}};
+ const result=await applyVoiceAction(app,{...quickReply,obsidian:{op:'command',id:'workspace:close',label:'close tab'}},()=>assert.fail('no dashboard activation'),()=>assert.fail('no terminal opening'));
+ assert.equal(result,'Comando executado: fechar aba.');
+ assert.deepEqual(commands,['workspace:close']);
+});
