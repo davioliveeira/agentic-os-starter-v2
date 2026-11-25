@@ -150,7 +150,7 @@ for (const provider of ['codex', 'claude']) {
   const f = fixture(t, provider), task = f.saved();
   assert.throws(() => f.manager.send(task.id, request), /Retome este terminal/);
   f.manager.resume(task.id);
-  assert.equal(f.processes.length, 2); assert.match(f.processes[1].args.at(-1), /without using tools or taking actions/);
+  assert.equal(f.processes.length, 2); assert.match(f.processes[1].args.at(-1), /sem usar ferramentas nem executar ações/);
   assert.deepEqual(f.processes[1].writes, []);
  });
 

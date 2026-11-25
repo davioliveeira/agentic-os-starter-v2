@@ -107,12 +107,12 @@ for(const provider of ['codex','claude']){
   let called=0;
   const answer=await f.speak(provider,'Tell me more about that mathematics item',async(_root,job,_prompt,options)=>{
    called++;assert.equal(job.model,provider==='codex'?'luna':'haiku');
-   assert.match(options.system,/not a live ranking/);assert.match(options.system,/"points":1050,"comments":1003/);
+   assert.match(options.system,/classificação em tempo real/);assert.match(options.system,/"points":1050,"comments":1003/);
    assert.match(options.system,/https:\/\/example.test\/mathematics/);
    // Bounded source facts include both supported rankings, without loading
    // private inbox text, dashboard metrics, or the entire workflow catalog.
    assert.ok(options.system.length<8000);
-   assert.doesNotMatch(options.system,/Dashboard snapshot|Full workflow catalog|Private unrelated inbox material/);
+   assert.doesNotMatch(options.system,/Dados salvos do painel|Catálogo completo de fluxos|Private unrelated inbox material/);
    return {text:JSON.stringify({tier:2,reply:'The saved brief lists 1,050 points and 1,003 comments for that mathematics story.'})};
   });
   assert.equal(called,1);assert.equal(answer.tier,2);assert.deepEqual(answer.workIds,[]);

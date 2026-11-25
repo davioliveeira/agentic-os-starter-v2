@@ -36,7 +36,7 @@ for(const provider of ['codex','claude']){
   assert.equal(f.calls[0].title,'Dig deeper into local model options for you');
   assert.match(f.calls[0].prompt,/^dig deeper into local model options for you\n/);
   assert.ok(f.calls[0].prompt.includes(QUESTION));assert.ok(f.calls[0].prompt.includes(OFFER));
-  assert.doesNotMatch(f.calls[0].prompt,/Original voice request: yes|UNRELATED_OLD_TASK|Unrelated old publishing request/);
+  assert.doesNotMatch(f.calls[0].prompt,/Pedido de voz original: yes|UNRELATED_OLD_TASK|Unrelated old publishing request/);
   assert.equal(reply.workerModel,provider==='codex'?'astra':'sonnet');
   const receipt=JSON.parse(fs.readFileSync(path.join(f.root,'system/v2/voice-results',id+'.json'),'utf8'));assert.equal(receipt.transcript,'yes');
   assert.deepEqual(await f.speak('yes',{id}),reply);assert.equal(f.calls.length,1);

@@ -20,7 +20,7 @@ for(const provider of ['codex','claude'])test(`${provider} voice style travels w
  assert.equal(task.prompt,prompt);manager.start({id:task.id,selection:chosen,prompt,spoken:true});assert.equal(processes.length,1);
  manager.accept(task.id,{type:'complete',sessionId:crypto.randomUUID(),turnId:'initial',text:'{"artifact":"graphic.svg"}'});
  assert.equal(task.turns[0].text,'{"artifact":"graphic.svg"}');manager.stop(task.id);manager.resume(task.id);
- assert.match(processes[1].args.at(-1),/^Resume this conversation without using tools/);assert.ok(!processes[1].args.at(-1).includes(WORKER_SPOKEN_STYLE));
+ assert.match(processes[1].args.at(-1),/^Retome esta conversa sem usar ferramentas/);assert.ok(!processes[1].args.at(-1).includes(WORKER_SPOKEN_STYLE));
  manager.accept(task.id,{type:'complete',turnId:'resumed',text:'Ready.'});manager.send(task.id,'Typed request');assert.ok(processes[1].writes[0].startsWith(`\x1b[200~Typed request\n\n${ARTIFACT_HANDOFF_INSTRUCTIONS}`));assert.ok(processes[1].writes[0].endsWith('\x1b[201~'));assert.ok(processes[1].writes[0].includes(task.artifactRequestKey));
 });
 

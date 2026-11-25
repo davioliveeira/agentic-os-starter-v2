@@ -76,7 +76,7 @@ test('Portuguese stop requests require an explicit instruction to stop work',()=
 });
 
 test('workers are told that HTML cannot be shown',()=>{
- assert.match(ARTIFACT_HANDOFF_INSTRUCTIONS,/HTML, SVG and other web files cannot be displayed in Obsidian or on the dashboard/);
+ assert.match(ARTIFACT_HANDOFF_INSTRUCTIONS,/O Obsidian e o painel não exibem HTML, SVG nem outros arquivos da web/);
 });
 
 function fixture(t){
@@ -96,7 +96,7 @@ test('a pleasantry in front of a request no longer eats the request',async t=>{
  const research=await f.speak("Thanks. Now can you research Jev's pricing model?");
  assert.equal(research.workIds.length,1);assert.notEqual(research.reply,'De nada.');
  // Routing drops the pleasantry; the worker still sees the words as spoken.
- const started=f.calls.find(c=>c.kind==='start');assert.match(started.prompt,/research Jev's pricing model/);assert.match(started.prompt,/Original voice request: Thanks\. Now can you research/);
+ const started=f.calls.find(c=>c.kind==='start');assert.match(started.prompt,/research Jev's pricing model/);assert.match(started.prompt,/Pedido de voz original: Thanks\. Now can you research/);
  const mic=await f.speak('Can you hear me? Okay, research Jev.');
  assert.equal(mic.workIds.length,1);assert.notEqual(mic.reply,'Sim, estou te ouvindo bem.');
  const thanks=await f.speak('thanks jarvis',{execute:f.noModel});assert.equal(thanks.reply,'De nada.');assert.deepEqual(thanks.workIds,[]);

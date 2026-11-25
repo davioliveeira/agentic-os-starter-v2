@@ -57,7 +57,7 @@ for(const provider of ['codex','claude'])for(const scope of ['native','web']){
   f.advance(1000);
   f.receipt({deliverable:`inbox/research/morning-intel/${localDate()}-intel.md`});
   const result=await f.classify(transcript);
-  assert.equal(result.tier,3);assert.equal(result.engine,'rules');assert.match(result.context,/Aurora cipher result/);assert.match(result.context,/Referenced report:/);
+  assert.equal(result.tier,3);assert.equal(result.engine,'rules');assert.match(result.context,/Aurora cipher result/);assert.match(result.context,/Relatório citado:/);
   const fresh=await f.classify(transcript,{newConversation:true});
   assert.equal(fresh.tier,3);assert.match(fresh.context,/Aurora cipher result/);
   f.reset();assert.equal((await f.classify(transcript)).lookupRoute,'clarification');

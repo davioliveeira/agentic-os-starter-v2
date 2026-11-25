@@ -98,7 +98,7 @@ for(const provider of ['codex','claude']){
   f.manager.accept(task.id,{type:'native-exit',nativeInstance:instance,code:0,ts:100001});
   assert.equal(task.state,'stopped');assert.equal(task.native.ended,true);assert.equal(task.pid,null);assert.equal(f.manager.live.has(task.id),false);assert.equal(task.turns[0].text,'The first saved answer.');
   f.manager.resume(task.id);assert.notEqual(task.native.instance,instance);assert.notEqual(task.native.ticket,firstTicket);assert.equal(f.processes.length,0);
-  const next=readNativeTicket(task.native.ticket);assert.match(next.args.at(-1),/^Resume this conversation without using tools/);assert.ok(!next.args.at(-1).includes(task.prompt));
+  const next=readNativeTicket(task.native.ticket);assert.match(next.args.at(-1),/^Retome esta conversa sem usar ferramentas/);assert.ok(!next.args.at(-1).includes(task.prompt));
   f.manager.accept(task.id,{type:'native-exit',nativeInstance:instance,code:5});assert.equal(task.state,'starting','Old instance cannot terminate the replacement');
   f.manager.accept(task.id,{type:'native-exit',nativeInstance:task.native.instance,code:5});assert.equal(task.state,'error');assert.match(task.error,/A CLI encerrou/);
  });

@@ -59,8 +59,9 @@ for(const provider of ['codex','claude']){
   let invoked=false;
   await f.speak(provider,utterance,async(_root,job,prompt,options)=>{
    invoked=true;assert.equal(job.model,provider==='codex'?'luna':'haiku');
-   assert.match(options.system,/Dashboard snapshot/);assert.match(options.system,/Utterance: this is not the next request/);
-   assert.equal(options.user,utterance);assert.equal(prompt,options.system+'\nUtterance: '+JSON.stringify(utterance));
+   assert.match(options.system,/Dados salvos do painel/);assert.match(options.system,/Utterance: this is not the next request/);
+   assert.match(options.system,/Retorne apenas JSON estrito/);assert.match(options.system,/Não chame ferramentas/);
+   assert.equal(options.user,utterance);assert.equal(prompt,options.system+'\nPedido falado: '+JSON.stringify(utterance));
    assert.doesNotMatch(options.system,/What is the second one about\?/);
    return {text:JSON.stringify({tier:2,reply:'The second item is a research finding.'})};
   });
@@ -144,7 +145,7 @@ test('conversation memory expires, respects clear and provider, and stale offers
 test('Fable override keeps quick replies model-free and selects the full worker model only for work',async t=>{
  const f=fixture(t);assert.match((await f.speak('claude','Use fable and what are my priorities?')).reply,/Record the launch demo/);assert.equal(f.calls.length,0);
  const result=await f.speak('claude','Use fable and research Aurora',async(_root,job)=>{assert.equal(job.model,'haiku');return {text:JSON.stringify({tier:3,reply:'Researching Aurora.'})}});
- assert.equal(result.workerModel,'fable');assert.equal(f.calls[0].selection.model,'fable');assert.match(f.calls[0].prompt,/^research Aurora\n\nEarlier in this conversation \(for reference only\):\nUser: Use fable and what are my priorities\?/);assert.doesNotMatch(f.calls[0].prompt,/Original voice request|Background work|At \d{4}-/);
+ assert.equal(result.workerModel,'fable');assert.equal(f.calls[0].selection.model,'fable');assert.match(f.calls[0].prompt,/^research Aurora\n\nTrecho anterior desta conversa \(apenas para referência\):\nPessoa: Use fable and what are my priorities\?/);assert.doesNotMatch(f.calls[0].prompt,/Pedido de voz original|Trabalho em segundo plano|Em \d{4}-/);
  await assert.rejects(f.speak('codex','Use haiku and research Aurora'),/haiku está indisponível em codex/);assert.equal(f.calls.length,1);
 });
 test('fresh original named offers execute without a model',async t=>{
@@ -208,7 +209,7 @@ test('fast model snapshot does not pass off historical daily tasks as current',a
  writeJson(f.root,'system/v2/voice-results/stale-plan.json',{ts:Date.now(),provider:'codex',transcript:'What is on my schedule?',reply:'Today your priority is ImpossibleCurrentPriority.'});
  let checked=false;
  await classifyVoice(f.root,{id:crypto.randomUUID(),chosen:{provider:'codex',model:'astra'},transcript:'Is there enough saved information to recommend my next project?',terminals:f.terminals,execute:async(_root,_job,prompt)=>{
- checked=true;assert.match(prompt,/missing for today; last saved note is 2020-01-01/);assert.doesNotMatch(prompt,/Record the launch demo|ImpossibleCurrentPriority/);return{text:'{"tier":2,"reply":"There is no current daily plan."}'};
+ checked=true;assert.match(prompt,/indisponível para hoje\. Última nota salva: 2020-01-01/);assert.doesNotMatch(prompt,/Record the launch demo|ImpossibleCurrentPriority/);return{text:'{"tier":2,"reply":"There is no current daily plan."}'};
  }});assert.equal(checked,true);
 });
 

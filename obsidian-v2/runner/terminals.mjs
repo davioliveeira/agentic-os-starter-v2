@@ -62,7 +62,7 @@ export function terminalSpec(root,record,cli=findCli(record.provider),{resumePro
   args=['--model',modelFamily('claude',record.model),'--effort',CLAUDE_WORKER_EFFORT,'--settings',JSON.stringify({hooks}),...(record.sessionId?['--resume',record.sessionId]:['--session-id',record.id])];
  }
  // New sessions receive their initial prompt as a process argument, not shell code.
- const request=record.sessionId?(resumePrompt===undefined?'Resume this conversation without using tools or taking actions. Briefly confirm you are ready for a follow-up.':cleanPrompt(resumePrompt)):record.prompt;
+ const request=record.sessionId?(resumePrompt===undefined?'Retome esta conversa sem usar ferramentas nem executar ações. Confirme brevemente que está pronto para continuar.':cleanPrompt(resumePrompt)):record.prompt;
  const explicit=!record.sessionId||resumePrompt!==undefined;
  const handoff=artifactHandoffInstructions({node:process.execPath,helper:path.join(projectRoot,'runner','artifact-result.mjs'),events,taskId:record.id,requestKey:record.artifactRequestKey,provider:record.provider});
  args.push('--',explicit&&!(record.slashSkill&&!record.sessionId)?`${request}${spoken?`\n\n${WORKER_SPOKEN_STYLE}`:''}\n\n${handoff}`:request);

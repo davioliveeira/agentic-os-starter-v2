@@ -197,7 +197,7 @@ for(const {provider,appScope} of [{provider:'codex',appScope:'native'},{provider
  assert.equal(result.skill,'voice-ask');assert.equal(result.workIds.length,1);assert.equal(result.openWhenDone,true);
  const [call]=f.calls;assert.equal(call.kind,'start');assert.equal(call.openWhenDone,true);
  assert.match(call.prompt,/visual explainer of how Jev works/);assert.match(call.prompt,/once you create that, can you open it up for me/);
- assert.match(call.prompt,/register the final file with the dashboard helper using --open/);
+ assert.match(call.prompt,/registre o arquivo final com o auxiliar do painel e a opção --open/);
  // The saved run is still one ask away by name, without a model.
  assert.equal(call.selection.provider,provider);assert.equal(call.execution,appScope==='native'?'native':undefined);
  opened(await f.speak('show me the content cascade',{provider,appScope}),'inbox/reports/cascades/2026-09-15-1e089d8f.md');
@@ -214,5 +214,5 @@ test('a plain work request does not promise an open, and a continuation carries 
  assert.equal(plain.workIds.length,1);assert.equal(plain.openWhenDone,undefined);assert.equal(f.calls.at(-1).openWhenDone,undefined);
  const followup=await f.speak("make the title larger and once it's done, open it up for me",{workTarget:task.id,execute:model});
  assert.equal(followup.openWhenDone,true);assert.deepEqual(followup.workIds,[task.id]);
- const sent=f.calls.at(-1);assert.equal(sent.kind,'send');assert.match(sent.text,/register the final file with the dashboard helper using --open/);
+ const sent=f.calls.at(-1);assert.equal(sent.kind,'send');assert.match(sent.text,/registre o arquivo final com o auxiliar do painel e a opção --open/);
 });

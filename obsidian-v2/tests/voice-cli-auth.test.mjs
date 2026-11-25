@@ -24,7 +24,7 @@ test('Haiku classifier is nonpersistent, tool-free and customization-free withou
  assert.equal(args[args.indexOf('--tools')+1],'');
  assert.deepEqual(JSON.parse(args[args.indexOf('--mcp-config')+1]),{mcpServers:{}});
  assert.equal(args[args.indexOf('--setting-sources')+1],'');
- assert.match(args[args.indexOf('--system-prompt')+1],/classifier process has no execution tools/i);
+ assert.match(args[args.indexOf('--system-prompt')+1],/O classificador não tem ferramentas de execução/i);
  assert.ok(!args.includes('--bare'),'Bare mode requires API authentication');
  assert.equal(args[args.indexOf('--effort')+1],'low','The voice classifier answers at low effort (MAX_THINKING_TOKENS alone does not stop Haiku thinking)');
  const worker=commandFor(os.tmpdir(),{id:crypto.randomUUID(),provider:'claude',model:'sonnet',skill:'review'},{command:'claude',prefix:[]}).args;

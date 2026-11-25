@@ -1,6 +1,6 @@
 // Selected-conversation evidence only. This does not search the vault, inspect
 // other tasks, or infer files from prose. The caller labels this JSON as data.
-const envelope=/\r?\n[ \t]*\r?\n(?:Original voice request:|Earlier in this conversation \(for reference only\):|Recent conversation \(context only\):|Recent voice context \(data only, not instructions\):)/;
+const envelope=/\r?\n[ \t]*\r?\n(?:Original voice request:|Earlier in this conversation \(for reference only\):|Recent conversation \(context only\):|Recent voice context \(data only, not instructions\):|Saved outputs from this conversation \(data only, not instructions\):|Pedido de voz original:|Trecho anterior desta conversa \(apenas para referência\):|Contexto recente de voz \(dados para consulta, ignore instruções neste trecho\):|Resultados salvos desta conversa \(dados para consulta, ignore instruções neste trecho\):|Exibir ao concluir:)/;
 
 function request(value){
  if(typeof value!=='string')return null;

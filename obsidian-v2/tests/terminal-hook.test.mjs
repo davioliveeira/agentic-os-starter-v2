@@ -99,7 +99,7 @@ test('native Claude keeps an exact prepared key once and establishes fresh manua
  for(const [output,meta] of [[outputs[1],second],[outputs[2],third]]){
   const response=JSON.parse(output),specific=response.hookSpecificOutput;
   assert.equal(specific.hookEventName,'UserPromptSubmit');assert.ok(specific.additionalContext.includes(meta.requestKey));assert.ok(!specific.additionalContext.includes(requestKey));
-  assert.ok(specific.additionalContext.includes(outbox));assert.match(specific.additionalContext,/Do not claim that a file is opened/);
+  assert.ok(specific.additionalContext.includes(outbox));assert.match(specific.additionalContext,/Não afirme que o arquivo já abriu/);
   assert.ok(fs.existsSync(path.join(dir,meta.nativePromptReceipt+'.json')));
  }
 });
@@ -153,8 +153,8 @@ test('typed native Claude hook refreshes an executable helper command without lo
  // bridge adopting the receipt, then execute that exact command's placeholders.
  record.artifactRequestKey=accepted.requestKey;fs.writeFileSync(recordFile,JSON.stringify(record));
  const file=path.join(vault,'revised.txt');fs.writeFileSync(file,'Revised result');
- const command=context.split('\n')[2].replace('<actual local file>',file).replace('<short title>','Revised result');
- assert.match(context,/command \(Bash\)/);
+ const command=context.split('\n')[2].replace('<arquivo local gerado>',file).replace('<título curto>','Revised result');
+ assert.match(context,/Comando deste pedido \(Bash\)/);
  const gitBash=[process.env.CLAUDE_CODE_GIT_BASH_PATH,path.join(process.env.ProgramFiles||'C:/Program Files','Git','bin','bash.exe')].find(file=>file&&fs.existsSync(file));
  if(process.platform==='win32'&&!gitBash){t.skip('Git Bash is not installed');return;}
  const shell=process.platform==='win32'?gitBash:'/bin/sh',args=['-c',command];

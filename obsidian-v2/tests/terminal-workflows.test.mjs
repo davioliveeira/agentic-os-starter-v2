@@ -103,7 +103,7 @@ test('interrupted continued workflow resumes without submitting or saving readin
  const id=crypto.randomUUID();manager.continueWorkflow(task.id,{id,selection,skill:'inbox-brief'});manager.stop(task.id);
  const recovery=manager.originalRequest(task.id);assert.equal(recovery.prompt,task.workflow.prompt);assert.equal(recovery.skill,'inbox-brief');assert.equal(recovery.title,SKILLS['inbox-brief'].label);assert.equal(recovery.selection.model,selection.model);
  const metadata=JSON.stringify(task);assert.throws(()=>manager.continueWorkflow(task.id,{selection,skill:'weekly-review'}),/Retome este terminal/);assert.equal(JSON.stringify(task),metadata);
- manager.resume(task.id);assert.equal(processes.length,2);assert.deepEqual(processes[1].writes,[]);assert.match(processes[1].args.at(-1),/without using tools or taking actions/);
+ manager.resume(task.id);assert.equal(processes.length,2);assert.deepEqual(processes[1].writes,[]);assert.match(processes[1].args.at(-1),/sem usar ferramentas nem executar ações/);
  manager.accept(task.id,{type:'complete',sessionId,turnId:'resume-ready',text:'Ready for a follow-up.'});assert.equal(task.workflowCompleted,false);assert.equal(fs.existsSync(path.join(root,'system/v2/artifacts',id+'.md')),false);
  assert.throws(()=>manager.continueWorkflow(task.id,{selection,skill:'weekly-review'}),/tem um fluxo pendente/);assert.deepEqual(processes[1].writes,[]);
  manager.send(task.id,'Continue the inbox brief');manager.accept(task.id,{type:'complete',sessionId,turnId:'completed-after-resume',text:'# Inbox brief\nVerified result'});

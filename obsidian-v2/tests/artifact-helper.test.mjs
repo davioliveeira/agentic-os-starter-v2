@@ -100,11 +100,11 @@ test('concrete handoff commands quote literal paths and do not depend on inherit
  const f=fixture(t);
  for(const platform of ['win32','darwin']){
   const text=artifactHandoffInstructions({node:process.execPath,helper:f.helper,events:f.events,taskId:f.taskId,requestKey:f.requestKey,platform});
-  assert.ok(text.includes(f.requestKey));assert.ok(text.includes(f.helper));assert.doesNotMatch(text,/\$env:|\$AOS_/);assert.match(text,/Replace only the file and title/);
+  assert.ok(text.includes(f.requestKey));assert.ok(text.includes(f.helper));assert.doesNotMatch(text,/\$env:|\$AOS_/);assert.match(text,/Substitua apenas os marcadores do arquivo e do título/);
  }
  if(process.platform==='win32'){
   const instruction=artifactHandoffInstructions({node:process.execPath,helper:f.helper,events:f.events,taskId:f.taskId,requestKey:f.requestKey});
-  const command=instruction.split('\n')[2].replace('<actual local file>',f.file).replace('<short title>','Result');
+  const command=instruction.split('\n')[2].replace('<arquivo local gerado>',f.file).replace('<título curto>','Result');
   const result=spawnSync('powershell.exe',['-NoLogo','-NoProfile','-NonInteractive','-Command',command],{env:f.env,encoding:'utf8',windowsHide:true,timeout:5000});assert.equal(result.status,0,result.stderr);
  }
 });
@@ -113,14 +113,14 @@ for(const provider of ['codex','claude'])test(`${provider} startup and resumed f
  const manager=new TerminalManager(base,{directory:path.join(base,'tasks'),spawn(command,args){const proc={pid:100,command,args,writes:[],write(value){this.writes.push(value)},onData(){},onExit(){},resize(){},kill(){}};processes.push(proc);return proc;}});
  t.after(()=>{manager.close();fs.rmSync(base,{recursive:true,force:true});});
  const record=manager.start({selection:{provider,model:provider==='codex'?'astra':'sonnet'},prompt:'Create a picture',spoken:true}),firstKey=record.artifactRequestKey;
- const shell=process.platform==='win32'&&provider==='codex'?'PowerShell':'Bash';assert.ok(processes[0].args.at(-1).includes(`command (${shell}):`));
+ const shell=process.platform==='win32'&&provider==='codex'?'PowerShell':'Bash';assert.ok(processes[0].args.at(-1).includes(`Comando deste pedido (${shell}):`));
  assert.ok(processes[0].args.at(-1).includes(firstKey));assert.ok(processes[0].args.at(-1).includes(manager.artifactOutbox(record.id)));assert.doesNotMatch(processes[0].args.at(-1),/\$env:|\$AOS_/);
  manager.accept(record.id,{type:'complete',sessionId:crypto.randomUUID(),turnId:'one',text:'Done'});manager.send(record.id,'Show the result');
  const secondKey=record.artifactRequestKey;assert.notEqual(secondKey,firstKey);assert.ok(processes[0].writes[0].includes(secondKey));assert.ok(!processes[0].writes[0].includes(firstKey));
- assert.ok(processes[0].writes[0].includes(`command (${shell}):`));
+ assert.ok(processes[0].writes[0].includes(`Comando deste pedido (${shell}):`));
  manager.accept(record.id,{type:'complete',turnId:'two',text:'Done'});manager.stop(record.id);manager.send(record.id,'Edit the graphic',{resumeStopped:true});
  assert.notEqual(record.artifactRequestKey,secondKey);assert.ok(processes[1].args.at(-1).includes(record.artifactRequestKey));
- assert.ok(processes[1].args.at(-1).includes(`command (${shell}):`));
+ assert.ok(processes[1].args.at(-1).includes(`Comando deste pedido (${shell}):`));
 });
 test('collection drains a bounded current-task outbox and cancellation or expiry cannot present late results',t=>{
  const base=fs.mkdtempSync(path.join(os.tmpdir(),'aos-outbox-'));let now=Date.now();

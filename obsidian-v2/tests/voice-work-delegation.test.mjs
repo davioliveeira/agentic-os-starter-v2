@@ -48,11 +48,11 @@ test('restricted Luna classifier receives the explicit delegation contract witho
  const configured=JSON.parse(option.slice('model_instructions_file='.length));
  assert.equal(path.resolve(configured),fileURLToPath(new URL('../runner/voice-classifier-instructions.md',import.meta.url)));
  const text=fs.readFileSync(configured,'utf8');
- assert.match(text,/classifier process has no execution tools/i);
- assert.match(text,/returning tier 3 delegates requested work/i);
- assert.match(text,/matching named skill .* is not required/i);
- assert.match(text,/negated or deferred work are not delegation/i);
- assert.match(text,/Prior assistant claims[\s\S]*not authoritative capability limits/i);
+ assert.match(text,/O classificador não tem ferramentas de execução/i);
+ assert.match(text,/tier 3 encaminha o trabalho pedido/i);
+ assert.match(text,/Sem uma skill correspondente, retorne tier 3/i);
+ assert.match(text,/tarefas negadas ou adiadas ficam no tier 2/i);
+ assert.match(text,/Declarações anteriores do assistente[\s\S]*não definem os limites/i);
 });
 
 for(const provider of ['codex','claude']){

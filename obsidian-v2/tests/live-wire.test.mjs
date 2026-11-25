@@ -17,7 +17,7 @@ test('session create lists allowed server events as objects, not strings', () =>
   "You're the user's personal assistant on a live voice call",
   "never guess facts about the user's life or files that aren't there",
   // OpenAI's documented delegation-policy wording: in prose, Live handed off questions the snapshot already answered.
-  "Delegation policy:\nBackend tools: V2, running on the user's computer, which passes requests down the chain. Down the chain (use these names when you offer one): Resumo da caixa de entrada (reads Gmail now)",
+  "Delegation policy:\nBackend tools: V2, running on the user's computer, which passes requests down the chain. Recursos disponíveis para oferecer: Resumo da caixa de entrada (consulta o Gmail agora)",
   "\nDelegate to the backend when:\n- The request needs their files or notes opened or changed, something run on their computer, email or calendar newer than the snapshot, or the web.\n",
   '- They accept a next step you offered: delegate their answer.',
   "- They ask to stop, cancel or drop work, ask how a task is going, or answer one of V2's confirmation questions.",

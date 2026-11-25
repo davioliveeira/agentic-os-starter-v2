@@ -15,13 +15,13 @@ test('artifact commands select the provider tool shell and preserve invalid-iden
  const options={node:"C:\\Program Files\\nodejs\\node.exe",helper:"C:\\Worker's folder\\helper.mjs",events:"C:\\Vault's folder\\outbox",taskId:crypto.randomUUID(),requestKey:crypto.randomUUID()};
  for(const platform of ['win32','darwin','linux'])for(const provider of ['codex','claude']){
   const instruction=artifactHandoffInstructions({...options,platform,provider}),powershell=platform==='win32'&&provider==='codex';
-  assert.ok(instruction.includes(`command (${powershell?'PowerShell':'Bash'}):`));
+  assert.ok(instruction.includes(`Comando deste pedido (${powershell?'PowerShell':'Bash'}):`));
   const command=instruction.split('\n')[2];
   if(powershell){assert.ok(command.startsWith("& 'C:\\Program Files"));assert.ok(command.includes("Worker''s folder"));}
   else {assert.ok(!command.startsWith('&'));assert.ok(command.includes(`Worker'"'"'s folder`));if(platform==='win32')assert.ok(command.startsWith("'C:/Program Files/nodejs/node.exe'"));}
  }
  assert.equal(artifactHandoffInstructions({...options,provider:'claude',taskId:'invalid'}),ARTIFACT_HANDOFF_INSTRUCTIONS);
- assert.match(artifactHandoffInstructions({...options,platform:'win32'}),/command \(PowerShell\)/);
+ assert.match(artifactHandoffInstructions({...options,platform:'win32'}),/Comando deste pedido \(PowerShell\)/);
 });
 
 for(const provider of ['codex','claude'])test(`${provider} generated command executes literal paths with spaces and apostrophes`,{skip:process.platform==='win32'&&provider==='claude'&&!gitBash?'Git Bash is not installed':false},t=>{
@@ -35,7 +35,7 @@ for(const provider of ['codex','claude'])test(`${provider} generated command exe
  const file=path.join(vault,"result's file.txt"),label="Result's $(literal) `text` & symbols";fs.writeFileSync(file,'Fixture result');
  const powershell=shellName(provider)==='PowerShell',literal=value=>powershell?value.replaceAll("'","''"):value.replaceAll("'",`'"'"'`);
  const instruction=artifactHandoffInstructions({node:process.execPath,helper,events:outbox,taskId,requestKey,provider});
- const command=instruction.split('\n')[2].replace('<actual local file>',literal(file)).replace('<short title>',literal(label));
+ const command=instruction.split('\n')[2].replace('<arquivo local gerado>',literal(file)).replace('<título curto>',literal(label));
  const shell=powershell?'powershell.exe':process.platform==='win32'?gitBash:'/bin/bash';
  const args=powershell?['-NoLogo','-NoProfile','-NonInteractive','-Command',command]:['--noprofile','--norc','-c',command];
  const env={...process.env};for(const key of Object.keys(env))if(key.startsWith('AOS_'))delete env[key];
@@ -51,11 +51,11 @@ for(const provider of ['codex','claude'])test(`${provider} native launch and fol
  t.after(()=>{manager.close();fs.rmSync(root,{recursive:true,force:true});});
  const task=manager.start({selection:{provider,model:provider==='codex'?'astra':'sonnet'},prompt:'Make a file',execution:'native'});
  const ticket=JSON.parse(fs.readFileSync(task.native.ticket,'utf8'));
- assert.ok(ticket.args.at(-1).includes(`command (${shellName(provider)}):`));
+ assert.ok(ticket.args.at(-1).includes(`Comando deste pedido (${shellName(provider)}):`));
  const launch=task.native.actions.find(action=>action.type==='launch');manager.claimNative(launch.id);
  manager.accept(task.id,{type:'native-start',taskId:task.id,nativeInstance:task.native.instance,pid:700,ts:Date.now()});
  manager.nativeEvent({taskId:task.id,instance:task.native.instance,actionId:launch.id,type:'launched',hostPid:600});
  manager.accept(task.id,{type:provider==='codex'?'complete':'Stop',sessionId:crypto.randomUUID(),nativeInstance:task.native.instance,turnId:crypto.randomUUID(),text:'Saved.',ts:Date.now()});
  assert.equal(task.state,'ready');manager.send(task.id,'Show the file');
- const send=task.native.actions.find(action=>action.type==='send');assert.ok(send.text.includes(`command (${shellName(provider)}):`));assert.ok(send.text.includes(task.artifactRequestKey));
+ const send=task.native.actions.find(action=>action.type==='send');assert.ok(send.text.includes(`Comando deste pedido (${shellName(provider)}):`));assert.ok(send.text.includes(task.artifactRequestKey));
 });
