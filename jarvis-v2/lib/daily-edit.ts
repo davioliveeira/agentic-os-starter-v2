@@ -53,7 +53,7 @@ export function createDailyPost({ requestBridge = bridge, invalidate = invalidat
       root = status.vault;
       const path = `daily-notes/${today}.md`;
       const report = await requestBridge('/report?path=' + encodeURIComponent(path));
-      if (typeof report.content !== 'string') throw new Error('The daily note could not be loaded');
+      if (typeof report.content !== 'string') throw new Error('Não foi possível carregar a nota diária');
       const before = report.content, after = updatePriority(before, directive);
       await requestBridge('/notes/replace', { path, before, after });
       invalidate(root!);

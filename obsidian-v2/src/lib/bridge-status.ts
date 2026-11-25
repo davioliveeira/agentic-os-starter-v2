@@ -5,7 +5,7 @@ export function readBridgeStatus():Promise<any>{
  if(sample&&Date.now()<expires)return Promise.resolve(sample);
  if(flight)return flight;
  flight=v2VoiceTransport('/status',{}).then(r=>{
-  if(r.status!==200)throw new Error('Terminal bridge offline');
+  if(r.status!==200)throw new Error('Ponte do terminal offline');
   sample=r.json;expires=Date.now()+1000;return sample;
  }).finally(()=>{flight=null});
  return flight;

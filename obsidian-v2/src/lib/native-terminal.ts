@@ -25,8 +25,8 @@ const canonical=(value:string)=>{const normalized=value.replace(/\\/g,'/').repla
 const absolute=(value:unknown):value is string=>typeof value==='string'&&!/[\x00-\x1f\x7f]/.test(value)&&(/^[A-Za-z]:[\\/]/.test(value)||value.startsWith('/'));
 export function checkedTerminalRuntime(value:unknown,vault:string):TerminalRuntime {
  const config=value as TerminalRuntime|null;
- if(!config||config.version!==1||!absolute(config.vault)||canonical(config.vault)!==canonical(vault)||![config.nodeExecutable,config.attachmentScript,config.runtimeDir].every(absolute))throw new Error('Terminal launch configuration is unavailable for this vault. Run the V2 installer.');
- if(!/(?:^|[\\/])node(?:\.exe)?$/i.test(config.nodeExecutable)||!/[\\/]runner[\\/]terminal-attach\.mjs$/i.test(config.attachmentScript)||canonical(config.runtimeDir)!==canonical(config.attachmentScript.replace(/[\\/]runner[\\/]terminal-attach\.mjs$/i,'/.runtime')))throw new Error('Terminal launch configuration does not match the V2 runner. Run the V2 installer.');
+ if(!config||config.version!==1||!absolute(config.vault)||canonical(config.vault)!==canonical(vault)||![config.nodeExecutable,config.attachmentScript,config.runtimeDir].every(absolute))throw new Error('Falta a configuração do terminal para este cofre. Rode o instalador do V2.');
+ if(!/(?:^|[\\/])node(?:\.exe)?$/i.test(config.nodeExecutable)||!/[\\/]runner[\\/]terminal-attach\.mjs$/i.test(config.attachmentScript)||canonical(config.runtimeDir)!==canonical(config.attachmentScript.replace(/[\\/]runner[\\/]terminal-attach\.mjs$/i,'/.runtime')))throw new Error('A configuração de abertura do terminal é incompatível com o V2. Rode o instalador do V2.');
  return config;
 }
 function profileState(leaf:WorkspaceLeaf):Record<string,any>|null {
@@ -44,7 +44,7 @@ export function terminalConversation(leaf:WorkspaceLeaf):{id:string;provider:Pro
  return {id:args[4],provider:metadata.AOS_V2_TASK_PROVIDER};
 }
 export function attachmentViewState(config:TerminalRuntime,task:Task,base:Profile={type:'integrated'},platform='win32',lifetimeEndpoint?:string) {
- if(!uuid.test(task.id)||!['codex','claude'].includes(task.provider))throw new Error('This terminal task is invalid.');
+ if(!uuid.test(task.id)||!['codex','claude'].includes(task.provider))throw new Error('Esta tarefa do terminal é inválida.');
  const title=`${task.provider==='codex'?'Codex':'Claude'} · ${(task.title||'Conversation').replace(/[\x00-\x1f\x7f]/g,' ').replace(/\s+/g,' ').trim().slice(0,70)}`;
  return {type:NATIVE_TERMINAL_VIEW,active:false,state:{[NATIVE_TERMINAL_VIEW]:{
   cwd:config.vault,focus:false,profileSourceId:null,serial:null,userTitle:title,

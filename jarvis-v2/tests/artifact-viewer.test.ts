@@ -12,7 +12,7 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
 
 test('display promise waits for the current viewer loaded event and ignores stale load callbacks',async()=>{
  let view:ArtifactView|null=null,done=false;const presenter=new ArtifactPresenter(value=>view=value),first=presenter.open(artifact);
- const firstRejected=assert.rejects(first,/replaced/);assert.ok(view);const prior=(view as ArtifactView|null)!.generation;
+ const firstRejected=assert.rejects(first,/substituiu/);assert.ok(view);const prior=(view as ArtifactView|null)!.generation;
  const second=presenter.open({...artifact,id:'artifact_qrstuvwxyz123456'}).then(()=>{done=true});await firstRejected;
  presenter.loaded(prior);await flush();assert.equal(done,false);presenter.loaded((view as ArtifactView|null)!.generation);await second;assert.equal(done,true);presenter.destroy();
 });
@@ -20,8 +20,8 @@ test('display promise waits for the current viewer loaded event and ignores stal
 test('close, errors, cancellation and unmount reject a pending viewer without approving a file',async()=>{
  for(const action of ['close','fail','abort','unmount']){
   let view:ArtifactView|null=null;const presenter=new ArtifactPresenter(value=>view=value),controller=new AbortController();
-  const promise=presenter.open(artifact,controller.signal),failure=assert.rejects(promise,/closed|unavailable|cancelled/);
-  if(action==='close')presenter.close();else if(action==='fail')presenter.failed(view!.generation,'File unavailable');else if(action==='abort')controller.abort();else presenter.destroy();
+  const promise=presenter.open(artifact,controller.signal),failure=assert.rejects(promise,/fechad[oa]|indisponível|cancelada/);
+  if(action==='close')presenter.close();else if(action==='fail')presenter.failed(view!.generation,'Arquivo indisponível');else if(action==='abort')controller.abort();else presenter.destroy();
   await failure;if(action==='abort'||action==='close')assert.equal(view,null);presenter.destroy();
  }
 });
@@ -30,23 +30,23 @@ test('viewer timeout is bounded and an already loaded preview remains visible wh
  let timeout:(()=>void)|null=null,clears=0;
  t.mock.method(globalThis,'setTimeout',((fn:()=>void)=>{timeout=fn;return 1 as unknown as ReturnType<typeof setTimeout>}) as typeof setTimeout);
  t.mock.method(globalThis,'clearTimeout',(()=>{clears++}) as typeof clearTimeout);
- let view:ArtifactView|null=null;const presenter=new ArtifactPresenter(value=>view=value),pending=presenter.open(artifact),failure=assert.rejects(pending,/too long/);timeout!();await failure;assert.equal(view,null);
+ let view:ArtifactView|null=null;const presenter=new ArtifactPresenter(value=>view=value),pending=presenter.open(artifact),failure=assert.rejects(pending,/demorou demais/);timeout!();await failure;assert.equal(view,null);
  const controller=new AbortController(),loaded=presenter.open(artifact,controller.signal);presenter.loaded(view!.generation);await loaded;controller.abort();assert.ok(view,'finished display is not tied to later voice cancellation');assert.ok(clears>=2);presenter.destroy();
 });
 
 test('invalid references and pre-aborted requests never expose a preview',async()=>{
- let shown=0;const presenter=new ArtifactPresenter(()=>shown++),controller=new AbortController();controller.abort();await assert.rejects(presenter.open(artifact,controller.signal),/cancelled/);
- for(const replacement of [{id:'../../secret'},{mime:'text/html'},{mime:'image/svg+xml'},{bytes:MAX_ARTIFACT_BYTES+1}])await assert.rejects(presenter.open({...artifact,...replacement}),/cannot be displayed/);
- assert.equal(shown,0);presenter.destroy();await assert.rejects(presenter.open(artifact),/cancelled/);
+ let shown=0;const presenter=new ArtifactPresenter(()=>shown++),controller=new AbortController();controller.abort();await assert.rejects(presenter.open(artifact,controller.signal),/cancelada/);
+ for(const replacement of [{id:'../../secret'},{mime:'text/html'},{mime:'image/svg+xml'},{bytes:MAX_ARTIFACT_BYTES+1}])await assert.rejects(presenter.open({...artifact,...replacement}),/não conseguiu exibir/);
+ assert.equal(shown,0);presenter.destroy();await assert.rejects(presenter.open(artifact),/cancelada/);
 });
 
 test('client fetch uses only opaque IDs and verifies returned MIME and byte count before display',async()=>{
  const calls:{url:string;options?:RequestInit}[]=[],controller=new AbortController();
  const fetcher:typeof fetch=async(url,options)=>{calls.push({url:String(url),options});return new Response(new Uint8Array([1,2,3,4]),{headers:{'Content-Type':'image/png'}})};
  const result=await loadArtifact({...artifact,path:'C:/private/never-in-request.png'},controller.signal,fetcher);assert.equal(result.blob.size,4);assert.equal(result.text,null);assert.equal(calls[0].url,artifactUrl(artifact.id));assert.equal(calls[0].options?.signal,controller.signal);assert.doesNotMatch(calls[0].url,/private|path=/);
- await assert.rejects(loadArtifact(artifact,controller.signal,async()=>new Response('<script>bad()</script>',{headers:{'Content-Type':'text/html'}})),/unsupported format/);
- await assert.rejects(loadArtifact(artifact,controller.signal,async()=>new Response('changed',{headers:{'Content-Type':'image/png'}})),/changed while/);
- await assert.rejects(loadArtifact(artifact,controller.signal,async()=>new Response('changed',{status:409})),/changed/);
+ await assert.rejects(loadArtifact(artifact,controller.signal,async()=>new Response('<script>bad()</script>',{headers:{'Content-Type':'text/html'}})),/formato incompatível/);
+ await assert.rejects(loadArtifact(artifact,controller.signal,async()=>new Response('changed',{headers:{'Content-Type':'image/png'}})),/mudou durante/);
+ await assert.rejects(loadArtifact(artifact,controller.signal,async()=>new Response('changed',{status:409})),/mudou/);
 });
 
 test('text is decoded but rendered as inert content, including embedded HTML and executable links',async()=>{
@@ -75,8 +75,8 @@ test('proxy rejects active document MIME and preserves missing or changed-file f
 });
 
 test('declared and chunked oversized files are refused, and abort releases a hanging reader',async()=>{
- let cancelled=0;const oversized=new Response(new ReadableStream({cancel(){cancelled++}}),{headers:{'Content-Length':String(MAX_ARTIFACT_BYTES+1)}});await assert.rejects(readArtifactBytes(oversized),/too large/);assert.equal(cancelled,1);
+ let cancelled=0;const oversized=new Response(new ReadableStream({cancel(){cancelled++}}),{headers:{'Content-Length':String(MAX_ARTIFACT_BYTES+1)}});await assert.rejects(readArtifactBytes(oversized),/excede o limite de tamanho/);assert.equal(cancelled,1);
  const large=new Uint8Array(MAX_ARTIFACT_BYTES/2+1);let emitted=0;
- const chunked=new Response(new ReadableStream({pull(controller){if(emitted++<2)controller.enqueue(large);else controller.close()},cancel(){cancelled++}}));await assert.rejects(readArtifactBytes(chunked),/too large/);assert.equal(cancelled,2);
- const abort=new AbortController(),hanging=new Response(new ReadableStream({cancel(){cancelled++}})),pending=readArtifactBytes(hanging,abort.signal),failure=assert.rejects(pending,/cancelled/);abort.abort();await failure;assert.equal(cancelled,3);
+ const chunked=new Response(new ReadableStream({pull(controller){if(emitted++<2)controller.enqueue(large);else controller.close()},cancel(){cancelled++}}));await assert.rejects(readArtifactBytes(chunked),/excede o limite de tamanho/);assert.equal(cancelled,2);
+ const abort=new AbortController(),hanging=new Response(new ReadableStream({cancel(){cancelled++}})),pending=readArtifactBytes(hanging,abort.signal),failure=assert.rejects(pending,/cancelada/);abort.abort();await failure;assert.equal(cancelled,3);
 });

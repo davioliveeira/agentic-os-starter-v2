@@ -13,7 +13,7 @@ export function configureVoiceTransport(app:App,pluginDirectory:string){
    const value=JSON.parse(await adapter.read(`${pluginDirectory}/bridge-auth.json`));
    if(value.version===1&&typeof value.token==='string'&&/^[a-f0-9]{64}$/.test(value.token))return value.token;
   }catch{}
-  throw new Error('Bridge connection is unavailable. Start the V2 bridge for this vault and try again.');
+  throw new Error('A ponte está indisponível. Inicie a ponte V2 para este cofre e tente novamente.');
  }:undefined;
 }
 async function authorization(refresh=false){
@@ -22,14 +22,14 @@ async function authorization(refresh=false){
  return cachedToken??(cachedToken=await tokenReader());
 }
 export const v2LiveFetch=liveBridgeFetch('native',async refresh=>{
- const token=await authorization(refresh);if(!token)throw new Error('Live voice needs the Obsidian desktop app.');return token;
+ const token=await authorization(refresh);if(!token)throw new Error('A voz ao vivo precisa do Obsidian para desktop.');return token;
 });
 export async function assertVoiceVault(app:App){
  const adapter=app.vault.adapter as typeof app.vault.adapter & {getBasePath?:()=>string};
  if(!adapter.getBasePath)return; // Browser preview is served from the bridge's configured vault.
  const r=await requestUrl({url:'http://127.0.0.1:3219/state',throw:false});
  const normalize=(s:string)=>s.replace(/\\/g,'/').toLowerCase();
- if(r.status!==200||normalize(r.json.vault)!==normalize(adapter.getBasePath()))throw new Error('Voice bridge is connected to a different vault. Start V2 for this vault before speaking.');
+ if(r.status!==200||normalize(r.json.vault)!==normalize(adapter.getBasePath()))throw new Error('A ponte de voz está ligada a outro cofre. Inicie o V2 deste cofre antes de falar.');
 }
 export const v2VoiceTransport:VoiceTransport=async(path,options={})=>{
  const method=(options.method||'GET').toUpperCase(),native=!!tokenReader;

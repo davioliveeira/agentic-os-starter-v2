@@ -19,13 +19,13 @@ export class ArtifactDelivery {
   const controller=new AbortController();this.active=controller;
   let timer:ReturnType<typeof setTimeout>|undefined,abort:()=>void=()=>{},ok=false,timedOut=false,error:string|undefined;
   try{
-   if(this.disposed||generation!==this.generation||!this.canOpen()){controller.abort();throw new Error('Opening was cancelled.');}
+   if(this.disposed||generation!==this.generation||!this.canOpen()){controller.abort();throw new Error('A abertura foi cancelada.');}
    await Promise.race([
     this.open(action.artifact,controller.signal),
-    new Promise<never>((_resolve,reject)=>{abort=()=>reject(new Error('Opening was cancelled.'));controller.signal.addEventListener('abort',abort,{once:true});timer=setTimeout(()=>{timedOut=true;reject(new Error('The file took too long to open.'));controller.abort()},25000)})
+    new Promise<never>((_resolve,reject)=>{abort=()=>reject(new Error('A abertura foi cancelada.'));controller.signal.addEventListener('abort',abort,{once:true});timer=setTimeout(()=>{timedOut=true;reject(new Error('O arquivo demorou demais para abrir.'));controller.abort()},25000)})
    ]);
    ok=true;
-  }catch(cause){error=cause instanceof Error?cause.message:'The file could not be opened.';if(!this.disposed&&(timedOut||!controller.signal.aborted))this.report(error)}
+  }catch(cause){error=cause instanceof Error?cause.message:'Não foi possível abrir o arquivo.';if(!this.disposed&&(timedOut||!controller.signal.aborted))this.report(error)}
   finally{clearTimeout(timer);controller.signal.removeEventListener('abort',abort);if(this.active===controller)this.active=null}
   const receipt:ArtifactAck={client:this.client,id:action.id,ok,...(error?{error:error.slice(0,300)}:{})};
   this.receipts.set(action.id,receipt);while(this.receipts.size>500)this.receipts.delete(this.receipts.keys().next().value!);

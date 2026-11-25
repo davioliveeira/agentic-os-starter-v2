@@ -6,7 +6,7 @@ export const dashboardStore=createPollStore({initial:{state:null,error:false} as
  load:async():Promise<Snapshot>=>{if(document.hidden)return dashboardStore.getSnapshot();try{
   const response=await fetch('/api/state',{cache:'no-store',headers:etag?{'If-None-Match':etag}:{},signal:AbortSignal.timeout(8000)});
   if(response.status===304){const previous=dashboardStore.getSnapshot();return previous.error?{...previous,error:false}:previous}
-  if(!response.ok)throw new Error('Dashboard unavailable');
+  if(!response.ok)throw new Error('Painel indisponível');
   const state=await response.json();etag=response.headers?.get('etag')||'';
   return {state,error:false};
  }catch{return {...dashboardStore.getSnapshot(),error:true}}},

@@ -16,13 +16,13 @@ export function bindTerminalLifetime(view:ViewComponent,lifetime:TerminalLifetim
 function nativeModules():LifetimeModules {
  // No eager Node import: the same source tree also has a browser preview.
  const requireNative=(globalThis as typeof globalThis&{require?:(id:string)=>any}).require;
- if(!requireNative)throw new Error('The native terminal lifetime service is unavailable.');
+ if(!requireNative)throw new Error('O serviço que controla o terminal nativo está indisponível.');
  const nodeProcess=requireNative('process') as typeof process;
  return {net:requireNative('net'),platform:nodeProcess.platform,id:requireNative('crypto').randomUUID(),tmpdir:requireNative('os').tmpdir()};
 }
 export async function createTerminalLifetime(modules:LifetimeModules=nativeModules()):Promise<TerminalLifetime> {
  const {net,platform,id,tmpdir}=modules;
- if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))throw new Error('Invalid terminal viewer identity.');
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))throw new Error('A identificação do visualizador de terminal é inválida.');
  const endpoint=platform==='win32'?`\\\\.\\pipe\\aos-v2-terminal-${id}`:`${tmpdir.replace(/\/$/,'')}/aos-v2-terminal-${id}.sock`;
  // macOS has a short sockaddr_un path limit. /tmp is local and the random
  // endpoint has no sensitive payload; it carries only this viewer's lifetime.

@@ -200,7 +200,7 @@ test('native action adapter opens actual notes in requested panes and reports un
  const leaf={openFile:async f=>calls.push(f.path),setViewState:async s=>calls.push(s)};
  const app={vault:{getAbstractFileByPath:p=>p===file.path?file:null,getMarkdownFiles:()=>[file]},workspace:{getRightLeaf:()=>{calls.push('right');return leaf},getLeaf:()=>leaf,revealLeaf:async()=>{}},commands:{executeCommandById:()=>false}};
  await applyVoiceAction(app,{obsidian:{op:'open-note',query:file.path,where:'right-sidebar'}},async()=>{},()=>{});assert.deepEqual(calls,['right',file.path]);
- await assert.rejects(applyVoiceAction(app,{obsidian:{op:'command',id:'graph:open'}},async()=>{},()=>{}),/unavailable/);
+ await assert.rejects(applyVoiceAction(app,{obsidian:{op:'command',id:'graph:open'}},async()=>{},()=>{}),/está indisponível/);
  let opened=0;await applyVoiceAction(app,{obsidian:{op:'command',id:'terminal:open-terminal.default.root'}},async()=>{},()=>opened++);assert.equal(opened,1);
 });
 test('fast model snapshot does not pass off historical daily tasks as current',async t=>{

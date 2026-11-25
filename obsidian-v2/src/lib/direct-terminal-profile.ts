@@ -22,12 +22,12 @@ export function directTerminalMetadata(leaf:{getViewState():any}):{id:string;ins
 }
 export function directTerminalViewState(action:DirectAction,base:Record<string,unknown>={}) {
  const {launch}=action;
- if(!directId(action.id)||!directId(action.taskId)||!directId(action.instance)||!['codex','claude'].includes(action.provider||'')||!launch||!absolute(launch.executable)||!absolute(launch.cwd)||!Array.isArray(launch.args)||launch.args.some(arg=>typeof arg!=='string'||/[\x00-\x1f\x7f]/.test(arg)))throw new Error('The native terminal launch is invalid.');
+ if(!directId(action.id)||!directId(action.taskId)||!directId(action.instance)||!['codex','claude'].includes(action.provider||'')||!launch||!absolute(launch.executable)||!absolute(launch.cwd)||!Array.isArray(launch.args)||launch.args.some(arg=>typeof arg!=='string'||/[\x00-\x1f\x7f]/.test(arg)))throw new Error('Os dados de abertura do terminal nativo são inválidos.');
  // Terminal 3.27.x builds a Windows batch file. Its argv encoder does not
  // support literal newlines; a one-use launch ticket carries full prompt text.
- if(!ticketProfile(launch))throw new Error('The native launch ticket is invalid.');
- if(launch.pythonExecutable!==undefined&&!pythonPath(launch.pythonExecutable))throw new Error('The native launch Python is invalid.');
- if(launch.environment&&(!Array.isArray(launch.environment)||launch.environment.some(entry=>!Array.isArray(entry)||entry.length!==2||entry.some(value=>typeof value!=='string'||/[\x00\r\n]/.test(value)))))throw new Error('The native launch environment is invalid.');
+ if(!ticketProfile(launch))throw new Error('A autorização de abertura do terminal nativo é inválida.');
+ if(launch.pythonExecutable!==undefined&&!pythonPath(launch.pythonExecutable))throw new Error('O Python configurado para o terminal nativo é inválido.');
+ if(launch.environment&&(!Array.isArray(launch.environment)||launch.environment.some(entry=>!Array.isArray(entry)||entry.length!==2||entry.some(value=>typeof value!=='string'||/[\x00\r\n]/.test(value)))))throw new Error('O ambiente configurado para o terminal nativo é inválido.');
  const platform=/^[A-Za-z]:[\\/]/.test(launch.executable)?'win32':typeof process!=='undefined'?process.platform:'darwin';
  const title=`${action.provider==='codex'?'Codex':'Claude'} · ${(action.title||'Conversation').replace(/[\x00-\x1f\x7f]/g,' ').replace(/\s+/g,' ').trim().slice(0,70)}`;
  const environment=(launch.environment||[]).filter(([key])=>!['AOS_V2_NATIVE_DIRECT','AOS_V2_TASK_ID','AOS_V2_TASK_PROVIDER','AOS_V2_NATIVE_INSTANCE'].includes(key));

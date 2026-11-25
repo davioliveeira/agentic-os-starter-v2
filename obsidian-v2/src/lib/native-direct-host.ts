@@ -75,9 +75,9 @@ export class NativeDirectHost {
   const {plugin,support}=this.verified(),launch=action.launch;
   if(support.status==='untested')this.noticeOnce(support.message);
   const vault=(this.options.app.vault.adapter as typeof this.options.app.vault.adapter&{getBasePath?:()=>string}).getBasePath?.();
-  if(!vault||!launch||canonical(launch.cwd)!==canonical(vault))throw new Error('The native terminal launch names a different vault.');
+  if(!vault||!launch||canonical(launch.cwd)!==canonical(vault))throw new Error('A abertura do terminal nativo aponta para outro cofre.');
   const prior=this.registry.sessions.get(action.instance);
-  if(prior){if(this.alive(prior)){this.enqueue({taskId:action.taskId,instance:action.instance,actionId:action.id,type:'launched',hostPid:prior.binding.hostPid});return prior.leaf}throw new Error('This native terminal launch has already been used. Resume the conversation explicitly.')}
+  if(prior){if(this.alive(prior)){this.enqueue({taskId:action.taskId,instance:action.instance,actionId:action.id,type:'launched',hostPid:prior.binding.hostPid});return prior.leaf}throw new Error('Esta solicitação de abertura já foi usada. Retome a conversa pelo terminal.')}
   const settings=plugin.settings?.value,base=settings?.defaultProfile?settings.profiles?.[settings.defaultProfile]:undefined;
   const lifetime=await (this.options.createLifetime||createTerminalLifetime)();
   // This socket carries only READY and disconnect. The launcher uses it to
@@ -114,9 +114,9 @@ export class NativeDirectHost {
  }
  private async send(action:DirectAction){
   const session=this.registry.sessions.get(action.instance);
-  if(!session||session.taskId!==action.taskId||!this.alive(session))throw new Error('The target native terminal is no longer open.');
+  if(!session||session.taskId!==action.taskId||!this.alive(session))throw new Error('O terminal nativo da conversa foi fechado.');
   const {binding}=session,text=action.text;
-  if(typeof text!=='string'||!text.trim()||text.length>60000||/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(text)||!directId(action.requestKey))throw new Error('The native follow-up request is invalid.');
+  if(typeof text!=='string'||!text.trim()||text.length>60000||/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(text)||!directId(action.requestKey))throw new Error('A solicitação de continuação no terminal é inválida.');
   if(binding.hasDraft||binding.approval)throw new Error(binding.approval||'This terminal has a draft. Finish it in the terminal before sending another request.');
   const revision=session.revision;
   const cancelled=(reason:string,hasDraft=true)=>this.enqueue({taskId:action.taskId,instance:action.instance,actionId:action.id,type:'input-cancelled',reason,hasDraft});
@@ -135,15 +135,15 @@ export class NativeDirectHost {
   this.enqueue({taskId:action.taskId,instance:action.instance,actionId:action.id,type:'input-written'});
  }
  private async claim(pending:DirectAction){
-  if(!directId(pending.id)||!directId(pending.taskId)||!directId(pending.instance)||!['launch','send','stop'].includes(pending.type))throw new Error('The bridge returned an invalid native action.');
+  if(!directId(pending.id)||!directId(pending.taskId)||!directId(pending.instance)||!['launch','send','stop'].includes(pending.type))throw new Error('A ponte retornou uma ação inválida do terminal nativo.');
   if(this.registry.claimed.has(pending.id))return;
   this.registry.claimed.add(pending.id);
   try{
    const {action}=await this.options.request('/native/claim',{id:pending.id}) as {action:DirectAction};
-   if(!action||action.id!==pending.id||action.taskId!==pending.taskId||action.instance!==pending.instance||action.type!==pending.type)throw new Error('The native action changed while it was being claimed.');
+   if(!action||action.id!==pending.id||action.taskId!==pending.taskId||action.instance!==pending.instance||action.type!==pending.type)throw new Error('A ação do terminal nativo mudou durante o recebimento.');
    if(action.type==='launch')await this.launch(action);
    else if(action.type==='send')await this.send(action);
-   else {const session=this.registry.sessions.get(action.instance);if(!session||session.taskId!==action.taskId||!session.lifetime.active)throw new Error('The native terminal is already closed.');session.lifetime.close()}
+   else {const session=this.registry.sessions.get(action.instance);if(!session||session.taskId!==action.taskId||!session.lifetime.active)throw new Error('O terminal nativo já está fechado.');session.lifetime.close()}
   }catch(error){const reason=message(error);this.enqueue({taskId:pending.taskId,instance:pending.instance,actionId:pending.id,type:'error',reason});this.options.notice(reason)}
  }
  async sync():Promise<void>{
@@ -166,7 +166,7 @@ export class NativeDirectHost {
    // draft remains local and is never erased by a status refresh.
    for(const completed of presence?.ready||[]){const session=this.registry.sessions.get(completed.instance);if(session&&session.taskId===completed.taskId)session.binding.clearApproval()}
    const pending=await this.options.request('/native/pending');
-   if(!Array.isArray(pending.actions))throw new Error('The bridge returned invalid native terminal actions.');
+   if(!Array.isArray(pending.actions))throw new Error('A ponte retornou ações inválidas do terminal nativo.');
    for(const action of pending.actions){if(this.disposed)break;await this.claim(action);await this.flush()}
   });
   this.registry.queue=run;await run;

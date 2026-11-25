@@ -15,18 +15,18 @@ export function scriptStatus(task:WorkTask){
  return task.turns.length?'Script finished. Its result is saved below.':'This source refresh is stopped.';
 }
 export function checkedRecovery(value:unknown):RecoveredWorkRequest{
- if(!value||typeof value!=='object')throw new Error('The saved request is unavailable.');
+ if(!value||typeof value!=='object')throw new Error('A solicitação salva está indisponível.');
  const data=value as RecoveredWorkRequest;
- if(typeof data.prompt!=='string'||!data.prompt.trim()||data.prompt.length>12000)throw new Error('The saved request has invalid text.');
+ if(typeof data.prompt!=='string'||!data.prompt.trim()||data.prompt.length>12000)throw new Error('O texto da solicitação salva é inválido.');
  const selection=validateSelection(data.selection) as VoiceSelection;
- if(data.skill&&(!SKILLS[data.skill]||!data.args||typeof data.args!=='object'||Array.isArray(data.args)||Object.values(data.args).some(value=>typeof value!=='string')))throw new Error('The saved workflow settings are invalid.');
+ if(data.skill&&(!SKILLS[data.skill]||!data.args||typeof data.args!=='object'||Array.isArray(data.args)||Object.values(data.args).some(value=>typeof value!=='string')))throw new Error('As configurações salvas do fluxo são inválidas.');
  return {prompt:data.prompt,selection,...(data.title?{title:String(data.title)}:{}),...(data.skill?{skill:data.skill,args:data.args}:{})};
 }
 export function readRecovery(storage:DraftStorage,key:string){
  const raw=storage.getItem(key+':selection');if(!raw)return null;
  const prompt=readDraft(storage,key);if(!prompt.trim())return null;
  const parsed=JSON.parse(raw),saved=checkedRecovery(parsed.selection?parsed:{prompt,selection:parsed});
- if(saved.prompt!==prompt)throw new Error('The recovered request and its settings no longer match. Recover it again before submitting.');
+ if(saved.prompt!==prompt)throw new Error('A solicitação recuperada e suas configurações deixaram de corresponder. Recupere a solicitação novamente antes de enviá-la.');
  return saved;
 }
 export function preserveRecovery(storage:DraftStorage,key:string,request:RecoveredWorkRequest){
@@ -34,7 +34,7 @@ export function preserveRecovery(storage:DraftStorage,key:string,request:Recover
  storage.setItem(key+':selection',JSON.stringify(saved));
  if(!saveDraft(storage,key,saved.prompt)){
   try{if(previous===null)storage.removeItem(key+':selection');else storage.setItem(key+':selection',previous)}catch{}
-  throw new Error('Could not preserve the recovered request.');
+  throw new Error('Não foi possível preservar a solicitação recuperada.');
  }
  return saved;
 }
@@ -47,7 +47,7 @@ let workSessionMode:'native'|'preview'='native',workSessionStarted=false;
 // The component preview reads the web selection, but does not own a new app
 // session. Configure it before mounting components that load the work feed.
 export function configureWorkSession(mode:'native'|'preview'){
- if(workSessionStarted)throw new Error('Configure the work session before loading conversations.');
+ if(workSessionStarted)throw new Error('Configure a sessão de trabalho antes de carregar as conversas.');
  workSessionMode=mode;
 }
 export const workFeed=createWorkFeed(async(path:string)=>{await workConversations.startSession();const snapshot=await workRequest(path);workConversations.sync(snapshot);return snapshot});
@@ -63,7 +63,7 @@ export const setWorkProvider=(provider:'codex'|'claude')=>workConversations.setP
 export async function refreshWorkConversations(){
  const snapshot=await workFeed.refresh();
  if(snapshot.error)throw new Error(snapshot.error);
- if(!snapshot.current||!Number.isSafeInteger(snapshot.currentRevision))throw new Error('Conversation state is unavailable. Refresh the dashboard and try again.');
+ if(!snapshot.current||!Number.isSafeInteger(snapshot.currentRevision))throw new Error('O estado da conversa está indisponível. Atualize o painel e tente novamente.');
  workConversations.sync(snapshot);return snapshot;
 }
 export function publishWorkTask(task:WorkTask){

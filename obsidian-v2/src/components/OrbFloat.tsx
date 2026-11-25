@@ -74,7 +74,7 @@ export function OrbFloat({plugin,surfaceKind='native'}:{plugin:ChaseCommandCente
  // The recording command can mount the orb and dispatch its toggle immediately.
  useLayoutEffect(()=>{
   let alive=true,checkingCompletions=false;
-  voice.onArtifact=async(artifact,signal)=>{if(!alive)throw new Error('A abertura foi cancelada.');await openVoiceArtifact(plugin.app,artifact,signal);if(alive){setMessage(`Opened ${artifact.label}.`);setError(false);setUnread(true)}};
+  voice.onArtifact=async(artifact,signal)=>{if(!alive)throw new Error('A abertura foi cancelada.');await openVoiceArtifact(plugin.app,artifact,signal);if(alive){setMessage(`Arquivo aberto: ${artifact.label}.`);setError(false);setUnread(true)}};
   live.onArtifact=voice.onArtifact;
   voice.connect();voice.onState=setVoiceMode;voice.onMessage=(msg,isError=false)=>{setMessage(msg);setError(isError)};
   const showReply=async(r:Partial<VoiceReply>)=>{if(!alive)return;workConversations.sync({...workFeed.getSnapshot(),current:r.current,currentRevision:r.currentRevision});setUnread(true);if(r.queued)pendingVoice.current.add(r.queued);void workFeed.refresh();const message=await applyVoiceAction(plugin.app,r,()=>plugin.activateView(),()=>openWork());if(alive&&message)setMessage(message)};

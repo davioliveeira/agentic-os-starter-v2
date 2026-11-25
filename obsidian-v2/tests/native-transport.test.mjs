@@ -20,8 +20,8 @@ test('native auth failure never dispatches a write and preview delegates to its 
  const previous=globalThis.nativeTransportRequest;t.after(()=>{globalThis.nativeTransportRequest=previous});let requests=0;
  globalThis.nativeTransportRequest=async options=>{requests++;assert.equal(options.headers['X-V2-Token'],undefined);assert.equal(options.headers['X-V2-App'],undefined);return {status:200,headers:{'content-type':'application/json'},json:{ok:true}}};
  configureVoiceTransport({vault:{adapter:{getBasePath:()=>'/vault',read:async()=>{throw new Error('missing')}}}},'.obsidian/plugins/agentic-os-v2');
- await assert.rejects(v2VoiceTransport('/work/start',{method:'POST',body:'{}'}),/Start the V2 bridge/);assert.equal(requests,0);
- await assert.rejects(v2VoiceTransport('/work'),/Start the V2 bridge/);assert.equal(requests,0);
+ await assert.rejects(v2VoiceTransport('/work/start',{method:'POST',body:'{}'}),/Inicie a ponte V2/);assert.equal(requests,0);
+ await assert.rejects(v2VoiceTransport('/work'),/Inicie a ponte V2/);assert.equal(requests,0);
  configureVoiceTransport({vault:{adapter:{}}},'.obsidian/plugins/agentic-os-v2');await v2VoiceTransport('/work/start',{method:'POST',body:'{}'});assert.equal(requests,1);
 });
 

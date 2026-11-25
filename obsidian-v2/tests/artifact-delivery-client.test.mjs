@@ -89,20 +89,20 @@ test('native reuse rejects cancellation, a changed pane, or failed reveal withou
   const pending=openVoiceArtifact(f.app,artifact,controller.signal);await flush();
   if(scenario==='cancelled')controller.abort();else if(scenario==='changed')f.leaf.view.file={path:'other.png'};
   if(scenario==='failed')revealed.reject(new Error('Reveal failed'));else revealed.resolve();
-  await assert.rejects(pending,scenario==='cancelled'?/cancelled/:scenario==='changed'?/pane changed/:/Reveal failed/);
+  await assert.rejects(pending,scenario==='cancelled'?/cancelada/:scenario==='changed'?/A aba mudou/:/Reveal failed/);
  }
 });
 
 test('native artifact delivery rejects traversal, executable formats, mismatched MIME, and missing files',async t=>{
  const f=nativeFixture();
- for(const path of ['../outside.png','C:/private.png','/private.png','system/../outside.png','system\\outside.png','./example.png'])await assert.rejects(openVoiceArtifact(f.app,{...artifact,path}),/invalid path/);
- for(const path of ['system/image.svg','system/page.html','system/file.exe'])await assert.rejects(openVoiceArtifact(f.app,{...artifact,path}),/file type/);
- await assert.rejects(openVoiceArtifact(f.app,{...artifact,mime:'image/jpeg'}),/file type/);assert.equal(f.calls.length,0);
- t.mock.method(globalThis,'setTimeout',fn=>setImmediate(fn));t.mock.method(globalThis,'clearTimeout',id=>clearImmediate(id));await assert.rejects(openVoiceArtifact(f.app,{...artifact,path:'system/missing.png'}),/not found/);assert.equal(f.calls.length,0);
+ for(const path of ['../outside.png','C:/private.png','/private.png','system/../outside.png','system\\outside.png','./example.png'])await assert.rejects(openVoiceArtifact(f.app,{...artifact,path}),/caminho do arquivo salvo é inválido/);
+ for(const path of ['system/image.svg','system/page.html','system/file.exe'])await assert.rejects(openVoiceArtifact(f.app,{...artifact,path}),/formato de arquivo é incompatível/);
+ await assert.rejects(openVoiceArtifact(f.app,{...artifact,mime:'image/jpeg'}),/formato de arquivo é incompatível/);assert.equal(f.calls.length,0);
+ t.mock.method(globalThis,'setTimeout',fn=>setImmediate(fn));t.mock.method(globalThis,'clearTimeout',id=>clearImmediate(id));await assert.rejects(openVoiceArtifact(f.app,{...artifact,path:'system/missing.png'}),/ainda precisa localizá-lo/);assert.equal(f.calls.length,0);
 });
 
 test('native open failure, empty viewer, or cancellation never report success',async()=>{
  const failed=nativeFixture();failed.leaf.openFile=async()=>{throw new Error('Viewer failed')};await assert.rejects(openVoiceArtifact(failed.app,artifact),/Viewer failed/);assert.ok(!failed.calls.some(c=>c[0]==='reveal'));
- const empty=nativeFixture();empty.leaf.view.getViewType=()=> 'empty';await assert.rejects(openVoiceArtifact(empty.app,artifact),/could not display/);
- const cancelled=nativeFixture(),controller=new AbortController();controller.abort();await assert.rejects(openVoiceArtifact(cancelled.app,artifact,controller.signal),/cancelled/);assert.equal(cancelled.calls.length,0);
+ const empty=nativeFixture();empty.leaf.view.getViewType=()=> 'empty';await assert.rejects(openVoiceArtifact(empty.app,artifact),/não conseguiu exibir/);
+ const cancelled=nativeFixture(),controller=new AbortController();controller.abort();await assert.rejects(openVoiceArtifact(cancelled.app,artifact,controller.signal),/cancelada/);assert.equal(cancelled.calls.length,0);
 });

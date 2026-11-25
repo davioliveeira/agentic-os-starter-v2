@@ -15,7 +15,7 @@ let live:LiveSession|null=null;
 const liveListeners=new Set<(snapshot:LiveSnapshot)=>void>();
 let log:(kind:string,text:string)=>void=()=>{},listening:(v:boolean)=>void=()=>{},speaking:(v:boolean)=>void=()=>{},mode:(v:VoiceMode)=>void=()=>{};
 let panels:(items:string[])=>void=()=>{},deliverable:(path:string,label:string,liveReport?:boolean)=>void=()=>{},reveal:(item:VoiceReveal,liveReport?:boolean)=>void=()=>{},openDoc:(path:string,liveReport?:boolean)=>void=()=>{};
-const noArtifactViewer:ArtifactOpener=async()=>{throw new Error('The dashboard file viewer is unavailable.')};
+const noArtifactViewer:ArtifactOpener=async()=>{throw new Error('O visualizador de arquivos do painel está indisponível.')};
 let artifact:ArtifactOpener=noArtifactViewer;
 function get(){
  if(!session){const transport=browserVoiceTransport(undefined,authorizeBridge);session=new VoiceSession(transport,getWorkSelection,'web');
@@ -64,7 +64,7 @@ export const voice={
  syncLiveContext(){live?.pushContext()},
  muteLive(muted:boolean){return live?.setMuted(muted)},
  actionLive(confirm:boolean){return live?.action(confirm)},
- readLiveReport(path:string){if(!live)throw new Error('This Live call has ended.');return live.report(path)},
+ readLiveReport(path:string){if(!live)throw new Error('A chamada de voz ao vivo terminou.');return live.report(path)},
  dismissLiveCompletion(seq:number){live?.dismissCompletion(seq)},
  stopLive(){return live?.stop()??false},
  stop(reason?:'provider-change'|'target-change'|'local-only'){

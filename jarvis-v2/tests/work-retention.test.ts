@@ -38,7 +38,7 @@ test('copying an expired draft cannot replace an occupied new composer or its pr
 test('draft-copy storage failure leaves the old draft and never pretends the new composer was staged',()=>{
   const storage=memory();storage.setItem(source,'Saved before expiry');
   const failing={...storage,setItem(key:string,value:string){if(key!==source)throw new Error('Quota full');storage.setItem(key,value)}};
-  assert.throws(()=>stageExpiredTaskDraft(failing,source,destination,'Latest unsent text',oldTask),/could not be saved/);
+  assert.throws(()=>stageExpiredTaskDraft(failing,source,destination,'Latest unsent text',oldTask),/Não foi possível salvar/);
   assert.equal(readDraft(storage,source),'Latest unsent text');
   assert.equal(readDraft(storage,destination),'');
   assert.equal(readRecoveredDraft(storage,destination),null);

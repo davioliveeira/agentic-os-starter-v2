@@ -19,12 +19,12 @@ export function clearRecoveredDraft(storage: DraftStorage, key: string): boolean
 export function stageRecoveredDraft(storage: DraftStorage, key: string, request: SavedRequest): RecoveredDraft {
   const prompt = request.skill ? `Workflow: ${request.skill}\n\nArguments:\n${JSON.stringify(request.args || {}, null, 2)}` : request.prompt;
   const existing = readDraft(storage, key);
-  if (existing && existing !== prompt) throw new Error('A new-task draft is already saved. Open New terminal and save or clear that draft before recovering this request.');
+  if (existing && existing !== prompt) throw new Error('Já existe um rascunho de nova tarefa. Abra Novo terminal e salve ou limpe o rascunho antes de recuperar esta solicitação.');
   const metadata = { selection: request.selection, title: request.title, prompt, ...(request.skill ? {skill:request.skill,args:request.args||{}} : {}) };
   try {
     storage.setItem(metadataKey(key), JSON.stringify(metadata));
-    if (!saveDraft(storage, key, prompt)) throw new Error('Could not save draft');
-  } catch { throw new Error('The recovered request could not be saved on this device. The original request is still saved with its task.'); }
+    if (!saveDraft(storage, key, prompt)) throw new Error('Não foi possível salvar o rascunho');
+  } catch { throw new Error('Não foi possível salvar a solicitação recuperada neste dispositivo. A original continua salva com a tarefa.'); }
   return metadata;
 }
 

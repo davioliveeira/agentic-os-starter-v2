@@ -33,5 +33,5 @@ test('the native runtime retains its fresh-session handshake and cannot change p
  const {module,calls}=await load(t);await module.workConversations.startSession();await module.workConversations.startSession();
  assert.equal(calls.length,1);assert.equal(calls[0].path,'/work/session');assert.equal(calls[0].method,'POST');
  const body=JSON.parse(calls[0].body);assert.match(body.sessionId,/^[a-f0-9-]{36}$/);assert.equal(body.mode,undefined);
- assert.throws(()=>module.configureWorkSession('preview'),/before loading/);
+ assert.throws(()=>module.configureWorkSession('preview'),/antes de carregar/);
 });

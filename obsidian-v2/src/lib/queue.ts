@@ -26,7 +26,7 @@ export function registerSkillReports(plugin:Plugin){
   ready:async path=>!!app.vault.getFileByPath(path),
   open:async(path,label)=>{
    const file=app.vault.getFileByPath(path);
-   if(!file)throw new Error('The report is no longer available.');
+   if(!file)throw new Error('O relatório está indisponível.');
    showWorkNotice(`${label} is done.`,()=>{
     const existing=app.workspace.getLeavesOfType('markdown').find(leaf=>(leaf.view as unknown as {file?:{path:string}}).file?.path===path);
     const opening=existing?app.workspace.revealLeaf(existing):app.workspace.getLeaf('tab').openFile(file);
@@ -107,7 +107,7 @@ export async function writeIntent(
 	validateIntent(intent);
  const tracker=reportTrackers.get(app);
  const result=await workRequest('/skill',{id,skill,args,selection,execution:'headless'});
- if(result.id!==id||(result.execution!=='headless'&&result.execution!=='script'))throw new Error('The workflow service needs updating before background skills can run.');
+ if(result.id!==id||(result.execution!=='headless'&&result.execution!=='script'))throw new Error('Atualize o serviço de fluxos para executar skills em segundo plano.');
  if(tracker&&reportTrackers.get(app)!==tracker)return result.id;
  const label=SKILLS[skill]?.label||skill;
  new Notice(`${label} is running in the background.`);

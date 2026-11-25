@@ -272,7 +272,7 @@ test('the plugin uses a valid bridge-supplied Python, refuses an invalid one, an
   assert.equal(python(directTerminalViewState(action({pythonExecutable: 'C:\\aos\\.runtime\\terminal-venv\\Scripts\\python.exe'}), {pythonExecutable: 'C:\\user\\python.exe'})), 'C:\\aos\\.runtime\\terminal-venv\\Scripts\\python.exe');
   assert.equal(python(directTerminalViewState(action({}), {pythonExecutable: 'C:\\user\\python.exe'})), 'C:\\user\\python.exe');
   assert.equal(python(directTerminalViewState(action({}))), 'python');
-  for (const bad of ['python', 'C:\\evil\\cmd.exe', 7, 'C:\\aos\\python.exe\nx']) assert.throws(() => directTerminalViewState(action({pythonExecutable: bad})), /launch Python is invalid/, String(bad));
+  for (const bad of ['python', 'C:\\evil\\cmd.exe', 7, 'C:\\aos\\python.exe\nx']) assert.throws(() => directTerminalViewState(action({pythonExecutable: bad})), /Python configurado para o terminal nativo é inválido/, String(bad));
 });
 
 // ---------- 4. The provider the member installs from ----------

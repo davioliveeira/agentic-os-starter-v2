@@ -11,9 +11,9 @@ export async function assertTestVault(app:App){
   const config=JSON.parse(await app.vault.adapter.read('.agentic-os-v2.json'));
   const adapter=app.vault.adapter as typeof app.vault.adapter & {getBasePath?:()=>string};
   if(config.version===2&&config.enabled===true&&(!adapter.getBasePath||adapter.getBasePath().replace(/\\/g,'/').toLowerCase()===String(config.vault).replace(/\\/g,'/').toLowerCase()))return;
-  throw new Error('V2 configuration does not match this vault');
+  throw new Error('A configuração do V2 aponta para outro cofre.');
  }
- if(!await app.vault.adapter.exists(MARKER) || (await app.vault.adapter.read(MARKER)).trim()!=='agentic-os-v2-only') throw new Error('Open the bundled V2 test vault. V1 queues are never used.');
+ if(!await app.vault.adapter.exists(MARKER) || (await app.vault.adapter.read(MARKER)).trim()!=='agentic-os-v2-only') throw new Error('Abra um cofre configurado para o V2. Filas do V1 são incompatíveis.');
 }
 export async function readSelection(app:App):Promise<Selection>{
  const file=`${ROOT}/provider.json`;

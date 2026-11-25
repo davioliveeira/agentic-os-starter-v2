@@ -49,13 +49,13 @@ test('recovery context follows composer edits but cannot survive an unrelated re
 test('recovering a request cannot overwrite an existing new-task draft', () => {
   const storage = memory(), key = 'new';
   storage.setItem(key, 'My unsent work');
-  assert.throws(() => stageRecoveredDraft(storage, key, request), /draft is already saved/);
+  assert.throws(() => stageRecoveredDraft(storage, key, request), /Já existe um rascunho/);
   assert.equal(readDraft(storage, key), 'My unsent work');
   assert.equal(readRecoveredDraft(storage, key), null);
 });
 
 test('unavailable browser storage does not pretend recovery was saved', () => {
   const storage: DraftStorage = { getItem: () => null, setItem: () => { throw new Error('Quota exceeded'); }, removeItem: () => { throw new Error('Unavailable'); } };
-  assert.throws(() => stageRecoveredDraft(storage, 'new', request), /original request is still saved/);
+  assert.throws(() => stageRecoveredDraft(storage, 'new', request), /A original continua salva/);
   assert.equal(clearRecoveredDraft(storage, 'new'), false);
 });
