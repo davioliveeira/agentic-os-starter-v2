@@ -6,7 +6,7 @@ import os from 'node:os';
 import {inspectLocalLookup,answerLocalLookup,getLookupContext,getLocalCatalog,clearLookupCache} from '../runner/lookup-catalog.mjs';
 
 const now=new Date('2026-09-12T18:00:00Z');
-const daily='## Top 3 Priorities\n1. [ ] Prepare the talk\n2. [x] Review the diagrams\n3. [ ] Record the walkthrough\n## Schedule\n- 14:30 — Talk rehearsal\n## Current Focus\nFinish the dashboard\n';
+const daily='## 3 prioridades\n1. [ ] Prepare the talk\n2. [x] Review the diagrams\n3. [ ] Record the walkthrough\n## Agenda\n- 14:30 — Talk rehearsal\n## Foco atual\nFinish the dashboard\n';
 const csv=(value=42,status='ok',date=now.toISOString())=>`timestamp,source,metric,value,status,error\n${date},youtube,subscribers,${value},${status},\n${date},youtube,views_28d,123456,ok,\n${date},instagram,followers,0,ok,\n`;
 function fixture(t){
  const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'v2-lookup-catalog-')));
@@ -31,6 +31,38 @@ test('ordinary conversational source and field variations are direct lookups',()
  for(const [text,source,field] of cases){const r=inspectLocalLookup(text);assert.equal(r.kind,'lookup',text);assert.equal(r.source,source,text);if(field)assert.equal(r.field,field,text)}
 });
 
+test('Brazilian Portuguese questions resolve to the existing saved fields',()=>{
+ const cases=[
+  ['Jarvis, qual é o meu foco de hoje?',{source:'daily',field:'focus',when:'today',state:'all'}],
+  ['Qual e o meu foco de hoje?',{source:'daily',field:'focus',when:'today',state:'all'}],
+  ['Em que estou focado hoje?',{source:'daily',field:'focus',when:'today',state:'all'}],
+  ['Quais são as minhas três prioridades de hoje?',{source:'daily',field:'priorities',when:'today',state:'all'}],
+  ['Quais prioridades ainda estão pendentes hoje?',{source:'daily',field:'priorities',when:'today',state:'open'}],
+  ['Quais prioridades já foram concluídas hoje?',{source:'daily',field:'priorities',when:'today',state:'done'}],
+  ['Quais prioridades eu já concluí hoje?',{source:'daily',field:'priorities',when:'today',state:'done'}],
+  ['O que eu tenho para fazer hoje?',{source:'daily',field:'priorities',when:'today',state:'all'}],
+  ['Pode me dizer o que tem na minha agenda de hoje?',{source:'daily',field:'schedule',when:'today',state:'all'}],
+  ['Que compromissos tenho hoje?',{source:'daily',field:'schedule',when:'today',state:'all'}],
+  ['Quantos inscritos eu tenho no meu canal do YouTube?',{source:'metrics',platform:'youtube',metric:'subscribers'}],
+  ['Qual é a contagem de seguidores no Instagram?',{source:'metrics',platform:'instagram',metric:'followers'}],
+  ['Quantos seguidores tenho no TikTok?',{source:'metrics',platform:'tiktok',metric:'followers'}],
+  ['Quantas visualizações tive no YouTube nos últimos 28 dias?',{source:'metrics',platform:'youtube',metric:'views_28d'}],
+  ['Qual é meu vídeo mais recente?',{source:'latest-upload',field:'title'}],
+  ['Qual foi o último vídeo publicado no YouTube?',{source:'latest-upload',field:'title'}],
+  ['Qual foi o último vídeo que eu publiquei?',{source:'latest-upload',field:'title'}],
+  ['Como está o desempenho do meu último vídeo no YouTube?',{source:'latest-upload',field:'overview'}],
+  ['Quantas visualizações tem meu vídeo mais recente?',{source:'latest-upload',field:'views'}],
+  ['Quantas curtidas tem o último vídeo?',{source:'latest-upload',field:'likes'}],
+  ['Quantos comentários tem meu último vídeo?',{source:'latest-upload',field:'comments'}],
+  ['Qual o link do meu último vídeo?',{source:'latest-upload',field:'link'}],
+  ['Quando foi publicado o vídeo mais recente?',{source:'latest-upload',field:'published'}],
+  ['Quais são os últimos relatórios salvos?',{source:'reports',field:'list'}],
+  ['Quais relatórios foram concluídos recentemente?',{source:'reports',field:'list'}],
+  ['Qual é meu relatório mais recente?',{source:'reports',field:'latest'}],
+ ];
+ for(const [text,wanted] of cases)assert.deepEqual(inspectLocalLookup(text),{kind:'lookup',...wanted},text);
+});
+
 test('every unknown detail, time window, negation and extra action is preserved',()=>{
  for(const text of [
   'How much did my subscribers grow this week?',
@@ -52,6 +84,35 @@ test('every unknown detail, time window, negation and extra action is preserved'
  for(const text of ['Check off priority two','Uncheck priority two','Open my daily note','Open my calendar on the right','Pull metrics']){
   const r=inspectLocalLookup(text);assert.equal(r.kind,'outside',text);assert.notEqual(r.guarded,true,text);
  }
+});
+
+test('Portuguese time constraints, unsupported fields and work stay outside direct answers',()=>{
+ for(const text of [
+  'Quais são as prioridades mais urgentes de hoje?',
+  'Quantas prioridades tenho hoje?',
+  'Qual é o próximo compromisso da minha agenda?',
+  'Quantas visualizações tenho no YouTube no total?',
+  'Quantas curtidas tenho no Instagram?',
+  'Quantos seguidores tenho no YouTube?',
+  'Quantos inscritos tive no YouTube nos últimos 28 dias?',
+  'Quais são as métricas do YouTube?',
+  'Qual é a receita do meu último vídeo?',
+  'Qual é meu último vídeo de hoje?',
+  'O que tem no relatório mais recente?',
+ ])assert.equal(inspectLocalLookup(text).kind,'ambiguous',text);
+ for(const text of [
+  'Quais eram minhas prioridades ontem?',
+  'Como está minha agenda de amanhã?',
+  'Qual era meu foco em 12/09?',
+  'Quantos inscritos eu tenho em tempo real?',
+  'Não mostre as prioridades de hoje.',
+  'Me mostre as prioridades de hoje, exceto a apresentação.',
+  'Qual é meu foco e quais são minhas prioridades?',
+  'Qual é meu foco hoje? Me diga minha agenda.',
+  'Me diga minha agenda e depois escreva um relatório.',
+  'Atualize as métricas do YouTube.',
+  'Mude o foco de hoje.',
+ ]){const r=inspectLocalLookup(text);assert.equal(r.kind,'outside',text);assert.equal(r.guarded,true,text)}
 });
 
 test('daily lookup uses only the relevant note, answers flags, and observes edits and date rollover',t=>{

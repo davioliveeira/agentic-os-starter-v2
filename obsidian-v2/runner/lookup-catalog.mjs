@@ -23,13 +23,47 @@ const FILLER=new Set('hey hi hello jarvis astra okay ok so well um uh please jus
 const ACTION=/\b(?:create|make|write|draft|generate|build|research|investigate|compare|analy[sz]e|edit|change|update|refresh|pull|send|email|post|publish|delete|remove|mark|complete|finish|start|stop|run|open|navigate|switch|toggle|add|schedule a|plan (?:my|the|a))\b/;
 const NEGATIVE=/\b(?:not|never|without|except|excluding|instead|don't|dont|isn't|isnt|aren't|arent|no)\b/;
 const FOREIGN_DATE=/\b(?:yesterday|tomorrow|last week|last month|last year|next week|next month|monday|tuesday|wednesday|thursday|friday|saturday|sunday|20\d\d|\d{4}-\d{2}-\d{2})\b/;
+const PORTUGUESE=/\b(?:qual|quais|quant[ao]s?|hoje|ontem|amanha|minh[ao]s?|meus?|foco|focad[ao]s?|prioridades?|calendario|compromissos?|metricas|inscritos?|seguidores?|visualizac(?:ao|oes)|curtidas?|comentarios?|ultim[oa]s?|mais recentes?|relatorios?|entregaveis|voce)\b/;
+const PORTUGUESE_ACTION=/\b(?:abr[ae]|abrir|acrescente|adicione|adicionar|altere|alterar|analise|analisar|apague|apagar|atualiz[ae]|atualizar|compar[ae]|comparar|conclua|concluir|construa|crie|criar|escrev[ae]|escrever|edite|editar|envi[ae]|enviar|exclua|execute|executar|faca|fazer|gere|gerar|marque|marcar|mude|mudar|pesquise|pesquisar|planeje|planejar|publiqu[ae]|publicar|rascunhe|reabra|remova|rode|rodar|salve|salvar|agende|agenda uma?)\b/;
+const PORTUGUESE_NEGATIVE=/\b(?:nao|nunca|sem|exceto|excluindo|tirando|menos|em vez de|com excecao)\b/;
+const PORTUGUESE_DATE=/\b(?:ontem|anteontem|amanha|(?:segunda|terca|quarta|quinta|sexta)-feira|sabado|domingo|(?:semana|mes|ano) (?:passad[oa]|anterior|que vem)|proxim[oa] (?:semana|mes|ano)|(?:ao vivo|em tempo real|agora mesmo|exato momento))\b/;
+const PORTUGUESE_COMPOUND=/\b(?:e|ou|mas|tambem|depois|alem disso|em seguida)\b/;
+const PORTUGUESE_COUNT=/\b(?:quant[ao]s?|contagem)\b/;
+// Map only supported Portuguese phrases to the field vocabulary below. Any
+// other words remain available to remainder() as potential qualifiers.
+const PORTUGUESE_ALIASES=[
+ [/\b(?:foco|focad[oa]s?|focar)\b/g,'focus'],
+ [/\b(?:tres prioridades|prioridades)\b/g,'priorities'],[/\bprioridade\b/g,'priority'],
+ [/\b(?:pendentes?|restantes?|faltam|restam)\b/g,'pending'],[/\b(?:concluid[ao]s?|conclui|feit[ao]s?|terminad[ao]s?|terminei)\b/g,'completed'],
+ [/\b(?:calendario|compromissos?)\b/g,'schedule'],[/\bnota diaria\b/g,'daily note'],[/\bplano (?:diario|do dia|(?:de|para) hoje)\b/g,match=>match.endsWith('hoje')?'daily plan today':'daily plan'],
+ [/\b(?:para|pra) fazer\b/g,'todo'],
+ [/\b(?:ultim[oa] (?:video|upload)|(?:video|upload) mais recente)\b/g,'latest video'],
+ [/\bque (?:eu )?publiquei\b/g,'my'],[/\bquando saiu\b/g,'when'],
+ [/\b(?:desempenho|performance)\b/g,'performance'],[/\b(?:titulo|nome)\b/g,'title'],[/\bpublicad[oa]\b/g,'published'],[/\bdata\b/g,'date'],
+ [/\bvisualizac(?:ao|oes)\b/g,'views'],[/\bcurtidas?\b/g,'likes'],[/\bcomentarios?\b/g,'comments'],
+ [/\binscritos?\b/g,'subscribers'],[/\bseguidores?\b/g,'followers'],[/\bcanal\b/g,'channel'],[/\bmetricas\b/g,'metrics'],
+ [/\bultimos (?=\d+ dias\b)/g,'past '],[/\bdias\b/g,'days'],
+ [/\b(?:ultimo relatorio|relatorio mais recente)\b/g,'latest report'],[/\brelatorios mais recentes\b/g,'recent reports'],
+ [/\brelatorios?\b/g,'reports'],[/\bentregaveis\b/g,'deliverables'],[/\bultim[oa]s\b/g,'recent'],[/\b(?:recentes|recentemente)\b/g,'recently'],
+ [/\b(?:no|dentro do) (?=(?:latest )?(?:report|reports)\b)/g,'in '],[/\b(?:diz|dizia|consta)\b/g,'says'],[/\b(?:conteudo|resumo)\b/g,'contents'],
+ [/\b(?:salv[ao]s?|registrad[ao]s?|disponive(?:l|is))\b/g,'saved'],[/\b(?:pront[ao]s?)\b/g,'ready'],
+ [/\b(?:quant[ao]s?|contagem)\b/g,'count'],[/\b(?:qual|quais|que)\b/g,'what'],[/\bquando\b/g,'when'],[/\bcomo\b/g,'how'],[/\bhoje\b/g,'today'],
+ [/\bainda\b/g,'still'],[/\b(?:por favor|por gentileza|lembre-me|me lembre|me diz|me passa)\b/g,'please'],
+ [/\b(?:as?|os?|uma?|minh[ao]s?|meus?|seus?|su[ao]s?|eu|voce|de|das?|dos?|para|pra|em|nos?|nas?|este|esta|esse|essa|aos?|foi|foram|sao|estou|estao|era|eram|tem|tenho|teve|tive|ha|ja|ta|pode|poderia|diga|diz-me|dizer|mostre|mostrar|liste|listar|oi|ola|atual|atualmente|agora)\b/g,'the'],
+];
+function localizedText(input){
+ // Keep the conjunction “e” distinct from the verb “é” when folding accents.
+ return normalize(String(input).toLowerCase().normalize('NFC').replace(/(^|[^\p{L}])é(?=$|[^\p{L}])/gu,'$1is').normalize('NFD').replace(/\p{M}/gu,''))
+  .replace(/\b(qual|que) e\b/g,'$1 is');
+}
 const remainder=(text,known)=>text.split(' ').filter(token=>token&&!FILLER.has(token)&&!known.has(token));
 const ambiguous=(source,reason,extra={})=>({kind:'ambiguous',source,reason,...extra});
 const request=(source,extra={})=>({kind:'lookup',source,...extra});
 
 export function inspectLocalLookup(input){
- const text=normalize(input);
- const knownSource=/\b(?:priorit(?:y|ies)|top 3|plate|schedule|calendar|agenda|focus|daily note|daily plan|subscribers?|subs|followers?|instagram|tiktok|youtube|yt|audience|metrics|upload|video|reports?|deliverables?|outputs?)\b/.test(text);
+ const localized=localizedText(input),portuguese=PORTUGUESE.test(localized);
+ const text=portuguese?PORTUGUESE_ALIASES.reduce((value,[pattern,alias])=>value.replace(pattern,alias),localized):normalize(input);
+ const knownSource=/\b(?:priorit(?:y|ies)|top 3|plate|schedule|calendar|agenda|focus|daily note|daily plan|subscribers?|subs|followers?|instagram|tiktok|youtube|yt|audience|metrics|upload|video|reports?|deliverables?|outputs?)\b/.test(text)||portuguese&&/\btodo\b/.test(text);
  const defer=reason=>outside(knownSource,reason);
  const indexQuestion=text.match(/^(?:hey |okay |please )*(?:did i|have i|is my|is the) (?:finish |complete |check off |finished |completed )?(?:priority|directive) (?:number )?(one|two|three|1|2|3)(?: (?:done|finished|completed|checked off))?(?: today)?$/);
  if(indexQuestion)return request('daily',{field:'priority-status',index:({one:0,two:1,three:2,'1':0,'2':1,'3':2})[indexQuestion[1]],when:/\btoday\b/.test(text)?'today':'latest'});
@@ -38,30 +72,32 @@ export function inspectLocalLookup(input){
  if(/^(?:hey |ok |okay |please )*(?:check(?: off)?|mark|complete|finish|tick|knock out|uncheck|untick) (?:off )?(?:(?:my|the) )?(?:priority|directive|top ?(?:three|3)) ?(?:number )?(?:one|two|three|1|2|3)(?: (?:as )?(?:done|complete|finished|off))?$/.test(text))return outside();
  if(/^(?:hey |ok |okay |please )*(?:open|show|pull up|bring up) (?:my |the )?(?:daily note|calendar|schedule|terminal|dashboard)(?: (?:on the right|on the left|in the sidebar|in a new tab))?$/.test(text))return outside();
  if(/^(?:hey |ok |okay |please )*(?:pull|refresh|update|run) (?:my |the )?metrics(?: pull)?$/.test(text))return outside();
- if(!text||text.length>360||ACTION.test(text)||NEGATIVE.test(text))return defer('The complete request includes work, negation, or unsupported structure.');
+ if(!text||text.length>360||ACTION.test(text)||NEGATIVE.test(text)||portuguese&&(PORTUGUESE_ACTION.test(localized.replace(/\b(?:para|pra) fazer\b/g,''))||PORTUGUESE_NEGATIVE.test(localized)))return defer('The complete request includes work, negation, or unsupported structure.');
  // Compound requests are left whole even when one clause is locally answerable.
- if(/\b(?:and|then|also|plus|but|along with|as well as)\b|[;\n]/i.test(String(input)))return defer('Preserve every clause in the compound request.');
+ if(/\b(?:and|then|also|plus|but|along with|as well as)\b|[;\n]/i.test(String(input))||portuguese&&(PORTUGUESE_COMPOUND.test(localized)||/[.!?]\s+\S/.test(String(input))))return defer('Preserve every clause in the compound request.');
  const daily=/\b(?:priorit(?:y|ies)|top 3|on my plate|on our plate|schedule|calendar|agenda|focus|to do|todo|daily note|daily plan)\b/.test(text);
  const latest=/\b(?:latest|last|newest|recent)\s+(?:(?:youtube|yt)\s+)?(?:upload|video)\b|\b(?:upload|video)\s+(?:doing|performing)\b/.test(text);
  const metrics=/\b(?:subscribers?|subs|followers?|instagram|tiktok|youtube|yt|audience|metrics)\b/.test(text);
  const reports=/\b(?:reports?|deliverables?|outputs?)\b/.test(text);
  if([daily,latest||metrics,reports].filter(Boolean).length>1)return defer('More than one information source was requested.');
- if(FOREIGN_DATE.test(text))return defer('The requested date is outside this local lookup.');
+ if(FOREIGN_DATE.test(text)||portuguese&&(PORTUGUESE_DATE.test(localized)||/\b\d{1,2}\/\d{1,2}\b/.test(String(input))))return defer('The requested date is outside this local lookup.');
  if(daily){
   const fields=[/\b(?:priorit(?:y|ies)|top 3|plate|to do|todo)\b/.test(text)&&'priorities',/\b(?:schedule|calendar|agenda)\b/.test(text)&&'schedule',/\bfocus\b/.test(text)&&'focus'].filter(Boolean);
   const field=fields[0]||'priorities';
   const known=new Set('priorities priority top 3 plate schedule calendar agenda focus to do todo daily note plan unfinished remaining left pending still completed done'.split(' '));
   const extra=remainder(text,known);
   const when=/\b(?:today|this day)\b/.test(text)?'today':'latest';
-  if(fields.length>1||extra.length)return ambiguous('daily','The requested daily-note detail needs interpretation.',{field,when});
+  if(fields.length>1||extra.length||portuguese&&(PORTUGUESE_COUNT.test(localized)||/\bpriority\b/.test(text)))return ambiguous('daily','The requested daily-note detail needs interpretation.',{field,when});
   const state=/\b(?:unfinished|remaining|left|pending|still)\b/.test(text)?'open':/\b(?:completed|done)\b/.test(text)?'done':'all';
   return request('daily',{field,state,when});
  }
  if(latest){
   const known=new Set('last newest recent upload video youtube yt views likes comments title name called performance performing link url date published released'.split(' '));
   const fields=['views','likes','comments'].filter(field=>new RegExp(`\\b${field}\\b`).test(text));
-  if(remainder(text,known).length||fields.length>1)return ambiguous('latest-upload','The requested upload detail needs interpretation.');
-  return request('latest-upload',{field:fields[0]||(/\b(?:link|url)\b/.test(text)?'link':/\b(?:when|date|published|released)\b/.test(text)?'published':/\b(?:title|name|called)\b/.test(text)||/what is my (?:latest|last|newest) (?:video|upload)$/.test(text)?'title':'overview')});
+  if(remainder(text,known).length||fields.length>1||portuguese&&/\btoday\b/.test(text))return ambiguous('latest-upload','The requested upload detail needs interpretation.');
+  const publication=/\b(?:when|date)\b/.test(text)||!portuguese&&/\b(?:published|released)\b/.test(text);
+  const title=/\b(?:title|name|called)\b/.test(text)||/what is my (?:latest|last|newest) (?:video|upload)$/.test(text)||portuguese&&/\bqual\b/.test(localized)&&!/\bperformance\b/.test(text);
+  return request('latest-upload',{field:fields[0]||(/\b(?:link|url)\b/.test(text)?'link':publication?'published':title?'title':'overview')});
  }
  if(metrics){
   if(/\b(?:usage|quota|tokens?|codex|claude|allowance|luna|astra)\b/.test(text))return defer('Model usage is a separate source.');
@@ -70,7 +106,8 @@ export function inspectLocalLookup(input){
   if(platforms.length>1||!platform)return ambiguous('metrics','Which audience metric or platform?',{platform});
   const known=new Set('subscriber subscribers subs follower followers people channel instagram tiktok youtube yt audience metrics views view 28 days day past last month total overall'.split(' '));
   const metric=/\bviews?\b/.test(text)?'views_28d':platform==='youtube'?'subscribers':'followers';
-  if(remainder(text,known).length||(/\b(?:subscribers?|subs)\b/.test(text)&&platform!=='youtube')||(/\bviews?\b/.test(text)&&platform!=='youtube'))return ambiguous('metrics','This asks for a metric or comparison beyond the direct count.',{platform});
+  const unsupportedMetric=portuguese&&(!/\b(?:subscribers|followers|views)\b/.test(text)||platform==='youtube'&&/\bfollowers\b/.test(text)||metric!=='views_28d'&&/\bdays\b/.test(text));
+  if(remainder(text,known).length||(/\b(?:subscribers?|subs)\b/.test(text)&&platform!=='youtube')||(/\bviews?\b/.test(text)&&platform!=='youtube')||unsupportedMetric)return ambiguous('metrics','This asks for a metric or comparison beyond the direct count.',{platform});
   // The saved view metric is a 28-day total, never lifetime or today's views.
   if(metric==='views_28d'&&!/\b28 days?\b/.test(text))return ambiguous('metrics','The saved YouTube views cover 28 days; the requested window is unclear.',{platform});
   return request('metrics',{platform,metric});
@@ -78,7 +115,7 @@ export function inspectLocalLookup(input){
  if(reports){
   if(/\b(?:in|inside|contents?|says?|said|recommend|explain|discuss|read|summary|summarize)\b/.test(text))return ambiguous('reports','The question asks about a report’s content, rather than the report list.');
   const known=new Set('report reports deliverable deliverables output outputs recent recently last newest ready finished completed'.split(' '));
-  if(remainder(text,known).length)return ambiguous('reports','A particular saved report needs interpretation.');
+  if(remainder(text,known).length||portuguese&&PORTUGUESE_COUNT.test(localized))return ambiguous('reports','A particular saved report needs interpretation.');
   return request('reports',{field:/\b(?:latest|last|newest)\b/.test(text)?'latest':'list'});
  }
  return outside();

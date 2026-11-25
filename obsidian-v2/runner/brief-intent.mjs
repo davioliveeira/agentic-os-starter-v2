@@ -11,8 +11,60 @@ function normalize(value){return String(value||'').toLowerCase().replace(/[’]/
 function validPrevious(previous){
  return previous&&/^\d{4}-\d{2}-\d{2}$/.test(previous.date||'')&&typeof previous.briefSource==='string'&&/^inbox\/(?:research\/morning-intel|reports\/morning)\/\d{4}-\d{2}-\d{2}[^/\\]*\.md$/.test(previous.briefSource)&&Array.isArray(previous.plan)&&previous.plan.length===1&&validPlanItem(previous.plan[0]);
 }
+
+// Portuguese reads use complete question shapes. Extra topics, dates or work
+// stay in the original request for the normal router.
+const PT_ASK='(?:(?:qual|quais)(?: (?:e|sao|foi|foram))?|(?:me )?(?:diga|cont[ae]|fal[ae]|leia|mostr[ae]|liste)|(?:voce )?pode (?:me )?(?:dizer|contar|ler|mostrar|listar))';
+const PT_ARTICLE='(?:(?:a|as|o|os) )?';
+const PT_DAY='(?:hoje|de hoje|do dia|desta manha|nesta manha)';
+const PT_REPORT='(?:(?:do|no) boletim(?: da manha| salvo)?(?: de hoje)?)';
+const PT_SCOPE=`(?:${PT_DAY}|${PT_REPORT})`;
+function portugueseQuestion(subject, scope=PT_SCOPE){
+ return new RegExp(`^(?:${PT_ASK} )?${PT_ARTICLE}(?:${subject}) ${scope}$`);
+}
+const PT_TOP_STORY=portugueseQuestion([
+ '(?:principal|maior) (?:noticia|manchete)(?: de ia)?',
+ '(?:noticia|manchete)(?: (?:principal|mais importante)(?: de ia)?| de ia(?: principal| mais importante)?)?',
+ 'destaque(?: de ia)?',
+].join('|'));
+const PT_HEADLINES=portugueseQuestion('(?:principais )?(?:noticias|manchetes|destaques)(?: de ia)?');
+const PT_HN_SCOPE=`(?:${PT_SCOPE} (?:no|do) (?:hacker news|hn)|(?:no|do) (?:hacker news|hn) ${PT_SCOPE})`;
+const PT_HN_STORY='(?:noticia|historia|publicacao|post|item|assunto|artigo)';
+const PT_HN_STORIES='(?:noticias|historias|publicacoes|posts|itens|assuntos|artigos)';
+const PT_COMMENTS='(?:mais (?:comentad[oa]s?|discutid[oa]s?)|com mais comentarios)';
+const PT_POINTS='(?:mais votad[oa]s?|com mais pontos)';
+const PT_RANKINGS=[
+ [portugueseQuestion(`${PT_HN_STORY} ${PT_COMMENTS}`,PT_HN_SCOPE),'comments',1],
+ [portugueseQuestion(`${PT_HN_STORIES} ${PT_COMMENTS}`,PT_HN_SCOPE),'comments',3],
+ [portugueseQuestion(`(?:principal ${PT_HN_STORY}|${PT_HN_STORY} ${PT_POINTS})`,PT_HN_SCOPE),'points',1],
+ [portugueseQuestion(`(?:principais ${PT_HN_STORIES}|${PT_HN_STORIES} ${PT_POINTS})`,PT_HN_SCOPE),'points',3],
+];
+const PT_WHOLE_BRIEF=/^(?:(?:me )?resum[ae]|(?:qual (?:e )?o|me de um) resumo (?:do|no)) (?:o )?boletim (?:da manha|de hoje|salvo)(?: de hoje)?$/;
+
+function inspectPortugueseBrief(utterance){
+ const raw=String(utterance||'');
+ const text=raw.normalize('NFD').replace(/\p{M}/gu,'').toLowerCase().trim();
+ if(!/\b(?:noticias?|manchetes?|boletim|destaques de ia)\b/.test(text)&&
+    !(/\b(?:hacker news|hn)\b/.test(text)&&/\b(?:qual|quais|hoje|comentad[oa]s?|discutid[oa]s?|publicacoes?)\b/.test(text)))return null;
+ const outside={kind:'outside',guarded:true,reason:'unsupported-constraint'};
+ if(raw.length>500||/[;\r\n]/.test(raw))return outside;
+ const question=text.replace(/^(?:(?:oi|ola|jarvis|por favor)[,\s]+)+/,'')
+  .replace(/(?:[,\s]+por favor)?[.!?]*$/,'').replace(/\s+/g,' ').trim();
+ // Leave the named workflow and opening its document to their regular handlers.
+ if(/^(?:(?:rode|execute|gere|abra|abrir) )?(?:o )?boletim (?:de ia|da manha|de hoje)$/.test(question))return {kind:'outside'};
+ for(const [pattern,rank,count] of PT_RANKINGS){
+  if(pattern.test(question))return {kind:'lookup',plan:[{source:'hn',rank,...(count>1?{count}:{})}]};
+ }
+ if(PT_TOP_STORY.test(question))return {kind:'lookup',plan:[{source:'brief',rank:'points'}]};
+ if(PT_HEADLINES.test(question))return {kind:'lookup',plan:[{source:'brief',rank:'points',count:3}]};
+ if(PT_WHOLE_BRIEF.test(question))return {kind:'ambiguous',reason:'whole-brief',candidates:['brief']};
+ return outside;
+}
+
 export function validPlanItem(p){return p&&['brief','hn'].includes(p.source)&&['points','comments'].includes(p.rank)&&(p.source==='hn'||p.rank==='points')&&(p.count===undefined||Number.isInteger(p.count)&&p.count>=1&&p.count<=5)&&(p.offset===undefined||Number.isInteger(p.offset)&&p.offset>=0&&p.offset<=4)&&(p.count||1)+(p.offset||0)<=5;}
 export function inspectBriefRequest(utterance,{previous}={}){
+ const portuguese=inspectPortugueseBrief(utterance);
+ if(portuguese)return portuguese;
  const text=normalize(utterance),outside={kind:'outside',...(vagueNews.test(text)?{guarded:true,reason:'unsupported-constraint'}:{})};
  if(/^(?:open|read)\s+(?:(?:my|the|today's|today)\s+)*(?:morning\s+)?(?:intel|brief|briefing)(?:\s+report)?[.!?]*$/.test(text))return {kind:'outside'};
  if(!text||text.length>500||work.test(text))return outside;

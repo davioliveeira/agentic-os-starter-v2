@@ -28,6 +28,48 @@ test('natural saved section questions extract the precise section and inbox cate
  }
 });
 
+test('Brazilian Portuguese questions identify one section of the saved morning report',()=>{
+ for(const [text,section,category] of [
+  ['Quais e-mails urgentes aparecem no boletim de hoje?','inbox','urgent'],
+  ['Tem propostas de patrocínio no boletim?','inbox','sponsor'],
+  ['Quais e-mails precisam de resposta no relatório salvo?','inbox','reply'],
+  ['Qual é o resumo da caixa de entrada no boletim da manhã?','inbox','summary'],
+  ['O que saiu sobre o Claude no boletim da manhã?','ai-claude'],
+  ['No boletim de hoje, o que saiu sobre a OpenAI?','ai-codex'],
+  ['Quais foram as outras notícias de IA no boletim de hoje?','ai-other'],
+  ['Quais vídeos apareceram no radar do YouTube no boletim?','youtube'],
+  ['Quais são os destaques de canais pequenos no boletim de hoje?','outliers'],
+  ['Quais repositórios do GitHub aparecem no relatório da manhã?','github'],
+  ['Quais são as pautas para o YouTube no boletim?','content-youtube'],
+  ['Quais são as pautas para o LinkedIn no boletim?','content-linkedin'],
+  ['Quais sao as pautas para videos curtos e carrosseis no boletim','content-shorts'],
+  ['Qual a situação das fontes no boletim?','source-status'],
+ ])assert.deepEqual(inspect(text,{previous}),{kind:'lookup',section,...(category?{category}:{}),offset:0},text);
+});
+
+test('unsupported Portuguese section questions skip the saved readers',()=>{
+ for(const text of [
+  'Quais e-mails urgentes chegaram na minha caixa de entrada agora?',
+  'Quais são as notícias do Claude ao vivo?',
+  'Quais e-mails urgentes aparecem no boletim de ontem?',
+  'O que saiu sobre Claude no boletim de 12/09/2026?',
+  'Quais e-mails urgentes aparecem no boletim de hoje às 10h?',
+  'Quais e-mails não precisam de resposta no relatório salvo?',
+  'Tem propostas de patrocínio no boletim, sem contar convites?',
+  'O que saiu sobre Claude e Codex no boletim da manhã?',
+  'Quais e-mails urgentes aparecem no boletim e quais precisam de resposta?',
+  'Quais e-mails urgentes aparecem no boletim de hoje? Arquive todos.',
+  'Quais e-mails urgentes aparecem no boletim de hoje?\nResponda aos remetentes.',
+  'Responda aos e-mails urgentes do boletim.',
+  'Crie pautas para o YouTube com base no boletim.',
+  'Quais e-mails urgentes aparecem no boletim de hoje para responder agora?',
+  'Quais são as duas pautas para o YouTube no boletim?',
+ ]){
+  const result=inspect(text);
+  assert.equal(result.kind,'outside',text);assert.equal(result.guarded,true,text);
+ }
+});
+
 test('ranked counts and explicit ordinal section requests remain exact',()=>{
  assert.deepEqual(inspect('Give me the top two GitHub picks'),{kind:'lookup',section:'github',count:2,offset:0});
  assert.deepEqual(inspect('What is the third YouTube content idea?'),{kind:'lookup',section:'content-youtube',count:1,offset:2});
@@ -56,6 +98,8 @@ test('unknown one-section detail stays scoped instead of returning an incomplete
   ['Why did the Claude announcement matter in the morning brief?','ai-claude'],
   ['What did the sponsor emails mean for us?','inbox'],
   ['Which GitHub repos support Android?','github'],
+  ['Any emails from Agora?','inbox'],
+  ['What GitHub projects were in the Boletim report?','github'],
   ['Which sources failed in the brief?','source-status'],
   ['What is the expected reach for our LinkedIn content ideas?','content-linkedin'],
  ]){const result=inspect(text);assert.equal(result.kind,'ambiguous',text);assert.equal(result.section,section,text)}
@@ -78,7 +122,10 @@ test('work, fresh checks, dates, negation and compound constraints cannot become
 });
 
 test('existing workflow, UI and distinct metrics requests retain their original routing',()=>{
- for(const text of ['GitHub Trending','Run GitHub Trending','Outlier Radar','Refresh morning intel','Inbox brief','Open my inbox','Show me the morning brief','Open GitHub Trending','How many people are subscribed to my YouTube channel?','What is my YouTube subscriber count?','What is my Codex weekly usage?']){
+ for(const text of ['GitHub Trending','Run GitHub Trending','Outlier Radar','Refresh morning intel','Inbox brief','Open my inbox','Show me the morning brief','Open GitHub Trending','How many people are subscribed to my YouTube channel?','What is my YouTube subscriber count?','What is my Codex weekly usage?',
+  'Abra o boletim da manhã','Quais foram as principais notícias de IA de hoje?','Quais foram as principais notícias de IA no boletim de hoje?',
+  'Quantos inscritos eu tenho no YouTube?','Quantas visualizações tive no YouTube nos últimos 28 dias?','Qual é o último vídeo do YouTube?',
+ ]){
   const result=inspect(text);assert.equal(result.kind,'outside',text);assert.notEqual(result.guarded,true,text);
  }
 });

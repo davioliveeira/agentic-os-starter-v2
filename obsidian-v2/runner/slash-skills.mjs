@@ -8,6 +8,7 @@ const spokenPrefix=new RegExp('^(?:'+invoke+')?slash(?: (?:command|skill))?\\s+'
 const spokenSuffix=new RegExp('^'+invoke+'([a-z0-9][a-z0-9 -]{0,63}?)\\s+slash\\s+(?:command|skill|thing)\\b','i');
 const spokenAside=new RegExp('^'+invoke+'(?:[^.!?\\n,]+,)+\\s*(?:the\\s+)?slash\\s+','i');
 const literal=new RegExp('^(?:'+invoke+')?/([a-z0-9][a-z0-9-]{0,63})(?=\\s|[.!?,]*$)','i');
+const portugueseInvoke=/^(?:por favor[ ,]+)?(?:rode|execute|inicie)\s+a\s+skill\s+\/?([a-z0-9][a-z0-9-]{0,63})(?=\s|[.!?,]*$)/i;
 const argumentLead=/^(?:for|with|on|in|about|using|from|to|at)$/i;
 const disfluency=/(?<!\S)(?:(?:umm?|uhh?|erm|hmm)(?=\s|,|$)\s*,?|(?:like|you know|so|okay|ok|hey|jarvis)\s*,)/gi;
 const trailingCourtesy=/(?:(?:^|[\s,]+)(?:for me|please|real quick|now|thing))+[,.!?]*$/i;
@@ -27,6 +28,12 @@ export function skillExists(provider,root,name,{home=os.homedir(),codexHome=proc
 }
 
 export function spokenSlashSkill(text,{hasSkill}){
+ text=text.trim();
+ const portuguese=portugueseInvoke.exec(text);
+ if(portuguese){
+  const name=portuguese[1].toLowerCase(),args=text.slice(portuguese[0].length).trim().replace(/^[.!?,]+$/,'');
+  return {name,args,found:hasSkill(name)};
+ }
  text=text.replace(disfluency,' ').replace(/\s+/g,' ').trim().replace(/^please(?:,\s*|\s+)/i,'');
  const exact=literal.exec(text);
  const suffix=spokenSuffix.exec(text);

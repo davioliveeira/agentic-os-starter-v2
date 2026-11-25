@@ -401,7 +401,7 @@ test('destructive mode starts new work immediately but still asks for a click to
  f.turn('Draft an essay about thunderstorms');await until(()=>f.work.length);await f.idle();
  assert.equal(f.work[0][0],'start');assert.equal(f.call.staged,undefined);
  await f.post('/voice/live/context',f.saved());
- const stop=await f.stage('Stop that task');await f.idle();
+ const stop=await f.stage('Cancele a tarefa atual.');await f.idle();
  assert.equal(stop.mode,'click');assert.equal(f.work.length,1);
  assert.equal((await f.post('/voice/live/confirm',{actionId:stop.actionId})).status,200);
  assert.equal(f.work[1][0],'stop');

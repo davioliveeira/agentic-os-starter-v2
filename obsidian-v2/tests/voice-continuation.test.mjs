@@ -210,10 +210,12 @@ for(const provider of ['codex','claude']){
   const unrelated=f.add({state:'ready',title:'Something from yesterday',created:now-86400000,turns:[{id:'t0',ts:now-80000000,text:'Done.'}]});
   const mine={...live,liveTaskIds:[page.id,brief.id]};
   // No model is asked (the default executor fails the test), nothing is sent, queued or started.
-  const result=await f.speak("What's going on? Why is this taking so long",page.id,undefined,mine);
-  assert.equal(f.calls.length,0);assert.equal(result.action,'reply');assert.deepEqual(result.workIds,[]);
-  assert.equal(result.reply,'Sua solicitação “Build me a one-pager on the Riemann hypothesis” está em execução há 3 minutos. Resumo da caixa de entrada terminou.');
-  assert.equal(result.decision.rule,'router.taskStatus');assert.doesNotMatch(result.reply,/yesterday/,'only what is running or what this call started');
+  for(const transcript of ["What's going on? Why is this taking so long",'Como está essa tarefa?','Qual o status da tarefa?','Já terminou?']){
+   const result=await f.speak(transcript,page.id,undefined,mine);
+   assert.equal(f.calls.length,0);assert.equal(result.action,'reply');assert.deepEqual(result.workIds,[]);
+   assert.equal(result.reply,'Sua solicitação “Build me a one-pager on the Riemann hypothesis” está em execução há 3 minutos. Resumo da caixa de entrada terminou.');
+   assert.equal(result.decision.rule,'router.taskStatus');assert.doesNotMatch(result.reply,/yesterday/,'only what is running or what this call started');
+  }
   // Waiting for an approval comes first; a conversation on a follow-up gives no misleading age, and says what is waiting.
   page.state='needs input';
   const follow=f.add({state:'working',title:'Draft the launch post',created:now-3600000,turns:[{id:'t2',ts:now-120000,text:'Draft ready.'}],queuedFollowups:1});
@@ -231,8 +233,11 @@ for(const provider of ['codex','claude']){
   assert.equal((await f.speak('Is it done yet',null,undefined,live)).reply,'Nenhuma tarefa em execução no momento.');
   // "Is it done? Open it" asks for something, so it is a request.
   const busy=f.add({state:'working'});
-  const both=await f.speak('Is it done? Then add a summary at the top',busy.id,f.output(),live);
-  assert.notEqual(both.decision.rule,'router.taskStatus');assert.deepEqual(f.calls.map(call=>call.kind),['queue']);
+  for(const transcript of ['Is it done? Then add a summary at the top','Já terminou? Abra o resultado.']){
+   const both=await f.speak(transcript,busy.id,f.output(),live);
+   assert.notEqual(both.decision.rule,'router.taskStatus',transcript);
+  }
+  assert.deepEqual(f.calls.map(call=>call.kind),['queue','queue']);
   // Off a call nothing changed: the same words are still routed by the model.
   await assert.rejects(f.speak('Why is this taking so long',busy.id,f.output()),/working or needs terminal input/);
   assert.equal(idle.state,'ready');

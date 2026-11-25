@@ -67,9 +67,15 @@ A nota diária segue a estrutura de `system/schemas/daily-note.md` (v1) no cofre
 
 **Atualizações de tarefas** usa `liveTaskUpdates` em `system/v2/profile.json`. Escolha `done` (**Conclusões e impedimentos**, o padrão), `silent` (**Só na tela**) ou `chatty` (**Acompanhar tarefas longas**, com atualizações a cada três minutos). Os dois painéis usam a mesma opção.
 
-Para rodar uma skill instalada em um terminal novo com o provedor selecionado, use uma das frases reconhecidas em inglês, como “slash today”, “run the today slash command” ou “run slash plan-tomorrow for next week”. A ferramenta de linha de comando recebe o comando com barra e os argumentos informados. Instale a skill ou o comando em um local aceito pelo provedor antes de usá-lo.
+Para rodar uma skill instalada em um terminal novo com o provedor selecionado, diga “Rode a skill today” ou “Execute a skill plan-tomorrow para a próxima semana”. Use o identificador da skill como foi instalado, incluindo o hífen se houver. A ferramenta de linha de comando recebe o comando com barra e os argumentos informados.
 
 A opção **Confirmar ações** usa `liveConfirm` em `system/v2/profile.json`. Os valores são `auto` (**Executar direto**, o padrão, com cerca de 2,5 segundos para cancelar), `voice` (**Diga “sim”**), `click` (**Clique para confirmar**) e `destructive` (**Confirmar só paradas e edições**). Os dois painéis usam a opção salva.
+
+## Consultas salvas por voz
+
+Para consultar a nota diária, pergunte “Quais são minhas prioridades de hoje?” ou “O que tem na minha agenda hoje?”. Para consultar o boletim salvo, experimente “Quais foram as principais notícias de IA de hoje?”, “Qual foi a notícia mais comentada no Hacker News hoje?” ou “Quais e-mails urgentes aparecem no boletim de hoje?”. As respostas usam os dados já salvos.
+
+Durante uma chamada, pergunte “Qual o status da tarefa?” para acompanhar o trabalho. Para pedir a interrupção de uma tarefa, diga “Pare essa tarefa do Codex” ou “Cancele a tarefa atual”. A confirmação segue o modo configurado no painel.
 
 <a id="data-and-costs"></a>
 

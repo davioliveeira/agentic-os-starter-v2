@@ -19,6 +19,54 @@ const compound=/\b(?:and|also|then|plus|but|along with|as well as)\b|[;\n]/;
 const cleanWords=text=>text.replace(/[^a-z0-9'\s-]/g,' ').split(/\s+/).filter(Boolean);
 const outside=(guarded=false,reason='unsupported-section-request')=>({kind:'outside',...(guarded?{guarded:true,reason}:{})});
 
+const portugueseReportHint=/\b(?:o|no|do|ao|pelo|neste|nesse|deste|desse) (?:boletim|relatorio)\b/;
+const portugueseInboxHint=/\b(?:e-?mails?|gmail|inbox|mensage(?:m|ns)|caixa de entrada|patrocinios?)\b/;
+const portugueseInboxCue=/^(?:quais|qual (?:e|a|o)|o que|tem|ha|nao|quero|responda|envie|arquive|verifique|consulte|cheque|confira|atualize)\b|\b(?:caixa de entrada|(?:e-?mails?|mensage(?:m|ns)) urgentes|precisam de resposta|de patrocinio)\b/;
+const portugueseTopic=/\b(?:claude|anthropic|codex|openai|outras noticias de ia|youtube|github|outliers?|canais pequenos|linkedin|shorts|videos curtos|carrosseis|fontes)\b/;
+const portugueseYouTubeMetric=/^(?:quant[oa]s|qual|como|quando)\b.*\b(?:inscritos|visualizacoes|seguidores|curtidas|comentarios|ultimo video|video mais recente)\b/;
+const portugueseReport='(?:no|do|neste|nesse|deste|desse|segundo o) (?:boletim(?: da manha| matinal| de ia)?|relatorio (?:salvo|da manha))(?: de hoje)?';
+const portugueseFrame=new RegExp(`^(?:${portugueseReport},? (.+)|(.+) ${portugueseReport})$`);
+const portugueseList=topic=>new RegExp(`^(?:quais (?:(?:sao|foram) )?(?:(?:os|as) )?|tem |ha )${topic}(?: (?:aparecem|apareceram|constam|foram listad[oa]s))?$`);
+const portugueseSections=[
+ [portugueseList('(?:e-?mails|mensagens) urgentes'),'inbox','urgent'],
+ [portugueseList('(?:e-?mails|mensagens) (?:que )?(?:precisam de|aguardam) resposta'),'inbox','reply'],
+ [portugueseList('(?:propostas? de|mensagens sobre) patrocinio'),'inbox','sponsor'],
+ [/^(?:qual (?:e )?o resumo da|o que (?:tem|aparece) na) caixa de entrada$/,'inbox','summary'],
+ [/^o que (?:saiu|apareceu) sobre (?:[oa] )?(?:claude(?: code)?|anthropic)$/,'ai-claude'],
+ [/^o que (?:saiu|apareceu) sobre (?:[oa] )?(?:codex|openai)$/,'ai-codex'],
+ [portugueseList('outras noticias de ia'),'ai-other'],
+ [/^quais (?:os )?videos (?:apareceram|aparecem|estao) no radar do youtube$/,'youtube'],
+ [portugueseList('destaques de canais pequenos'),'outliers'],
+ [portugueseList('(?:repositorios|projetos) do github'),'github'],
+ [portugueseList('(?:pautas|ideias) para (?:o )?youtube'),'content-youtube'],
+ [portugueseList('(?:pautas|ideias) para (?:o )?linkedin'),'content-linkedin'],
+ [portugueseList('(?:pautas|ideias) para (?:shorts|videos curtos(?: e carrosseis)?|carrosseis)'),'content-shorts'],
+ [/^qual (?:e )?(?:a situacao|o status) das fontes$/,'source-status'],
+];
+
+function inspectPortugueseSection(utterance){
+ const text=String(utterance||'').normalize('NFKC').toLowerCase().normalize('NFD').replace(/\p{M}/gu,'');
+ const spoken=text.replace(/\s+/g,' ').trim().replace(/^(?:(?:jarvis|por favor)[, ]+)+/,'').replace(/[.!?]+$/,'');
+ const inbox=portugueseInboxHint.test(spoken);
+ const hinted=portugueseReportHint.test(spoken)?inbox||portugueseTopic.test(spoken):inbox&&portugueseInboxCue.test(spoken);
+ if(!hinted){
+  // The dashboard parser owns channel metrics and the latest upload. The
+  // English section guards would otherwise read Portuguese "no" as negation.
+  return /\byoutube\b/.test(spoken)&&!/\bradar\b/.test(spoken)&&portugueseYouTubeMetric.test(spoken)?outside():null;
+ }
+ // Require the entire question and an explicit saved report. A partial match
+ // could drop a live check, another date, a filter, or a request to act.
+ if(/[\r\n]/.test(text))return outside(true);
+ const frame=portugueseFrame.exec(spoken);
+ const question=frame?.[1]||frame?.[2];
+ if(question){
+  for(const [pattern,section,category] of portugueseSections){
+   if(pattern.test(question))return {kind:'lookup',section,...(category?{category}:{}),offset:0};
+  }
+ }
+ return outside(true);
+}
+
 export function validBriefSectionPrevious(value){
  if(!value||value.source!=='brief-section'||!SECTIONS.has(value.section)||!/^\d{4}-\d{2}-\d{2}$/.test(value.date||''))return false;
  if(typeof value.briefSource!=='string'||!/^inbox\/(?:research\/morning-intel|reports\/morning)\/\d{4}-\d{2}-\d{2}[^/\\]*\.md$/.test(value.briefSource))return false;
@@ -68,6 +116,8 @@ export function inspectBriefSectionRequest(utterance,{previous}={}){
  const text=normalize(utterance),prior=validBriefSectionPrevious(previous)?previous:null;
  const hinted=sourceHint.test(text),defer=reason=>outside(hinted||!!prior,reason);
  if(!text||text.length>500)return defer('unsupported-length');
+ const portuguese=inspectPortugueseSection(utterance);
+ if(portuguese)return portuguese;
  // Preserve exact existing workflows and workspace navigation. A question
  // about their saved contents is handled below instead of rerunning anything.
  if(/^(?:(?:please|hey|okay|ok)\s+)*(?:(?:run|refresh|update|pull)\s+)?(?:morning intel|morning report|inbox brief|inbox audit|github trending|outlier radar)(?: again)?[.!?]*$/.test(text))return outside();

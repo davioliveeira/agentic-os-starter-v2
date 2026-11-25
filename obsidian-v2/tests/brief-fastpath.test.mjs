@@ -9,7 +9,13 @@ import {localDate} from '../runner/brief-voice.mjs';
 test('a known brief question reads only the brief, without voice memory or dashboard scanning',async t=>{
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'aos-brief-fast-'));
  const directory=path.join(root,'inbox/research/morning-intel');fs.mkdirSync(directory,{recursive:true});
- fs.writeFileSync(path.join(directory,`${localDate()}-intel.md`),'## Top Story\nA verified fixture headline.');
+ fs.writeFileSync(path.join(directory,`${localDate()}-intel.md`),[
+  '## Notícia principal','Saiu um estudo verificado.','',
+  '## Manchetes','- Uma equipe publicou novos resultados.','- Uma ferramenta ganhou suporte local.','',
+  '## Radar do Hacker News','| Notícia | Pontos | Comentários |','|---|---|---|',
+  '| Um artigo com mais pontos | 90 | 12 |','| Uma discussão sobre código | 52 | 41 |',
+  '', '## Caixa de entrada (últimas 24h)', '- Conteúdo reservado.',
+ ].join('\n'));
  const originals=Object.fromEntries(['readFileSync','readdirSync','statSync','existsSync'].map(name=>[name,fs[name]]));
  t.after(()=>{Object.assign(fs,originals);fs.rmSync(root,{recursive:true,force:true})});
  const reads=[];
@@ -19,9 +25,14 @@ test('a known brief question reads only the brief, without voice memory or dashb
   assert.doesNotMatch(relative,/^(?:system|daily-notes)(?:\/|$)/,'saved news must not load unrelated vault state');
   return fn.call(this,file,...args);
  };
- for(const provider of ['codex','claude']){
-  const result=await classifyVoice(root,{id:'isolated-fast-read',transcript:'What is the biggest AI story today?',chosen:{provider,model:provider==='codex'?'astra':'sonnet'},workTarget:'a-stopped-conversation',terminals:{list(){assert.fail('No terminal snapshot')},get(){assert.fail('No selected-terminal read')}},execute:()=>assert.fail('No model')});
-  assert.equal(result.engine,'rules');assert.match(result.reply,/verified fixture headline/);
+ for(const provider of ['codex','claude'])for(const [transcript,answer] of [
+  ['What is the biggest AI story today?',/Saiu um estudo verificado/],
+  ['Qual é a notícia principal do boletim?',/Saiu um estudo verificado/],
+  ['Quais foram as principais notícias de IA de hoje?',/Saiu um estudo verificado.*Uma equipe publicou novos resultados.*Uma ferramenta ganhou suporte local/s],
+  ['Qual foi a notícia mais comentada no Hacker News hoje?',/Uma discussão sobre código.*41 comentários/],
+ ]){
+  const result=await classifyVoice(root,{id:'isolated-fast-read',transcript,chosen:{provider,model:provider==='codex'?'astra':'sonnet'},workTarget:'a-stopped-conversation',terminals:{list(){assert.fail('No terminal snapshot')},get(){assert.fail('No selected-terminal read')}},execute:()=>assert.fail('No model')});
+  assert.equal(result.engine,'rules');assert.match(result.reply,answer);assert.doesNotMatch(result.reply,/Conteúdo reservado/);
  }
  assert.ok(reads.some(file=>file.endsWith('-intel.md')));
  assert.ok(reads.every(file=>!/^(?:system|daily-notes)(?:\/|$)/.test(file)),'even swallowed read errors must not hide unrelated scanning');

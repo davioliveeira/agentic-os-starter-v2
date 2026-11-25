@@ -71,6 +71,24 @@ test('daily-news shorthand does not swallow other topics, dates, filters or extr
  assert.deepEqual(briefLookupPlan('What was the biggest news and biggest news on Hacker News for today?'),[{source:'hn',rank:'points'}]);
  assert.deepEqual(briefLookupPlan('What was the biggest AI news of the day and top HN story?'),[{source:'brief',rank:'points'},{source:'hn',rank:'points'}]);
 });
+test('Portuguese saved briefing questions resolve the requested ranking and preserve other constraints',()=>{
+ for(const text of [
+  'Qual foi a maior notícia de IA hoje?', 'Qual é a notícia principal do boletim da manhã?',
+  'Jarvis, me mostra a manchete principal do boletim, por favor.', 'Notícia principal de IA de hoje',
+ ])assert.deepEqual(briefLookupPlan(text),[{source:'brief',rank:'points'}],text);
+ assert.deepEqual(briefLookupPlan('Quais foram as principais notícias de IA de hoje?'),[{source:'brief',rank:'points',count:3}]);
+ assert.deepEqual(briefLookupPlan('Qual foi a notícia mais comentada no Hacker News hoje?'),[{source:'hn',rank:'comments'}]);
+ assert.deepEqual(briefLookupPlan('Me diga o post com mais pontos de hoje no HN.'),[{source:'hn',rank:'points'}]);
+ assert.deepEqual(briefLookupPlan('Quais são as publicações mais discutidas hoje no Hacker News?'),[{source:'hn',rank:'comments',count:3}]);
+ for(const text of [
+  'Qual foi a maior notícia de IA ontem?', 'Qual foi a maior notícia de IA hoje sobre robótica?',
+  'Qual é a maior notícia de IA agora?', 'Pesquise a maior notícia de IA de hoje.',
+  'Qual foi a maior notícia de IA hoje e monte uma apresentação?',
+  'Qual foi a notícia mais comentada no Hacker News hoje, sem contar anúncios?',
+  'Qual foi a notícia mais comentada no Hacker News?', 'Qual a notícia principal do boletim de amanhã?',
+  'Qual é a notícia principal do boletim de hoje? Depois envie para o time.',
+ ])assert.equal(briefLookupPlan(text),null,text);
+});
 test('fresh research, compound work and terminal follow-ups keep their normal routing',()=>{
  for(const text of ['Research the biggest AI news today','What was the biggest news in AI today, and draft a video outline?','Verify the top story in my morning brief','Run morning intel','What changed since the brief?','Tell me more about your last answer','What was the biggest AI news yesterday?'])assert.equal(isBriefQuestion(text),false,text);
  for(const text of ["What's the biggest AI story today?",'Hey, tell me the top AI news this morning','What did my morning intel brief say?'])assert.equal(isBriefQuestion(text),true,text);

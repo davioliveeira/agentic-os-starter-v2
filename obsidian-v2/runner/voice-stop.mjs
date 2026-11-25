@@ -4,8 +4,17 @@
 const normalize=text=>String(text||'').normalize('NFKC').replace(/[’‘]/g,"'").replace(/[“”]/g,'"').replace(/\s+/g,' ').trim();
 const LEAD="(?:(?:hey|ok|okay|jarvis|astra|please|wait|hold on|hang on|actually|no|oh|um|uh|er|hmm|so)[,\\s]+)*(?:(?:can|could|would|will) you(?: please)?\\s+)?";
 const STOP=new RegExp(`^${LEAD}(?:stop|cancel|abort|halt|kill|scratch)(?:\\s+(?:that|it|this|everything|the (?:task|job|work|run)|that (?:task|job)|working(?: on (?:that|it|this))?|what you(?:'re| are) doing|the (?:current|running) (?:task|job|work|conversation)))?(?:\\s+(?:the )?(?<provider>codex|claude)(?: (?:task|job|worker|conversation))?)?(?:\\s+(?:right )?now)?(?:[,\\s]+(?:please|jarvis|astra|thanks))*[.!?\\s]*$`,'i');
+const LEAD_PT='(?:(?:jarvis|astra|por favor)[,\\s]+)*';
+const END_PT='(?:,? por favor)?[.!?]*$';
+const PROGRESS_PT='(?:em andamento|em execu[cç][aã]o)';
+const TASK_PT=`(?:(?:a|essa|esta) tarefa|(?:o|esse|este) trabalho)(?: atual| ${PROGRESS_PT})?`;
+// “Para” can introduce the intended recipient or purpose of another request.
+const STOP_PT=new RegExp(`^${LEAD_PT}(?:pare|cancel[ae]|interrompa|pode (?:parar|cancelar|interromper))(?: (?:${TASK_PT}|isso|isto|o que voc[eê] est[aá] fazendo))?(?: (?:(?:do|de|o) )?(?<provider>codex|claude)(?: code)?)?(?: agora)?${END_PT}`,'i');
 // Returns {provider} (null when none was named) or null when this is not a stop.
-export function stopIntent(text){const match=STOP.exec(normalize(text));return match?{provider:match.groups.provider?.toLowerCase()||null}:null}
+export function stopIntent(text){
+ const t=normalize(text),match=STOP.exec(t)||STOP_PT.exec(t);
+ return match?{provider:match.groups.provider?.toLowerCase()||null}:null;
+}
 
 // "What's going on? Why is this taking so long", "where are we at with that", "is it done yet": a question about work
 // already under way. It is answered from what the tasks are doing. Sent on as work, it became a new request for the
@@ -23,8 +32,19 @@ const STATUS=new RegExp([
  "(?:did|has|have) "+SUBJECT+" (?:finish|finished|done)",
 ].map(part=>"(?:"+part+")").join("|"),'i');
 const ASKS_FOR_MORE=/(?:^|[.!?;,]\s*|\b(?:and|then|so|also)\s+)(?:(?:please|just|now|go ahead and)\s+)*(?:open|show|bring up|pull up|make|create|build|write|add|run|start|redo|change|fix|update|send|draft|research|find|remove|delete|put|use|stop|cancel)\b/i;
+const STATUS_PT=new RegExp(`^${LEAD_PT}(?:`+[
+ `como (?:est[aá]|vai) ${TASK_PT}`,
+ 'como est[aá] indo',
+ `(?:${TASK_PT} )?(?:j[aá] )?(?:terminou|acabou|finalizou|concluiu|est[aá] pront[oa])`,
+ `(?:${TASK_PT} )?ainda est[aá] (?:rodando|${PROGRESS_PT})`,
+ 'qual (?:[eé] )?o (?:status|andamento|progresso) (?:(?:da|dessa|desta) tarefa|(?:do|desse|deste) trabalho)(?: atual)?',
+ `quais tarefas est[aã]o (?:rodando|${PROGRESS_PT})`,
+ 'quanto tempo falta (?:para|pra) terminar',
+].join('|')+`)${END_PT}`,'i');
 export function statusIntent(text){
- const t=normalize(text).replace(new RegExp('^'+LEAD,'i'),'');
+ const spoken=normalize(text);
+ if(STATUS_PT.test(spoken))return true;
+ const t=spoken.replace(new RegExp('^'+LEAD,'i'),'');
  return t.split(' ').length<=28&&STATUS.test(t)&&!ASKS_FOR_MORE.test(t);
 }
 

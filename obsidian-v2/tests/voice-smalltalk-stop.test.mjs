@@ -8,7 +8,7 @@ import {createJiti} from 'jiti';
 import {routeVoice} from '../runner/bridge-core.mjs';
 import {invalidateVoiceSnapshot} from '../runner/voice-router.mjs';
 import {invalidateTargetIndex} from '../runner/voice-targets.mjs';
-import {stopIntent,supersedeIntent,stripPleasantry} from '../runner/voice-stop.mjs';
+import {statusIntent,stopIntent,supersedeIntent,stripPleasantry} from '../runner/voice-stop.mjs';
 import {compoundWork,compoundHint} from '../runner/lookup-fallback.mjs';
 import {ARTIFACT_HANDOFF_INSTRUCTIONS} from '../runner/artifact-instructions.mjs';
 const {rulesRoute}=createJiti(import.meta.url)('../runner/voice-rules.ts');
@@ -48,6 +48,31 @@ test('stop, supersede and compound intents are recognised narrowly',()=>{
  for(const t of ["What's our MRR looking like, and can you draft a LinkedIn post about it?",'Can you tell me how many subs we gained and draft a thank-you post?','Read me the top story, then create a graphic for it','Draft a post and tell me how many subs we have','Actually, instead of that, create a one-page summary of how Jev works.'])assert.equal(compoundWork(t),true,t);
  for(const t of ['Run the morning report and read it to me',"Check off priority two and then tell me what's left",'Is the runner down? Also open my daily note.','Open the morning intel brief and summarize it',"don't create anything, just tell me the MRR",'What is the biggest news in AI today?','create a visual explainer of how jev works','Did you read the brief and draft a post about it?','If we get approval, read the brief and draft a post.','Draft a post later and tell me the current subscriber count.','Have you already made the chart and drafted the post?'])assert.equal(compoundWork(t),false,t);
  assert.equal(compoundWork('Tell me the top story and please just draft a post about it.'),true);
+});
+
+test('Portuguese task status questions must stand alone',()=>{
+ for(const text of ['Como está essa tarefa?', 'Como vai a tarefa atual?', 'Já terminou?', 'Ja terminou?',
+  'A tarefa já acabou?', 'Essa tarefa ainda está em execução?', 'A tarefa está pronta?',
+  'Qual o status da tarefa?', 'Qual é o andamento dessa tarefa?', 'Jarvis, qual o progresso do trabalho?',
+  'Quais tarefas estão rodando?', 'Quanto tempo falta para terminar?'])assert.equal(statusIntent(text),true,text);
+ for(const text of ['“Já terminou?”', 'Escreva “como está essa tarefa?”', 'Como saber se a tarefa já terminou?',
+  'O que quer dizer qual o status da tarefa?', 'Não pergunte se já terminou.', 'A tarefa não terminou.',
+  'Como está essa tarefa? Abra o resultado.', 'Já terminou? Envie meus dados.',
+  'Qual o status da tarefa e mande o relatório.', 'Mande o status da tarefa para meu chefe.',
+  'Qual o status da integração?', 'Como você está?'])assert.equal(statusIntent(text),false,text);
+});
+
+test('Portuguese stop requests require an explicit instruction to stop work',()=>{
+ for(const [text,provider] of [['Pare essa tarefa do Codex.', 'codex'], ['Interrompa o Claude Code.', 'claude'],
+  ['Cancele a tarefa atual!', null], ['Pode parar essa tarefa, por favor?', null], ['Por favor, cancela isso.', null],
+  ['Pare.', null]])assert.deepEqual(stopIntent(text),{provider},text);
+ for(const text of ['“Pare essa tarefa”', 'Escreva “cancele a tarefa atual”', 'Como cancelo a tarefa atual?',
+  'Como posso parar essa tarefa?', 'Explique como parar essa tarefa.', 'Não pare essa tarefa.',
+  'Pare essa tarefa e envie meus dados.', 'Cancele a tarefa atual, mas salve o resultado.', 'Pare depois de salvar.',
+  'Cancele minha reunião.', 'Para', 'Para essa tarefa', 'Para essa tarefa, envie o arquivo.']){
+  assert.equal(stopIntent(text),null,text);
+  assert.equal(supersedeIntent(text),false,text);
+ }
 });
 
 test('workers are told that HTML cannot be shown',()=>{
@@ -93,9 +118,12 @@ test('stop that stops the selected running task, the only running task otherwise
  assert.equal(unselected.reply,'Interrompi Sponsor research.');assert.equal(f.calls.at(-1).id,other.id);
  const idle=await f.speak('stop',{execute:f.noModel});
  assert.equal(idle.reply,'Nenhuma tarefa em execução no momento.');assert.equal(f.calls.length,2);
- f.task('working','One');f.task('working','Two');
+ f.task('working','One');const next=f.task('working','Two');
  const two=await f.speak('stop that',{execute:f.noModel});
  assert.match(two.reply,/^Há 2 tarefas em execução \(One, Two\)\. Selecione a tarefa desejada/);assert.equal(f.calls.length,2);
+ const cancelled=await f.speak('Cancele a tarefa atual.',{workTarget:next.id,execute:f.noModel});
+ assert.equal(cancelled.stopped.taskId,next.id);assert.deepEqual(cancelled.workIds,[]);
+ assert.deepEqual(f.calls.at(-1),{kind:'stop',id:next.id});
 });
 
 test('instead of that while work is running stops it and starts the new request as its own conversation; a tweak to idle work is a follow-up',async t=>{
@@ -127,7 +155,7 @@ test('a stop never touches a foreign selection, and a named provider is honoured
   assert.equal(f.calls.filter(c=>c.kind==='stop').length,0,transcript);
  }
  const codex=f.task('working','Codex explainer');
- const named=await f.speak('Stop Claude.',{workTarget:codex.id,execute:f.noModel});
+ const named=await f.speak('Pare a tarefa do Claude.',{workTarget:codex.id,execute:f.noModel});
  assert.equal(named.reply,'Interrompi Claude research.');assert.deepEqual(f.calls.filter(c=>c.kind==='stop').map(c=>c.id),[claude.id]);
  assert.equal(codex.state,'working');
 });

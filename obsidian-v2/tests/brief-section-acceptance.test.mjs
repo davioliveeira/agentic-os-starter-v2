@@ -118,6 +118,9 @@ for(const provider of ['codex','claude']){
    ['Which messages need a reply according to the morning brief?','reply',['ReplyCalendar','ReplyLaunch'],['UrgentInvoice','SponsorBeacon']],
    ["Were there any sponsor pitches in today's brief?",'sponsor',['SponsorBeacon'],['UrgentInvoice','ReplyCalendar']],
    ["Give me the inbox summary from today's morning intel.",'summary',['UrgentInvoice'],[]],
+   ['Quais e-mails urgentes aparecem no boletim de hoje?','urgent',['UrgentInvoice','UrgentAccess'],['ReplyCalendar','SponsorBeacon']],
+   ['Quais e-mails precisam de resposta no relatório salvo?','reply',['ReplyCalendar','ReplyLaunch'],['UrgentInvoice','SponsorBeacon']],
+   ['Tem propostas de patrocínio no boletim?','sponsor',['SponsorBeacon'],['UrgentInvoice','ReplyCalendar']],
   ];
   for(const [utterance,category,present,missing] of cases){
    const {result,reads}=await traceReads(f.root,()=>f.classify(provider,utterance));
@@ -135,6 +138,7 @@ for(const provider of ['codex','claude']){
    ["What did today's morning brief say about OpenAI?",'ai-codex','OpenKernel','ClaudeNotebook'],
    ["What Anthropic updates were in today's brief?",'ai-claude','ClaudeNotebook','OpenKernel'],
    ["What did the brief cover from the other AI companies today?",'ai-other','OtherHelix','OpenKernel'],
+   ['O que saiu sobre o Claude no boletim da manhã?','ai-claude','ClaudeNotebook','OpenKernel'],
   ]){
    const {result,reads}=await traceReads(f.root,()=>f.classify(provider,utterance));
    assert.equal(result.engine,'rules',utterance);assert.equal(result.lookup?.section,section);assert.ok(result.reply.includes(expected),utterance);
@@ -161,11 +165,21 @@ for(const provider of ['codex','claude']){
    ["What YouTube ideas did today's content plan suggest?",'content-youtube','YouTubeLaunch',['LinkedInChecklist','ShortsSetup']],
    ["What did the morning brief recommend for LinkedIn content?",'content-linkedin','LinkedInChecklist',['YouTubeLaunch','ShortsSetup']],
    ["What shorts ideas were in today's content plan?",'content-shorts','ShortsSetup',['YouTubeLaunch','LinkedInChecklist']],
+   ['Quais são as pautas para o YouTube no boletim?','content-youtube','YouTubeLaunch',['LinkedInChecklist','ShortsSetup']],
   ]){
    const {result,reads}=await traceReads(f.root,()=>f.classify(provider,utterance));
    assert.equal(result.engine,'rules',utterance);assert.equal(result.lookup?.section,section);assert.ok(result.reply.includes(expected),utterance);
    absent(result.reply,[...inboxMarkers,...outsideMarkers,...unwanted],utterance);noUnrelatedReads(reads);
   }
+ });
+
+ test(`${provider}: the Portuguese source status question reads only saved source health`,async t=>{
+  const f=fixture(t);
+  const {result,reads}=await traceReads(f.root,()=>f.classify(provider,'Qual a situação das fontes no boletim?'));
+  assert.equal(result.lookupRoute,'local');assert.equal(result.lookup?.section,'source-status');
+  assert.match(result.reply,/SavedMailboxStatus/);
+  absent(result.reply,[...inboxMarkers,...outsideMarkers,'RepoLantern','OpenKernel','RadarAstrolabe'],'saved source health');noUnrelatedReads(reads);
+  assert.deepEqual(f.terminalReads,[]);
  });
 
  test(`${provider}: an interpretive section question sends only that section to the fast model`,async t=>{
@@ -199,13 +213,20 @@ for(const provider of ['codex','claude']){
    ['Create a LinkedIn post from the saved content plan.',true],
    ["Read today's sponsor pitches and then draft a reply to the first one.",true],
    ["What were yesterday's urgent inbox items?",false],
+   ['Quais e-mails urgentes chegaram na minha caixa de entrada agora?',false],
+   ['Quais e-mails urgentes aparecem no boletim de ontem?',false],
+   ['Quais e-mails não precisam de resposta no relatório salvo?',false],
+   ['Quais e-mails urgentes aparecem no boletim e quais precisam de resposta?',false],
+   ['Responda aos e-mails urgentes do boletim.',true],
+   ['Quais e-mails urgentes aparecem no boletim de hoje? Arquive todos.',true],
   ]){
    let calls=0;
    const result=await f.classify(provider,utterance,async(_root,job,_prompt,options)=>{
     calls++;assert.equal(job.provider,provider);assert.equal(options.user,utterance);
+    absent(options.system,['UrgentInvoice','SponsorBeacon','RepoLantern'],utterance);
     return {text:JSON.stringify(work?{tier:3,reply:'Working on the full request.'}:{tier:2,reply:'That needs the requested source or a fresh check.'})};
    });
-   assert.ok(calls<=1);assert.notEqual(result.lookupRoute,'local',utterance);
+   assert.ok(calls<=1);assert.notEqual(result.lookupRoute,'local',utterance);assert.notEqual(result.lookupRoute,'scoped-model',utterance);
    if(work)assert.equal(result.tier,3,utterance);
    else absent(result.reply,['UrgentInvoice','SponsorBeacon','RepoLantern'],utterance);
   }

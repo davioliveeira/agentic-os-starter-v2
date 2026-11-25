@@ -42,6 +42,15 @@ test('natural speech resolves slash skills without passing asides or politeness 
  ])assert.equal(parse(phrase),null,phrase);
 });
 
+test('explicit Portuguese skill requests preserve the installed ID and arguments',()=>{
+ const parse=text=>spokenSlashSkill(text,{hasSkill:name=>name==='today'});
+ assert.deepEqual(parse('Rode a skill today.'),{name:'today',args:'',found:true});
+ assert.deepEqual(parse('Por favor, execute a skill /today para revisar o relatório'),{name:'today',args:'para revisar o relatório',found:true});
+ assert.deepEqual(parse('Rode a skill ausente'),{name:'ausente',args:'',found:false});
+ for(const phrase of ['Não rode a skill today','O que faz a skill today?','Rode a rotina today','Rode a skill ../today','Rode a skill today.md'])
+  assert.equal(parse(phrase),null,phrase);
+});
+
 test('provider-specific existence checks and route hand the exact command to a new terminal',async t=>{
  const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'slash-route-')));
  t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
@@ -62,12 +71,12 @@ test('provider-specific existence checks and route hand the exact command to a n
   const execute=()=>assert.fail('no classifier');
   const request=transcript=>({id:randomUUID(),transcript,selection,terminalMode:true,workTarget:selected.id});
   const options={hasSkill,resolveCli:()=>true};
-  const result=await routeVoice(root,request('/today use Sonnet'),null,execute,terminals,options);
+  const result=await routeVoice(root,request('Rode a skill today para revisar o relatório'),null,execute,terminals,options);
   assert.equal(result.workTarget,null);
   assert.deepEqual(result.workIds,[starts[0].id]);
-  assert.equal(starts[0].prompt,'/today use Sonnet');
+  assert.equal(starts[0].prompt,'/today para revisar o relatório');
   const spec=terminalSpec(root,{...starts[0],...starts[0].selection,sessionId:null},{command:'fixture',prefix:[]});
-  assert.equal(spec.args.at(-1),'/today use Sonnet');
+  assert.equal(spec.args.at(-1),'/today para revisar o relatório');
   const missing=await routeVoice(root,request('slash absent'),null,execute,terminals,options);
   assert.equal(missing.reply,"Não encontrei a skill /absent no "+(selection.provider==='claude'?'Claude Code':'Codex')+'.');
   assert.equal(starts.length,1);

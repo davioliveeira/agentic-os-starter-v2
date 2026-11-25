@@ -39,7 +39,7 @@ function fixture(t){
  const write=(relative,text)=>{const file=path.join(root,relative);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,text)};
  const writeBrief=(date=today,text=report)=>write(`inbox/research/morning-intel/${date}-intel.md`,text);
  writeBrief();
- write(`daily-notes/${today}.md`,'## Top 3 Priorities\n1. [ ] Record the local demo\n2. [x] Review the map\n3. [ ] Publish the tutorial\n\n## Schedule\n- 16:20 — Demo rehearsal\n\n## Current Focus\nShip the offline reader.\n');
+ write(`daily-notes/${today}.md`,'## 3 prioridades\n1. [ ] Record the local demo\n2. [x] Review the map\n3. [ ] Publish the tutorial\n\n## Agenda\n- 16:20 — Demo rehearsal\n\n## Foco atual\nShip the offline reader.\n');
  write('system/metrics/metrics.csv',`timestamp,source,metric,value,status,error\n${new Date().toISOString()},youtube,subscribers,43127,ok,\n${new Date().toISOString()},instagram,followers,0,ok,\n`);
  write('system/metrics/latest-video.json',JSON.stringify({title:'PRIVATE_VIDEO_SENTINEL',views:700,url:'https://example.test/video',status:'ok',published_at:new Date().toISOString()}));
  const tasks=[],calls=[],terminalReads=[];
@@ -158,6 +158,37 @@ for(const provider of ['codex','claude']){
   const schedule=await f.speak(provider,'Remind me what is on the calendar for today.');assert.match(schedule.reply,/nota de hoje.*16:20.*Demo rehearsal/);
   const focus=await f.speak(provider,'What am I focusing on today?');assert.match(focus.reply,/foco registrado.*offline reader/);
   assert.equal(f.calls.length,0);
+ });
+
+ test(`${provider}: Portuguese dashboard questions use only the requested source without model or terminal work`,async t=>{
+  const f=fixture(t),relative='inbox/research/fixture-review.md';
+  f.write(relative,'REPORT_BODY_SENTINEL');
+  f.write('system/v2/runs/report-1.json',JSON.stringify({status:'ok',label:'Relatório de demonstração',ts_completed:new Date().toISOString(),deliverable_path:relative}));
+  for(const [utterance,pattern,allowedRead] of [
+   ['Qual é meu foco de hoje?',/foco registrado.*offline reader/,`daily-notes/${f.today}.md`],
+   ['Quais são minhas prioridades de hoje?',/prioridades registradas.*Record the local demo/,`daily-notes/${f.today}.md`],
+   ['O que tem na minha agenda hoje?',/nota de hoje.*16:20.*Demo rehearsal/,`daily-notes/${f.today}.md`],
+   ['Quantos inscritos eu tenho no YouTube?',/43127 inscritos/,'system/metrics/metrics.csv'],
+   ['Quantos seguidores tenho no Instagram?',/\b0 seguidores/,'system/metrics/metrics.csv'],
+   ['Qual é meu último vídeo no YouTube?',/PRIVATE_VIDEO_SENTINEL/,'system/metrics/latest-video.json'],
+   ['Qual é meu relatório mais recente?',/Relatório de demonstração/,'system/v2/runs/report-1.json'],
+  ]){
+   const {value,reads}=await traceReads(f.root,()=>f.classify(provider,utterance));
+   assert.equal(value.engine,'rules',utterance);assert.equal(value.lookupRoute,'local',utterance);assert.match(value.reply,pattern,utterance);
+   assert.ok(reads.filter(read=>read.op==='readFileSync').every(read=>read.path===allowedRead),JSON.stringify(reads));
+  }
+  assert.deepEqual(f.terminalReads,[]);assert.deepEqual(f.calls,[]);
+ });
+
+ test(`${provider}: a Portuguese dashboard question joined to a write reaches the classifier whole`,async t=>{
+  const f=fixture(t),utterance='Diga meu foco de hoje e escreva um relatório.';
+  let calls=0;
+  const answer=await f.speak(provider,utterance,async(_root,job,_prompt,options)=>{
+   calls++;assert.equal(job.provider,provider);assert.equal(options.user,utterance);
+   return {text:JSON.stringify({tier:3,reply:'Vou escrever o relatório.'})};
+  });
+  assert.equal(calls,1);assert.equal(answer.action,'task');assert.equal(f.calls.length,1);
+  assert.ok(f.calls[0].prompt.includes(utterance));assert.equal(f.calls[0].selection.provider,provider);
  });
 
  test(`${provider}: missing, stale and future source files stay explicit even with a remembered unavailable task`,async t=>{
