@@ -14,7 +14,7 @@ for(const chosen of [selection,{provider:'claude',model:'sonnet'}])test(`${chose
  assert.equal(continued,task);assert.equal(processes.length,1);assert.equal(task.model,chosen.model);assert.equal(task.sessionId,sessionId);
  assert.equal(task.workflow.job.id,id);assert.equal(task.workflow.job.model,chosen.model);assert.equal(task.prompt,'An existing conversation');
  assert.match(processes[0].writes[0],new RegExp(`system/v2/task-instructions/${id}\\.md`));
- const instructions=fs.readFileSync(path.join(root,'system/v2/task-instructions',id+'.md'),'utf8');assert.match(instructions,/INTERACTIVE TERMINAL CONTRACT/);
+ const instructions=fs.readFileSync(path.join(root,'system/v2/task-instructions',id+'.md'),'utf8');assert.match(instructions,/REGRAS DO TERMINAL INTERATIVO/);
  manager.accept(task.id,{type:chosen.provider==='codex'?'complete':'Stop',sessionId,turnId:'workflow',text:'# Complete weekly review\n\nResearch and next steps.'});
  const run=JSON.parse(fs.readFileSync(path.join(root,'system/v2/runs',id+'.json'),'utf8'));
  assert.equal(run.id,id);assert.equal(run.task_id,task.id);assert.equal(run.model,chosen.model);assert.equal(run.status,'ok');assert.equal(task.workflowCompleted,true);
@@ -147,7 +147,7 @@ test('model skills validate into persistent conversations with immutable task in
  for(const [skill,spec] of Object.entries(SKILLS)){
   if(spec.direct)continue;
   const args=spec.arg?{[spec.arg]:spec.arg==='url'?'https://example.com':'Test topic'}:{};
-  const task=manager.startWorkflow({selection,skill,args});assert.equal(task.workflow.job.skill,skill);assert.ok(task.prompt.includes('system/v2/task-instructions/'));assert.ok(fs.existsSync(path.join(root,'system/v2/task-instructions',task.id+'.md')));
+  const task=manager.startWorkflow({selection,skill,args});assert.equal(task.workflow.job.skill,skill);assert.equal(task.title,SKILLS[skill].label);assert.ok(task.prompt.includes('system/v2/task-instructions/'));assert.ok(fs.existsSync(path.join(root,'system/v2/task-instructions',task.id+'.md')));
   assert.equal(manager.startWorkflow({id:task.id,selection,skill,args}).id,task.id);manager.stop(task.id);
  }
 });
@@ -249,7 +249,7 @@ test('cancelling a direct command terminates its owned subprocess tree',async t=
  const run=runCommand(process.execPath,['-e',program,pidFile],{signal:controller.signal,timeout:10000});
  for(let attempt=0;!fs.existsSync(pidFile)&&attempt<100;attempt++)await new Promise(resolve=>setTimeout(resolve,30));
  assert.ok(fs.existsSync(pidFile),'owned child started');descendant=Number(fs.readFileSync(pidFile,'utf8'));assert.ok(descendant>0);
- controller.abort();await assert.rejects(run,/Task stopped/);
+ controller.abort();await assert.rejects(run,/Tarefa interrompida/);
  // Process closure can precede the platform removing the descendant entry.
  for(let attempt=0;attempt<30;attempt++){try{process.kill(descendant,0)}catch{return}await new Promise(resolve=>setTimeout(resolve,30))}
  assert.fail('the owned descendant remained alive after cancellation');
@@ -263,5 +263,5 @@ test('restarting after an interrupted source refresh clears its stale running re
  const reopened=new TerminalManager(root,{...options,direct:()=>assert.fail('must not replay interrupted work')});
  t.after(()=>{reopened.close();fs.rmSync(root,{recursive:true,force:true})});release({text:'Lost completion'});await done;
  assert.equal(reopened.get(task.id).state,'stopped');assert.equal(reopened.get(task.id).workflowStatus,'error');
- const receipt=JSON.parse(fs.readFileSync(path.join(root,'system/v2/runs',task.id+'.json'),'utf8'));assert.equal(receipt.status,'error');assert.match(receipt.summary,/interrupted/);
+ const receipt=JSON.parse(fs.readFileSync(path.join(root,'system/v2/runs',task.id+'.json'),'utf8'));assert.equal(receipt.status,'error');assert.match(receipt.summary,/atualização das fontes foi interrompida/);
 });

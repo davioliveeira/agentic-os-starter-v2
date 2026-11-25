@@ -42,8 +42,8 @@ export function classifierEnv(job,inherited=process.env,{storedSignIn=useStoredS
 }
 export function parseWorkerResult(value){
  const data=typeof value==='string'?JSON.parse(value):value;
- if(!data||!['ok','blocked'].includes(data.status)||typeof data.summary!=='string'||!data.summary.trim()||typeof data.markdown!=='string'||data.markdown.length>250000)throw new Error('Worker returned invalid completion status');
- if(data.status==='ok'&&!data.markdown.trim())throw new Error('Worker returned a summary without the report.');
+ if(!data||!['ok','blocked'].includes(data.status)||typeof data.summary!=='string'||!data.summary.trim()||typeof data.markdown!=='string'||data.markdown.length>250000)throw new Error('O agente retornou um resultado fora do formato exigido.');
+ if(data.status==='ok'&&!data.markdown.trim())throw new Error('O agente retornou um resumo sem o relatório completo.');
  return {status:data.status,summary:data.summary.slice(0,500),text:data.markdown||data.summary};
 }
 export function commandFor(root,job,cli=findCli(job.provider)){

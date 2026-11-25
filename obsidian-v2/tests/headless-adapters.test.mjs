@@ -11,7 +11,7 @@ import {stopCliProcessTree} from '../runner/cli-process-tree.mjs';
 
 const job=provider=>({id:crypto.randomUUID(),provider,model:provider==='codex'?'astra':'sonnet',skill:'vault-summary'});
 test('a success summary cannot stand in for a missing report',()=>{
- assert.throws(()=>parseWorkerResult({status:'ok',summary:'Weekly report generated.',markdown:'  '}),/without the report/);
+ assert.throws(()=>parseWorkerResult({status:'ok',summary:'Weekly report generated.',markdown:'  '}),/sem o relatório completo/);
  assert.deepEqual(parseWorkerResult({status:'blocked',summary:'Calendar unavailable',markdown:''}),{status:'blocked',summary:'Calendar unavailable',text:'Calendar unavailable'});
 });
 function vault(t){

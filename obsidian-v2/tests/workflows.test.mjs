@@ -13,9 +13,9 @@ const temp=()=>{const root=fs.mkdtempSync(path.join(os.tmpdir(),'aos-parity-'));
 const note='---\nschema_version: 1\nfocus: Keep this\n---\n# Today\n\n## Current Focus\nMy words.\n\n## Top 3 Priorities\n1. [x] Shipped thing\n2. [ ] Existing commitment\n3. [ ] \n\n## Schedule\n- 10:00 — Old event\n\n## Daily Drivers\n- [x] Recorded\n\n## Notes\nPrivate notes stay here.\n\n## EOD Reflection\nKeep reflection.\n';
 test('worker instructions discover the selected provider’s Google connectors',()=>{
  const root=temp(),prompt=buildPrompt(root,job('plan-today'));
- assert.match(prompt,/names contain Google_Calendar, Gmail or Google_Drive/);assert.doesNotMatch(prompt,/mcp__claude_ai/);
- assert.match(prompt,/In Codex, use its connected Google tools/);
- assert.match(prompt,/after trying the appropriate connector/);
+ assert.match(prompt,/Google_Calendar, Gmail ou Google_Drive no nome/);assert.doesNotMatch(prompt,/mcp__claude_ai/);
+ assert.match(prompt,/No Codex, use as ferramentas do Google já conectadas/);
+ assert.match(prompt,/Tente o conector adequado antes de informar que a agenda ou o e-mail estão indisponíveis/);
  assert.doesNotMatch(prompt,/calendar_events|inbox_messages/);
 });
 test('daily merge fills empty slots and preserves all other content and checked items',()=>{

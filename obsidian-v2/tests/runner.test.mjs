@@ -23,7 +23,7 @@ test('isolated output, provider capture, duplicate protection, failure handling'
  const intent=job();let called=0;
  const record=await processJob(root,intent,async(j,p)=>{called++;assert.equal(j.provider,'codex');assert.match(p,/Finish Obsidian/);writeJson(root,`${ROOT}/provider.json`,{provider:'claude',model:'sonnet'});return {text:'# Draft\nReview the integration.'}});
  assert.equal(record.status,'ok');assert.equal(record.provider,'codex');assert.match(fs.readFileSync(path.join(root,record.deliverable_path),'utf8'),/provider: codex/);
- await assert.rejects(()=>processJob(root,intent,async()=>{called++;return{text:'bad'}}),/Duplicate/);assert.equal(called,1);
+ await assert.rejects(()=>processJob(root,intent,async()=>{called++;return{text:'bad'}}),/Já existe uma execução com este identificador/);assert.equal(called,1);
  const failed=await processJob(root,job(),async()=>{throw new Error('model unavailable')});assert.equal(failed.status,'error');assert.equal(failed.deliverable_path,null);assert.match(failed.summary,/model unavailable/);
  const empty=await processJob(root,job(),async()=>({text:''}));assert.equal(empty.status,'error');
  assert.equal(fs.existsSync(path.join(root,'system/queue')),false);

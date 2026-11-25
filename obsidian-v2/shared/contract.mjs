@@ -23,59 +23,59 @@ export const SKILLS = {
     "label": "Resumir cofre",
     "about": "Lê o cofre e reúne o que está documentado, as pendências e os próximos passos.",
     "needs": [],
-    "instruction": "Summarize documented facts, unfinished work and suggested next steps."
+    "instruction": "Resuma os fatos documentados, as pendências e os próximos passos sugeridos."
   },
   "plan-today": {
     "label": "Planejar hoje",
     "about": "Escreve a nota de hoje com três prioridades, a agenda e pendências dos últimos dias.",
     "needs": ["Google Agenda conectado à sua ferramenta de código"],
-    "instruction": "Complete the Plan Today workflow."
+    "instruction": "Execute o fluxo Planejar hoje."
   },
   "plan-tomorrow": {
     "label": "Planejar amanhã",
     "about": "Prepara a nota de amanhã com pendências, prazos de projetos e compromissos. Se já existir uma nota, ela é preservada.",
     "needs": ["Google Agenda conectado à sua ferramenta de código"],
-    "instruction": "Complete the Plan Tomorrow workflow."
+    "instruction": "Execute o fluxo Planejar amanhã."
   },
   "refresh-schedule": {
     "label": "Atualizar agenda",
     "about": "Lê novamente o calendário e atualiza a seção de agenda da nota de hoje.",
     "needs": ["Google Agenda conectado à sua ferramenta de código","nota diária de hoje"],
-    "instruction": "Complete the Refresh Schedule workflow."
+    "instruction": "Execute o fluxo Atualizar agenda."
   },
   "morning-intel": {
     "label": "Boletim de IA",
     "about": "Reúne notícias de IA, Hacker News e GitHub em um boletim diário com ideias de conteúdo.",
     "needs": [],
     "better": ["Gmail conectado à sua ferramenta de código (adiciona triagem de e-mails)","uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env) para incluir canais pequenos e outras seções do YouTube"],
-    "instruction": "Complete the Intel Brief workflow."
+    "instruction": "Execute o fluxo Boletim de IA."
   },
   "inbox-brief": {
     "label": "Resumo da caixa de entrada",
     "about": "Organiza os e-mails das últimas 24 horas por prioridade e sugere respostas para revisão.",
     "needs": ["Gmail conectado à sua ferramenta de código"],
-    "instruction": "Complete the Inbox Brief workflow."
+    "instruction": "Execute o fluxo Resumo da caixa de entrada."
   },
   "deep-research-chase": {
     "label": "Pesquisa aprofundada",
     "about": "Pesquisa um tema na web, no X e no GitHub e resume as descobertas, com fontes e divergências.",
     "needs": [],
     "better": ["uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env) para incluir vídeos como fontes"],
-    "instruction": "Complete the Deep Research workflow.",
+    "instruction": "Execute o fluxo Pesquisa aprofundada.",
     "arg": "topic"
   },
   "content-cascade": {
     "label": "Reaproveitar conteúdo",
     "about": "Cria rascunhos para blog, X e LinkedIn a partir da transcrição de um vídeo do YouTube.",
     "needs": ["um link de vídeo do YouTube","yt-dlp instalado para ler as transcrições de vídeos"],
-    "instruction": "Complete the Content Cascade workflow.",
+    "instruction": "Execute o fluxo Reaproveitar conteúdo.",
     "arg": "url"
   },
   "yt-pipeline": {
     "label": "Pesquisa no YouTube",
     "about": "Encontra os vídeos mais relevantes sobre um tema no YouTube e gera um relatório com base nas transcrições.",
     "needs": ["uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env)", "yt-dlp instalado para ler as transcrições de vídeos"],
-    "instruction": "Complete the YT Pipeline workflow.",
+    "instruction": "Execute o fluxo Pesquisa no YouTube.",
     "arg": "topic"
   },
   "weekly-review": {
@@ -83,84 +83,84 @@ export const SKILLS = {
     "about": "Analisa as últimas sete notas diárias para identificar esforço, foco, entregas e temas que merecem atenção.",
     "needs": ["alguns dias de notas diárias"],
     "better": ["uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env) e seu canal para incluir a análise do canal"],
-    "instruction": "Complete the Weekly Review workflow."
+    "instruction": "Execute o fluxo Revisão semanal."
   },
   "vault-cleanup": {
     "label": "Revisar arquivos do cofre",
     "about": "Lista arquivos que podem ser arquivados e explica cada sugestão para revisão.",
     "needs": [],
-    "instruction": "Complete the Vault Cleanup workflow."
+    "instruction": "Execute o fluxo Revisar arquivos do cofre."
   },
   "metrics-pull": {
     "label": "Atualizar métricas",
     "about": "Atualiza os indicadores de YouTube, Instagram, TikTok e GitHub no painel.",
     "needs": ["seus nomes de usuário e uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env)"],
-    "instruction": "Complete the Pull Metrics workflow.",
+    "instruction": "Execute o fluxo Atualizar métricas.",
     "direct": true
   },
   "github-trending": {
     "label": "Em alta no GitHub",
     "about": "Gera um relatório dos repositórios que mais cresceram no GitHub na semana e no mês.",
     "needs": ["Python 3"],
-    "instruction": "Complete the GitHub Trending workflow.",
+    "instruction": "Execute o fluxo Em alta no GitHub.",
     "direct": true
   },
   "yt-week-review": {
     "label": "Análise do YouTube",
     "about": "Compara os vídeos publicados nos últimos sete dias com os vídeos recentes do canal.",
     "needs": ["seu canal e uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env)"],
-    "instruction": "Complete the YouTube Review workflow."
+    "instruction": "Execute o fluxo Análise do YouTube."
   },
   "outlier-radar": {
     "label": "Radar de vídeos em destaque",
     "about": "Encontra vídeos recentes de canais pequenos de IA que superaram o desempenho habitual do canal.",
     "needs": ["uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env)"],
-    "instruction": "Complete the Outlier Radar workflow."
+    "instruction": "Execute o fluxo Radar de vídeos em destaque."
   },
   "lead-research": {
     "label": "Pesquisar leads",
     "about": "Pesquisa os leads da sua base antes da reunião comercial.",
     "needs": ["uma base de leads conectada à sua ferramenta de código"],
-    "instruction": "Complete the Lead Research workflow."
+    "instruction": "Execute o fluxo Pesquisar leads."
   },
   "morning": {
     "label": "Boletim da manhã",
     "about": "Combina as notícias de IA da manhã com a triagem da caixa de entrada.",
     "needs": ["Gmail conectado à sua ferramenta de código"],
-    "instruction": "Complete the Morning Brief workflow."
+    "instruction": "Execute o fluxo Boletim da manhã."
   },
   "morning-report": {
     "label": "Relatório da manhã",
     "about": "Resume lançamentos e notícias das últimas 24 horas sobre IA e criação de agentes, com o que mudou na prática.",
     "needs": [],
     "better": ["uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env) para incluir dados do YouTube"],
-    "instruction": "Complete the Morning Report workflow."
+    "instruction": "Execute o fluxo Relatório da manhã."
   },
   "ai-trend-scan": {
     "label": "Tendências de IA",
     "about": "Identifica temas de IA em alta e prioriza ideias de conteúdo.",
     "needs": [],
     "better": ["uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env) para incluir contagens de visualizações"],
-    "instruction": "Complete the AI Trend Scan workflow."
+    "instruction": "Execute o fluxo Tendências de IA."
   },
   "angle-brainstorm": {
     "label": "Gerar ideias de abordagem",
     "about": "Sugere de 8 a 12 abordagens de vídeo para um tema com base no interesse do público.",
     "needs": [],
     "better": ["uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env) para embasar as ideias em vídeos publicados"],
-    "instruction": "Complete the Brainstorm Angles workflow.",
+    "instruction": "Execute o fluxo Gerar ideias de abordagem.",
     "arg": "topic"
   },
   "outline-build": {
     "label": "Montar roteiro",
     "about": "Transforma a abordagem escolhida em um roteiro com abertura, tópicos, retomadas, conclusão e chamada para ação.",
     "needs": [],
-    "instruction": "Complete the Build Outline workflow.",
+    "instruction": "Execute o fluxo Montar roteiro.",
     "arg": "topic"
   },
   "voice-ask": {
     "label": "Perguntar ao Astra",
-    "instruction": "Complete the Ask Astra workflow.",
+    "instruction": "Execute o fluxo Perguntar ao Astra.",
     "arg": "prompt"
   }
 };

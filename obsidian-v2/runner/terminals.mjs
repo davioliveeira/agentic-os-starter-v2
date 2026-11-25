@@ -90,8 +90,8 @@ export class TerminalManager {
     if(r.execution==='native'&&r.native?.instance){r.keep=r.keep===true;r.lastActivityAt=Number.isFinite(r.lastActivityAt)?r.lastActivityAt:this.now()}
     else migrateTaskRetention(r,mtime,this.now());
     const expires=this.retention.expiresAt(r);
-    if(r.execution==='script'&&!r.workflowCompleted&&(expires===null||expires>this.now()))saveWorkflowResult(root,r,'BLOCKED: Source refresh was interrupted before the bridge recorded completion. Review the saved source data and start a new refresh explicitly.');
-    if(r.execution==='headless'&&!r.workflowCompleted&&(expires===null||expires>this.now())){saveWorkflowResult(root,r,'BLOCKED: Workflow was interrupted before completion. The report was not replaced. Start a new run to try again.');r.state='error'}
+    if(r.execution==='script'&&!r.workflowCompleted&&(expires===null||expires>this.now()))saveWorkflowResult(root,r,'BLOCKED: A atualização das fontes foi interrompida antes de a ponte registrar a conclusão. Confira os dados salvos antes de iniciar uma nova atualização.');
+    if(r.execution==='headless'&&!r.workflowCompleted&&(expires===null||expires>this.now())){saveWorkflowResult(root,r,'BLOCKED: O fluxo foi interrompido antes da conclusão. O relatório original foi preservado. Para tentar novamente, inicie outra execução.');r.state='error'}
     r.recoveryAvailable=!r.sessionId&&!['script','headless'].includes(r.execution);this.records.set(r.id,r);this.save(r);
    }catch{}
   }
@@ -224,7 +224,7 @@ export class TerminalManager {
   if(SKILLS[skill].direct)return this.startDirect(job,destination,appScope,{background:execution==='headless',liveCallId});
   const workflow=prepareWorkflow(this.root,{id,selection,skill,args,execution});
   if(execution==='headless')return startHeadlessWorkflow(this,workflow,appScope);
-  return this.start({id,selection,prompt:workflow.prompt,title:skill.replaceAll('-',' '),workflow,execution,reveal,liveCallId});
+  return this.start({id,selection,prompt:workflow.prompt,title:SKILLS[skill].label,workflow,execution,reveal,liveCallId});
  }
  continueWorkflow(targetId,{id=crypto.randomUUID(),selection,skill,args={}},{resumeStopped=false,liveCallId}={}){
   if(!workId(id))throw new Error('ID da tarefa inválido.');

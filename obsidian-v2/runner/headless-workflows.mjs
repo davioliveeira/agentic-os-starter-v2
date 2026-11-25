@@ -14,22 +14,22 @@ export function startHeadlessWorkflow(manager,workflow,appScope){
  fs.mkdirSync(path.join(manager.folder(job.id),'events'),{recursive:true});manager.records.set(job.id,record);
  const controller=new AbortController(),live={controller,proc:{kill:()=>controller.abort(),resize(){}},output:'',start:0,instance:job.id,sizes:[{at:0,cols:110,rows:30}]};
  try{
-  writeJson(manager.root,`${ROOT}/runs/${job.id}.json`,{...job,ts_queued:job.ts,ts_started:new Date(created).toISOString(),ts_completed:null,status:'running',summary:`Running ${SKILLS[job.skill].label}`,execution:'headless',appScope,task_id:job.id,deliverable_path:null});
+  writeJson(manager.root,`${ROOT}/runs/${job.id}.json`,{...job,ts_queued:job.ts,ts_started:new Date(created).toISOString(),ts_completed:null,status:'running',summary:`Executando “${SKILLS[job.skill].label}”.`,execution:'headless',appScope,task_id:job.id,deliverable_path:null});
   manager.save(record);
  }catch(error){
-  record.state='error';record.error='Could not save the workflow request. No worker was started.';
+  record.state='error';record.error='Falha ao salvar o pedido antes de iniciar a execução.';
   try{saveWorkflowResult(manager.root,record,'BLOCKED: '+record.error);manager.save(record)}catch{}
   throw error;
  }
  manager.live.set(job.id,live);
  live.done=Promise.resolve().then(()=>{
-  if(controller.signal.aborted)throw new Error('Workflow stopped.');
+  if(controller.signal.aborted)throw new Error('Fluxo interrompido.');
   return withSignInFallback(job,()=>manager.execute(manager.root,{...job,execution:'headless'},workflow.prompt,{signal:controller.signal}));
  }).then(result=>{
   if(manager.live.get(job.id)!==live)return;
-  if(controller.signal.aborted)throw new Error('Workflow stopped. The report was not replaced.');
+  if(controller.signal.aborted)throw new Error('Fluxo interrompido. O relatório original foi preservado.');
   const text=String(result?.text||'');
-  if(!text.trim())throw new Error('The workflow returned no report.');
+  if(!text.trim())throw new Error('O fluxo terminou sem retornar um relatório.');
   if(result?.status==='blocked'){
    saveWorkflowResult(manager.root,record,`BLOCKED: ${String(result.summary||text).slice(0,1000)}\n\n${text}`);record.state='error';return;
   }
@@ -37,9 +37,9 @@ export function startHeadlessWorkflow(manager,workflow,appScope){
   record.state=record.workflowStatus==='ok'?'stopped':'error';
  }).catch(error=>{
   if(manager.live.get(job.id)!==live)return;
-  record.error=controller.signal.aborted&&!error.cleanupUnconfirmed?'Workflow stopped. The report was not replaced.':String(error.message||error);
+  record.error=controller.signal.aborted&&!error.cleanupUnconfirmed?'Fluxo interrompido. O relatório original foi preservado.':String(error.message||error);
   record.state=controller.signal.aborted&&!error.cleanupUnconfirmed?'stopped':'error';
-  try{saveWorkflowResult(manager.root,record,'BLOCKED: '+record.error)}catch(saveError){record.state='error';record.error+=` Could not save the failed run: ${String(saveError.message||saveError)}`;record.workflowStatus='error'}
+  try{saveWorkflowResult(manager.root,record,'BLOCKED: '+record.error)}catch(saveError){record.state='error';record.error+=` Falha ao registrar a execução com erro (${String(saveError.message||saveError)}).`;record.workflowStatus='error'}
   if(error.cleanupUnconfirmed){
    // The report is failed, but its worker may still own the destination. Keep
    // the shutdown/source lock until the adapter observes actual process close.

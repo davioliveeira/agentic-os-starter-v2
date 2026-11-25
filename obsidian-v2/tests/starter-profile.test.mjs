@@ -50,6 +50,8 @@ test('an existing note keeps whatever drivers it already has',()=>{
 test('planning prompts name this computer\'s time zone, and python resolves per platform',()=>{
  const prompt=workflowPrompt(vaultWith(),{skill:'plan-today',id:crypto.randomUUID(),args:{}},'');
  assert.ok(prompt.includes(`Use ${TIME_ZONE} para determinar a data.`));
+ const weekly=workflowPrompt(vaultWith(),{skill:'weekly-review',id:crypto.randomUUID(),args:{}},'');
+ assert.ok(weekly.includes(`últimos sete dias no fuso ${TIME_ZONE}`));
  if(TIME_ZONE!=='America/Chicago')assert.equal(prompt.includes('America/Chicago'),false);
  assert.equal(TIME_ZONE,new Intl.DateTimeFormat().resolvedOptions().timeZone);
  assert.equal(pythonCommand({},'win32'),'python');assert.equal(pythonCommand({},'darwin'),'python3');assert.equal(pythonCommand({},'linux'),'python3');

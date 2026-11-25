@@ -24,7 +24,7 @@ for(const selection of selections)for(const appScope of ['native','web'])test(`$
  assert.equal(manager.startWorkflow(request),task);
  await Promise.resolve();assert.equal(calls.length,1);assert.equal(calls[0].job.provider,selection.provider);assert.equal(calls[0].job.model,selection.model);assert.equal(calls[0].job.execution,'headless');
  const instructions=fs.readFileSync(path.join(root,'system/v2/task-instructions',task.id+'.md'),'utf8');
- assert.match(instructions,/BACKGROUND WORKFLOW CONTRACT/);assert.doesNotMatch(instructions,/INTERACTIVE TERMINAL CONTRACT/);assert.match(calls[0].prompt,/Return JSON/);
+ assert.match(instructions,/REGRAS DO FLUXO EM SEGUNDO PLANO/);assert.doesNotMatch(instructions,/REGRAS DO TERMINAL INTERATIVO/);assert.match(calls[0].prompt,/Retorne um JSON com status \(ok ou blocked\), summary e markdown/);
  manager.accept(task.id,{type:'complete',sessionId:crypto.randomUUID(),turnId:'unexpected-hook',text:'# Wrong report'});
  assert.equal(task.sessionId,null);assert.equal(task.workflowCompleted,undefined);assert.equal(task.turns.length,0);
  assert.throws(()=>manager.input(task.id,'text'),/fluxos? em segundo plano/i);assert.throws(()=>manager.send(task.id,'follow-up'),/fluxos? em segundo plano/i);assert.throws(()=>manager.resume(task.id),/fluxos? em segundo plano/i);
@@ -54,7 +54,7 @@ test('cancellation keeps the running lock until CLI closure and discards a late 
  await Promise.resolve();manager.stop(task.id);assert.equal(calls[0].signal.aborted,true);assert.equal(task.state,'stopping');assert.equal(manager.live.size,1);
  assert.throws(()=>manager.startWorkflow({selection,skill:'refresh-schedule',execution:'headless'}),/atualizando a mesma nota/);
  calls[0].resolve({status:'ok',text:'# A late result'});await done;
- assert.equal(task.state,'stopped');assert.equal(run(task.id).status,'error');assert.match(run(task.id).summary,/stopped/);assert.equal(fs.existsSync(path.join(root,task.workflow.destination)),false);assert.equal(manager.live.size,0);
+ assert.equal(task.state,'stopped');assert.equal(run(task.id).status,'error');assert.match(run(task.id).summary,/Fluxo interrompido/);assert.equal(fs.existsSync(path.join(root,task.workflow.destination)),false);assert.equal(manager.live.size,0);
 });
 test('daily-note background saves preserve BOM, CRLF, notes and concurrent editing conflicts',async t=>{
  const {root,manager,calls,run}=fixture(t),selection=selections[0],id=crypto.randomUUID();
@@ -74,8 +74,8 @@ test('bridge recovery marks interrupted background runs failed without replaying
  await Promise.resolve();manager.closed=true;clearInterval(manager.timer);clearInterval(manager.retentionTimer);manager.live.clear();
  const recovered=new NativeTerminalManager(root,{...options,execute:()=>assert.fail('A restarted bridge must never replay a workflow')});
  try{
-  const restored=recovered.get(task.id);assert.equal(restored.state,'error');assert.equal(restored.workflowStatus,'error');assert.equal(restored.recoveryAvailable,false);assert.equal(recovered.live.size,0);assert.match(run(task.id).summary,/interrupted/);
-  calls[0].resolve({status:'ok',text:'# Stale result'});await done;assert.equal(fs.existsSync(path.join(root,task.workflow.destination)),false);assert.match(run(task.id).summary,/interrupted/);
+  const restored=recovered.get(task.id);assert.equal(restored.state,'error');assert.equal(restored.workflowStatus,'error');assert.equal(restored.recoveryAvailable,false);assert.equal(recovered.live.size,0);assert.match(run(task.id).summary,/interrompido antes da conclusão/);
+  calls[0].resolve({status:'ok',text:'# Stale result'});await done;assert.equal(fs.existsSync(path.join(root,task.workflow.destination)),false);assert.match(run(task.id).summary,/interrompido antes da conclusão/);
  }finally{recovered.close()}
 });
 test('direct script buttons keep their script runner with app ownership and no PTY/model',async t=>{
@@ -87,7 +87,7 @@ test('direct script buttons keep their script runner with app ownership and no P
 test('request persistence failure prevents any headless CLI launch',async t=>{
  const {manager,calls}=fixture(t),id=crypto.randomUUID();manager.save=()=>{throw new Error('Fixture disk write refused')};
  assert.throws(()=>manager.startWorkflow({id,selection:selections[0],skill:'weekly-review',execution:'headless'}),/disk write refused/);
- await Promise.resolve();assert.equal(calls.length,0);assert.equal(manager.live.size,0);assert.equal(manager.get(id).state,'error');assert.match(manager.get(id).error,/No worker was started/);
+ await Promise.resolve();assert.equal(calls.length,0);assert.equal(manager.live.size,0);assert.equal(manager.get(id).state,'error');assert.match(manager.get(id).error,/antes de iniciar a execução/);
 });
 test('unconfirmed CLI shutdown stays failed and retains its source lock until actual closure',async t=>{
  const {manager,calls,run}=fixture(t),selection=selections[0];

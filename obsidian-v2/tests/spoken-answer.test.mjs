@@ -5,9 +5,9 @@ import {selectSpokenAnswer, selectCompletionAnswer, SPOKEN_REPLY_STYLE, WORKER_S
 const {completionSpeech} = await createJiti(import.meta.url).import('../shared/speech-text.ts');
 
 test('worker style composes speech in the existing response and defers to exact formats', () => {
- assert.match(WORKER_SPOKEN_STYLE, /Exact-output requests and existing workflow deliverable formats take precedence/);
- assert.match(WORKER_SPOKEN_STYLE, /another tool or model call/);
- assert.match(SPOKEN_REPLY_STYLE, /preserve important uncertainty/);
+ assert.match(WORKER_SPOKEN_STYLE, /Pedidos de saída exata e formatos obrigatórios dos fluxos têm prioridade/);
+ assert.match(WORKER_SPOKEN_STYLE, /chamadas adicionais a ferramentas ou modelos/);
+ assert.match(SPOKEN_REPLY_STYLE, /preserve as incertezas relevantes/);
 });
 
 test('long result speaks its conversational opening rather than technical detail', () => {
