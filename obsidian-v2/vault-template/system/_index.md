@@ -1,20 +1,14 @@
-# System
+# Sistema
 
-Agentic OS plumbing. The plugin, the local bridge and the skills read and write here. Not for hand-editing unless a schema doc says so.
+O plugin, a ponte local e as skills usam esta pasta. Edite arquivos manualmente apenas quando a documentação do esquema indicar como fazê-lo.
 
-## Contents
+- **schemas/** — esquemas como o formato da nota diária. Consulte [[daily-note]] antes de alterar notas diárias.
+- **templates/** — modelo de nota diária conforme o esquema.
+- **metrics/** — histórico incremental em `metrics.csv` e estado de cada fonte em `last-pull.json`.
+- **bases/** — visões do Obsidian Bases para projetos e publicações, alimentadas pelo frontmatter.
+- **v2/** — estado do V2, incluindo `queue/`, `processing/`, `runs/`, `logs/`, `artifacts/` e as preferências em `profile.json`.
+- **queue/** e **runs/** — pastas históricas. O V2 ainda lê os registros antigos em `runs/`.
 
-- **schemas/** — frozen contracts (daily-note format). Read [[daily-note]] before touching daily notes.
-- **templates/** — the daily note template. Mirrors the schema exactly.
-- **metrics/** — `metrics.csv` (append-only) + `last-pull.json` (per-source status snapshot).
-- **bases/** — Obsidian Bases views (active projects, content pipeline), driven by frontmatter.
-- **v2/** — Agentic OS V2 state, written by the local bridge: `queue/`, `processing/`, `runs/`, `logs/`, `artifacts/`, plus `profile.json` (your preferences). Never hand-edit while the services are running.
-- **queue/** and **runs/** — left from earlier versions. V2 still reads old run records from `runs/`, so keep both folders.
+Um pedido por botão ou por voz entra em `v2/queue/<id>.json`, passa por `v2/processing/` e é executado pelo Claude ou Codex. O estado fica em `v2/runs/<id>.json`. Use `v2/logs/` e `v2/artifacts/` para acompanhar os detalhes e arquivos.
 
-## Pipeline
-
-```
-button or voice request → v2/queue/<id>.json → claimed into v2/processing/ → Claude or Codex runs it → v2/runs/<id>.json (status) + v2/logs/ + v2/artifacts/
-```
-
-See [[CLAUDE]] for the agent SOP. To have the system start when you log in, run `node aos.mjs autostart on` in the starter folder.
+Consulte [[CLAUDE]] para as convenções dos agentes. Para iniciar o Agentic OS ao entrar no computador, use `node aos.mjs autostart on` na pasta do projeto.

@@ -1,23 +1,16 @@
-# Plan tomorrow — carryover rubric
+# Planejar amanhã
 
-Adapted from the vault's plan-tomorrow v1.0.0. The current execution contract controls persistence.
+Calcule amanhã pelo calendário de America/Chicago. Se já existir `daily-notes/YYYY-MM-DD.md` para a data, informe o caminho e encerre. Preserve a nota existente. A ponte verifica a ausência antes de encaminhar e ao criar o arquivo de modo exclusivo.
 
-Compute tomorrow from today's America/Chicago calendar date. **STOP if tomorrow's note already exists** at `daily-notes/YYYY-MM-DD.md`. Report the existing path and leave it unchanged; this workflow creates a plan only when absent, it does not merge into a pre-existing tomorrow. Do not delete an existing note as a workaround. The user can review/edit it separately. The bridge checks this before dispatch and again before exclusive creation.
+Leia prioridades e rotinas pendentes e Notes de hoje. Consulte projetos modificados nos últimos sete dias que estejam ativos ou tenham prazo até amanhã e obrigações com patrocinadores documentadas no cofre.
 
-When absent, read today's unfinished Top 3, unfinished Daily Drivers and Notes; projects modified within seven days that are in progress or due on/before tomorrow; and existing sponsor obligations documented in the vault.
+Use o conector autenticado de Google Agenda para instâncias de amanhã, recorrências e eventos de dia inteiro. Percorra as páginas e ordene pelo horário de America/Chicago. Falha de acesso bloqueia o fluxo. Zero eventos numa consulta bem-sucedida é uma agenda vazia válida.
 
-Use the selected provider's authenticated Calendar connector for tomorrow's actual recurring instances and all-day events. Paginate the date window; sort in Chicago time. If access fails, return a blocked result. A successful query with no events is a valid empty schedule.
+Classifique as prioridades nesta ordem: pendências de hoje, projetos vencidos ou com prazo amanhã, preparo para compromissos de amanhã e obrigações documentadas com patrocinadores. Escolha até três prioridades distintas de impacto e deixe posições fracas vazias. Preserve notas existentes.
 
-Rank candidate priorities in this order:
+## Formato da nova nota
 
-1. Today's incomplete Top 3.
-2. Projects due tomorrow or overdue.
-3. Preparation for tomorrow's calendar commitments.
-4. Documented sponsor obligations.
-
-Choose up to three distinct, impactful commitments; leave weak slots empty. Do not carry a completed item over as unfinished. Do not edit today's note. Never overwrite or refresh an existing tomorrow's note.
-
-Return the complete proposed note using the frozen v1 planner frontmatter, including all fields even though some are optional for generic daily-note readers:
+Entregue todos os campos do esquema v1.
 
 ```yaml
 ---
@@ -25,9 +18,9 @@ date: YYYY-MM-DD
 schema_version: 1
 focus: ""
 top3:
-  - "<suggestion 1 or empty>"
-  - "<suggestion 2 or empty>"
-  - "<suggestion 3 or empty>"
+  - "<sugestão 1 ou vazio>"
+  - "<sugestão 2 ou vazio>"
+  - "<sugestão 3 ou vazio>"
 top3_done: [false, false, false]
 effort: null
 focus_blocks: null
@@ -42,6 +35,6 @@ videos_shipped_today: 0
 ---
 ```
 
-Follow with `# YYYY-MM-DD`, then exact body headings in order: `## Current Focus`, `## Top 3 Priorities`, `## Schedule`, `## Daily Drivers`, `## Activity Log`, `## Notes`, `## EOD Reflection`. Include three numbered unchecked priority rows matching top3 in order. Timed events use `- HH:MM — Title`; all-day rows use `- (all-day) — Title`. Keep Schedule on empty days. Driver defaults: Skool post, YouTube recording, Inbox triage, Daily review; add only evidenced open content/sponsor commitments as unchecked drivers. Notes describes today's drift, blockers and momentum. Activity Log and EOD Reflection start empty; effort/focus counters remain null and shipping counters zero. The bridge saves the entire validated new note, not a stripped minimal skeleton.
+Depois de `# YYYY-MM-DD`, mantenha os títulos nesta ordem: `## Current Focus`, `## Top 3 Priorities`, `## Schedule`, `## Daily Drivers`, `## Activity Log`, `## Notes`, `## EOD Reflection`. Inclua três prioridades numeradas e desmarcadas que correspondam a `top3`. Eventos usam `- HH:MM — Título` ou `- (all-day) — Título`. Mantenha Schedule quando vazio. Use as rotinas do perfil. Os padrões aplicáveis incluem publicar no Skool, gravar para o YouTube, triar a caixa de entrada e revisar o dia. Adicione somente compromissos pendentes e evidenciados. Descreva em Notes o que mudou hoje, bloqueios e progresso. Activity Log e EOD Reflection ficam vazios, esforço e foco ficam nulos e publicações começam em zero. A ponte salva a nota validada inteira.
 
-If calendar access fails, return `BLOCKED:` plus useful proposed context with `(calendar fetch failed)` in Notes. Do not claim the unavailable calendar is empty or the proposed note was saved. V2 preserves the destination on connector failure and does not revive the retired GWS path or substitute a `PLANNED` receipt for the note.
+Se o acesso à agenda falhar, comece com `BLOCKED:` e inclua contexto útil com `(calendar fetch failed)` em Notes. A ponte preserva o destino em caso de falha. Retorne a nota completa quando disponível.

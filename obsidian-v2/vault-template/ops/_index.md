@@ -1,3 +1,3 @@
-# Ops — business operations
+# Operações
 
-Finance, dashboards, ops reports. Keep it boring and auditable.
+Organize aqui as finanças, os painéis e os relatórios operacionais do negócio.

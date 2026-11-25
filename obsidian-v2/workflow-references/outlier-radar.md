@@ -1,15 +1,15 @@
-# Outlier Radar — small-channel evidence
+# Radar de vídeos em destaque em canais pequenos
 
-Adapted from the original outlier-radar eligibility and scoring rules. Read existing configured seeds/watchlists and previous reports when available, then use authenticated YouTube metadata tools or the configured API. Do not assume a private scanning script or scheduled task ran, and do not change watchlists or seen-item state in this report workflow.
+Use a lista de canais configurada e os relatórios anteriores quando disponíveis. Consulte a conexão autenticada de metadados do YouTube ou a API configurada. Este relatório preserva listas monitoradas e registros de itens já vistos.
 
-## Eligible videos and baselines
+## Critérios e referência do canal
 
-Look at the last seven days of AI/agent-building uploads from channels with 200–100,000 subscribers. Exclude live videos and durations of 180 seconds or less; require at least 500 views. Report subscriber counts as returned, including rounding. Seek diverse channels using topic searches and any configured watchlist (original cap 75). Compare prior reports over 30 days to label already-seen findings.
+Considere publicações sobre IA ou criação de agentes dos últimos sete dias. Inclua canais com 200 a 100 mil inscritos e vídeos com pelo menos 500 visualizações. Exclua transmissões ao vivo e vídeos de até 180 segundos. Preserve as contagens de inscritos como retornadas. Busque canais diversos e use até 75 entradas da lista configurada. Consulte até 30 dias de relatórios anteriores para marcar itens já vistos.
 
-For each candidate, collect a comparable recent channel baseline from up to 50 uploads, excluding the candidate and ineligible live/short-form items. Reuse verifiable metadata no older than 24 hours where available. Main multiplier = candidate lifetime views / median lifetime views of the eligible recent baseline. A main outlier is at least 1.5×. Report sample size and avoid a confident multiplier for a missing, zero or inadequate baseline.
+Para cada candidato, use até 50 publicações recentes comparáveis do canal, excluindo o próprio candidato, lives e vídeos curtos. Reaproveite metadados verificáveis de até 24 horas. Calcule o multiplicador principal como visualizações acumuladas do candidato divididas pela mediana das visualizações acumuladas da amostra. Considere destaque principal a partir de 1,5×. Informe o tamanho da amostra e marque como inconclusiva uma referência ausente, insuficiente ou igual a zero.
 
-Early detection for a video under 48 hours old can flag at least 10× relative views-per-hour, but this is a secondary velocity signal. Young videos front-load views, so it is not interchangeable with the lifetime multiplier. Never substitute views/subscribers for this channel-baseline method.
+Vídeos com menos de 48 horas podem ser sinalizados cedo se atingirem 10× a velocidade relativa de visualizações por hora. Registre isso como indicador secundário. Visualizações por inscrito medem outra coisa e devem ficar fora desse cálculo.
 
-## Result
+## Entrega
 
-Return a dated report with linked title, channel/subscribers, upload time/age, duration, views, lifetime multiplier, optional early velocity, baseline size, and discovery method. Explain what the topic suggests without treating correlation as proof that the topic caused performance. Separate main outliers from young velocity candidates and previously seen items. State query coverage, missing API access/quota, stale data and confidence. A verified zero-result scan is “no new outliers”; an unavailable source is not zero. The bridge stores the complete report.
+Gere um relatório datado com título e link, canal, inscritos, publicação, idade, duração, visualizações, multiplicador acumulado, velocidade inicial opcional, tamanho da amostra e método de descoberta. Diferencie destaques, sinais iniciais e itens já vistos. Explique o que o tema sugere e separe hipótese de causa comprovada. Informe consultas usadas, limites de cota, acesso ausente, idade dos dados e confiança. Use “nenhum destaque novo” somente quando a busca tiver sido concluída. A ponte grava o relatório completo.

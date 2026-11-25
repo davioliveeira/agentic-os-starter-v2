@@ -1,25 +1,25 @@
-# Deep research — cross-source synthesis
+# Pesquisa aprofundada com várias fontes
 
-Adapted from the vault's deep-research-chase v1.1.0. Require a specific topic; preserve the user's research goal and scope. References define research and formatting, while the execution contract controls tools and side effects.
+Parta de um tema específico e preserve o objetivo e os limites do usuário. Siga o contrato de execução para ferramentas e alterações externas.
 
-Research YouTube, web articles, X/Twitter and GitHub independently where supported. Use platform-specific queries: broad topic plus the current year, topic plus tutorial/guide/announcement, both x.com and twitter.com conversation, and GitHub repositories/issues/discussions. Search YouTube for approximately 15 relevant results from the last three months for quick metadata; extend the window when justified. Collect titles, creators, dates, views and source URLs. Do not label metadata-only findings as transcript analysis.
+Pesquise YouTube, artigos, X/Twitter e GitHub de forma independente quando disponíveis. Combine tema e ano atual com buscas por tutoriais, guias e anúncios. No X, busque em x.com e twitter.com. No GitHub, consulte repositórios, issues e discussões. No YouTube, colete metadados de cerca de 15 vídeos relevantes dos últimos três meses. Amplie o período quando houver motivo. Registre título, criador, data, visualizações e URL.
 
-For the YouTube depth pass, use the attached YouTube pipeline rubric: select 5–8 diverse, relevant sources, then analyze actual available transcripts or authorized existing NotebookLM sources. New NotebookLM notebooks/source uploads require separately authorized account changes; if that path is unavailable, clearly identify the local transcript alternative and any missing depth. Do not invent a notebook link or claim a tool ran.
+Para aprofundar, selecione de cinco a oito fontes relevantes e variadas com a referência do fluxo de pesquisa no YouTube. Analise transcrições disponíveis ou material autorizado em um notebook existente do NotebookLM. Criação de notebooks e envio de fontes exigem autorização específica. Se não houver acesso, explique a alternativa local e que profundidade ficou faltando.
 
-Independent research can run in parallel when the installed provider supports it. Keep permission-dependent work in the interactive session; do not assume another provider's Agent or Skill tools exist. Await all usable evidence before synthesizing.
+Pesquisas independentes podem rodar em paralelo quando a ferramenta oferecer suporte. Deixe operações que dependem de permissão na sessão interativa. Aguarde as evidências disponíveis antes de sintetizar.
 
-Prioritize cross-source patterns, contradictions, unsupported claims, content gaps and whether attention is rising or fading. Separate observed metrics from inferred velocity. Link evidence near each claim, use existing wiki/project links where relevant, and avoid a raw dump of search results.
+Priorize padrões entre fontes, divergências, lacunas, alegações sem evidência e sinais de aumento ou queda de interesse. Separe métricas observadas de inferências. Vincule fontes perto das afirmações e use links de projetos e da wiki quando ajudarem.
 
-## Result structure
+## Estrutura da entrega
 
-Frontmatter: date, topic, skill: deep-research-chase, tags: [research].
+Frontmatter: `date`, `topic`, `skill: deep-research-chase`, `tags: [research]`.
 
-- Key Takeaways: about five synthesized, actionable insights.
-- YouTube Landscape: Top Videos table (Video, Creator, Views, Date), key creators, actual analysis method/results, content gaps and existing notebook link if used.
-- Web / Articles: linked titles, short summaries and shared themes.
-- X / Twitter Pulse: sentiment, notable voices, common questions and linked paraphrased highlights.
-- GitHub Activity: linked projects, observed stars/activity, relevant issues/PRs and **Community activity** (substantive discussions, contributor participation and user questions). Distinguish observed activity from a guess based on star counts.
-- Content Opportunities: concrete underserved angles and questions.
-- Source Status: unavailable sources, publication dates, evidence limitations and contradictions.
+- **Key Takeaways** — cerca de cinco conclusões acionáveis.
+- **YouTube Landscape** — tabela `Video | Creator | Views | Date`, criadores principais, método, evidências, lacunas e link do notebook existente se usado.
+- **Web / Articles** — títulos com links, resumos e temas comuns.
+- **X / Twitter Pulse** — opinião predominante, vozes relevantes, dúvidas e destaques parafraseados com links.
+- **GitHub Activity** — projetos com links, atividade observada, issues e PRs relevantes e discussões da comunidade. Diferencie os sinais observados de suposições baseadas em estrelas.
+- **Content Opportunities** — perguntas e abordagens concretas que as fontes pouco exploraram.
+- **Source Status** — disponibilidade, datas, limites e contradições.
 
-Keep it concise and useful for pre-production research; quote minimally and do not substitute claims from titles for verified content.
+Escreva uma síntese curta para orientar a pré-produção. Cite minimamente e confirme o conteúdo antes de tirar conclusões a partir de títulos.

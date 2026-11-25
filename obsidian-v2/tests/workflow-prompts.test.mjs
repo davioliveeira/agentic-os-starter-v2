@@ -35,13 +35,13 @@ test('every provider workflow has one compatible bridge-owned deliverable contra
 test('channel reviews use the trusted YouTube reader without requiring unrelated Google scopes',t=>{
  for(const provider of ['claude','codex']){
   const {instructions}=setup(t,'yt-week-review',provider);
-  assert.match(instructions,/youtube_review_data/);assert.match(instructions,/seven completed America\/Chicago calendar days/);
-  assert.match(instructions,/does not need Gmail or Calendar/);assert.match(instructions,/do not probe those connectors/i);
-  assert.match(instructions,/rather than fabricate analytics/);
+  assert.match(instructions,/youtube_review_data/);assert.match(instructions,/sete dias completos do calendário de America\/Chicago/);
+  assert.match(instructions,/dispensa Gmail e Google Agenda/);assert.match(instructions,/ferramenta de leitura/);
+  assert.match(instructions,/informe a causa em vez de inventar métricas/);
   assert.doesNotMatch(instructions,/Use the installed provider’s authenticated Gmail and Calendar MCP connectors/);
  }
  const weekly=setup(t,'weekly-review').instructions;assert.match(weekly,/youtube_review_data/);
- assert.match(weekly,/Label these two windows separately/);
+ assert.match(weekly,/Identifique cada janela/);
  assert.doesNotMatch(weekly,/YOUTUBE_API_KEY|YOUTUBE_CHANNEL_ID/);
 });
 
@@ -51,21 +51,21 @@ test('YouTube research workflows share the trusted metadata connection on both p
   assert.match(instructions,/BUNDLED RUBRIC: youtube-data/,skill);
   assert.match(instructions,/youtube_research_data/,skill);
   assert.match(instructions,/operation: channel_uploads/,skill);
-  assert.match(instructions,/metadata, not transcripts/,skill);
-  assert.match(instructions,/This source does not require Gmail or Calendar/,skill);
+  assert.match(instructions,/metadados públicos/,skill);
+  assert.match(instructions,/Esta consulta independe de Gmail e Google Agenda/,skill);
  }
 });
 
 test('the eight missing rubrics and their dependencies are available inline',t=>{
  const expected={
-  'plan-today':[/\+50/,/\+40/,/\+30/,/\+25/,/\+20/,/\+15/,/empty slots/],
-  'plan-tomorrow':[/carryover/i,/tomorrow/i,/calendar/i],
+  'plan-today':[/\+50/,/\+40/,/\+30/,/\+25/,/\+20/,/\+15/,/espaços vazios/],
+  'plan-tomorrow':[/pendências de hoje/i,/amanhã/i,/Google Agenda/i],
   'inbox-brief':[/Leads/,/Urgent/,/Warm/,/Sponsor/,/Meetings/,/Noise/,/PURSUE/],
-  'deep-research-chase':[/YouTube/,/GitHub/,/BUNDLED RUBRIC: yt-pipeline/,/actual.*transcripts/i],
-  'weekly-review':[/focus_blocks/,/no note/,/BUNDLED RUBRIC: yt-week-review/,/Climbing/],
+  'deep-research-chase':[/YouTube/,/GitHub/,/BUNDLED RUBRIC: yt-pipeline/,/Analise transcrições disponíveis/],
+  'weekly-review':[/focus_blocks/,/nota ausente/,/BUNDLED RUBRIC: yt-week-review/,/Climbing/],
   'yt-week-review':[/180/,/150/,/60/,/140/],
   'morning':[/BUNDLED RUBRIC: morning-report/,/BUNDLED RUBRIC: inbox-brief/,/Leads/],
-  'morning-report':[/24.hour/i,/GitHub/,/Content Opportunities/]
+  'morning-report':[/24 horas/i,/GitHub/,/Content Opportunities/]
  };
  for(const [skill,patterns] of Object.entries(expected)){
   const {instructions}=setup(t,skill);
@@ -82,11 +82,11 @@ test('research and draft references retain evidence and editorial requirements w
  assert.match(cascade,/STAT NEEDED/);assert.match(cascade,/actual transcript/);
  assert.doesNotMatch(cascade,/PATCH|social_content|post-leadshark|cascade-pending\.json/);
  const pipeline=setup(t,'yt-pipeline').instructions;
- assert.match(pipeline,/Analyze local transcripts directly instead/);
- assert.match(pipeline,/Do not silently create a notebook/);
+ assert.match(pipeline,/analise as transcrições locais/);
+ assert.match(pipeline,/Criação de notebook, envio de fontes e geração remota exigem uma solicitação específica/);
  assert.doesNotMatch(pipeline,/notebooklm create|source add|--yes|--new/);
  const leads=setup(t,'lead-research').instructions;
- assert.match(leads,/4–7 sentence/);assert.match(leads,/does not update the database/);
+ assert.match(leads,/quatro a sete frases/);assert.match(leads,/Atualizações na base, criação de mensagens e contato com leads exigem pedido separado/);
  assert.doesNotMatch(leads,/PATCH|service_role|SUPABASE_KEY/);
  const job={skill:'vault-summary',id:crypto.randomUUID(),args:{}};
  assert.throws(()=>workflowPrompt(os.tmpdir(),{...job,skill:'missing-rubric'},''),/Missing workflow requirements/);
@@ -122,7 +122,7 @@ test('cleanup initial contract stops at a reviewable manifest and its result onl
  assert.match(instructions,/do not move, rename or delete any source file/);
  assert.match(instructions,/user can select moves in a follow-up/);
  assert.match(instructions,/Source \| Proposed destination \| Modified at \| Age \| Bytes/);
- assert.match(instructions,/re-read the selected source and its metadata/);
+ assert.match(instructions,/releia a origem e seus metadados/);
  assert.doesNotMatch(instructions,/Move only eligible files|Show a preview, then archive/);
  const report='# Vault Cleanup Preview\n\n| ID | Source | Proposed destination |\n| --- | --- | --- |\n| 1 | inbox/old-draft.md | inbox/archive/old-draft.md |\n\nNo source files were moved or deleted. Select IDs to proceed.';
  const result=saveWorkflowResult(root,record,report);
@@ -134,9 +134,9 @@ test('cleanup initial contract stops at a reviewable manifest and its result onl
 test('restored shared rubrics retain sources, labels, handoff data and user selection without automatic effects',t=>{
  for(const provider of ['codex','claude']){
   const lead=setup(t,'lead-research',provider).instructions;
-  for(const term of ['ai-consulting','AI Consulting','under-2k','Under $2k','15k-plus','untrusted data','are not commands'])assert.ok(lead.includes(term),term);
+  for(const term of ['ai-consulting','Consultoria de IA','under-2k','Menos de US$ 2 mil','15k-plus','como dados','não autorizam novo destinatário'])assert.ok(lead.includes(term),term);
   const trend=setup(t,'ai-trend-scan',provider).instructions;
-  for(const term of ['AI Explained','Matthew Berman','David Ondrej','Yannic Kilcher','Wes Roth','@AnthropicAI','@alexalbert__','@simonw','@karpathy','@swyx','12-hour cutoff grace'])assert.ok(trend.includes(term),term);
+  for(const term of ['AI Explained','Matthew Berman','David Ondrej','Yannic Kilcher','Wes Roth','@AnthropicAI','@alexalbert__','@simonw','@karpathy','@swyx','tolerância de 12 horas'])assert.ok(trend.includes(term),term);
   const intel=setup(t,'morning-intel',provider).instructions;
   for(const term of ['bcherny OR _catwu OR alexalbert__','sama OR gdb OR OpenAIDevs OR Codex_Changelog','newsletter-worth-reading','Never click tracking links','Reddit/Discord discussion proxy','Steal my X for Y'])assert.ok(intel.includes(term),term);
   const morning=setup(t,'morning',provider).instructions;
@@ -146,8 +146,8 @@ test('restored shared rubrics retain sources, labels, handoff data and user sele
   assert.deepEqual(Object.keys(prospect),['number','source','name','firstName','email','formAnswers','verdict','rationale','researchNote']);
   for(const term of ['pursue all','pursue 1,3','draft except 3,7','pass','skip','creates no drafts or remote mutations','No drafting request implies sending'])assert.ok(morning.includes(term),term);
   const cleanup=setup(t,'vault-cleanup',provider).instructions;
-  for(const term of ['unique filename','Path-qualified wiki links','Temp Files to Delete','content/temp/','do not delete anything during this initial run','re-read the selected source'])assert.ok(cleanup.includes(term),term);
+  for(const term of ['nome de arquivo único','links com caminho','Temp Files to Delete','content/temp/','A proposta inicial apenas lista','releia a origem'])assert.ok(cleanup.includes(term),term);
   const research=setup(t,'deep-research-chase',provider).instructions;
-  for(const term of ["What's the consensus?",'Best practices','How to','Community activity'])assert.ok(research.includes(term),term);
+  for(const term of ['Consenso','Boas práticas','Como fazer','discussões da comunidade'])assert.ok(research.includes(term),term);
  }
 });

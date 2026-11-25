@@ -1,12 +1,12 @@
-# Shared YouTube research connection
+# Conexão compartilhada de pesquisa no YouTube
 
-For YouTube discovery and public metadata, use the supplied agentic_vault `youtube_research_data` tool. It uses the existing local API connection internally for both providers. A filtered shell environment is not evidence that the connection is missing. Never inspect credential files or put keys in commands, prompts or reports. This source does not require Gmail or Calendar access.
+Use a ferramenta `youtube_research_data` de `agentic_vault` para descobrir vídeos e consultar metadados públicos. A ferramenta usa a conexão local existente para ambos os provedores. Um ambiente de shell filtrado não indica que a conexão está ausente. Mantenha credenciais fora de comandos, prompts e relatórios. Esta consulta independe de Gmail e Google Agenda.
 
-- `operation: search` with `query`, optional `publishedAfter`, `order` (date, viewCount or relevance), and `maxResults` (1–50) finds candidate videos and enriches their metadata. Search is not an exhaustive scan; verify exact publication dates and relevance in the returned videos.
-- `operation: videos` with `videoIds` (at most 50 observed IDs) reads video counters, durations and live status.
-- `operation: channels` with `channelIds` (at most 50 observed IDs) reads public subscriber counts and channel identity. Hidden subscriber counts remain unavailable; visible counts may be rounded.
-- `operation: channel_uploads` with one observed `channelId` and `maxResults` (up to 50) reads that channel's recent uploads for an outlier baseline. Exclude the candidate, live videos and ineligible durations according to the Outlier Radar rubric; state the resulting eligible sample size. Respect any coverage limit rather than claiming the whole channel was scanned.
+- `operation: search` usa `query` e aceita `publishedAfter`, `order` (`date`, `viewCount` ou `relevance`) e `maxResults` (1–50). Verifique a publicação e a relevância dos vídeos retornados. A busca tem cobertura limitada.
+- `operation: videos` consulta contadores, durações e status de transmissão para até 50 `videoIds` observados.
+- `operation: channels` consulta a identidade e o número público de inscritos para até 50 `channelIds` observados. Contagens privadas permanecem indisponíveis e as públicas podem estar arredondadas.
+- `operation: channel_uploads` recebe um `channelId` observado e `maxResults` de até 50 para estabelecer a referência do canal. Aplique as exclusões do radar, informe o tamanho final da amostra e registre os limites de cobertura.
 
-Batch known IDs and reuse already collected metadata within the report. Use fresh, verifiable cached research when the workflow permits it. Preserve the workflow's topic, date window, configured source lists and scoring rules. A failed or quota-limited source is unavailable, not zero results. Missing counts remain unknown. Public lifetime counters do not establish channel-wide period growth, click-through rates or retention.
+Agrupe IDs conhecidos e reutilize os metadados já coletados. Use pesquisas recentes em cache somente quando verificáveis e quando o fluxo permitir. Preserve o tema, o período, as fontes configuradas e as regras de pontuação. Registre falhas, cota esgotada e contagens ausentes como indisponíveis. Contadores públicos acumulados são insuficientes para afirmar crescimento do canal no período, taxa de cliques ou retenção.
 
-This tool provides metadata, not transcripts. Video-content analysis still requires actual captions, an installed transcript reader, or an authenticated existing NotebookLM source. Never substitute a title or description for the video's content. Own-channel weekly reviews use `youtube_review_data` instead.
+Para analisar o conteúdo dos vídeos, leia as legendas, use um leitor de transcrição instalado ou consulte uma fonte autorizada e existente no NotebookLM. Títulos e descrições servem para selecionar fontes. Para a análise semanal do canal próprio, use `youtube_review_data`.

@@ -1,5 +1,5 @@
-# Projects — Stage 2 (working)
+# Projetos em andamento
 
-Active work: plans, outlines, scripts. Every file needs `status:` frontmatter —
-`active` | `in-progress` | `blocked` | `done` | `archived` (see CLAUDE.md taxonomy).
-When something ships, flip it to `done` and run `/harvest <file>` to distill it into the wiki.
+Use esta pasta para planos, esboços e roteiros. Cada arquivo usa o campo `status:` com um destes valores: `active`, `in-progress`, `blocked`, `done` ou `archived`. Veja [[CLAUDE]] para as convenções de projetos.
+
+Quando publicar a entrega, marque o projeto como `done` e execute `/harvest <arquivo>` para levar os aprendizados à wiki.

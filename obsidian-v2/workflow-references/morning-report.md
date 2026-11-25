@@ -1,26 +1,24 @@
-# Morning report — daily source scan
+# Relatório da manhã
 
-Adapted from the vault's morning-report v1.0.0. This is a fast awareness scan, not a deep research/NotebookLM job. Use the current date/year and a strict rolling 24-hour window, with America/Chicago for report dating.
+Use uma janela móvel estrita de 24 horas, com a data do relatório em America/Chicago. Faça uma varredura de novidades sobre agentes de código, incluindo Claude Code/Anthropic e Codex/OpenAI. Preserve os temas do usuário, independentemente do provedor que executa o fluxo.
 
-Scan YouTube, web announcements, X/Twitter and GitHub for AI coding agents, including Claude Code/Anthropic and Codex/OpenAI. Preserve the user's topical focus without treating the selected runner provider as a news filter.
+- **YouTube:** cerca de dez resultados para agentes de código e dez para IA mais ampla, publicados dentro da janela. Use metadados para esta varredura.
+- **Web:** anúncios oficiais, históricos de versões e novidades de ferramentas. Registre data de publicação e alteração.
+- **X/Twitter:** discussão, atenção fora do comum, perguntas e opiniões divergentes, com links e paráfrases.
+- **GitHub:** versões, repositórios novos ou em alta e issues ou PRs relevantes.
 
-- YouTube: about ten results each for the coding-agent focus and broader AI agents, posted within one day. Metadata scanning suffices; do not claim transcript analysis.
-- Web: provider/tool announcements, changelogs and broad AI coding assistant news. Prefer original announcement sources and record publication/update timestamps.
-- X/Twitter: topic conversation, unusual attention, specific questions and differing opinions, linked and paraphrased.
-- GitHub: releases, new/trending repositories and notable current issues/PRs.
+Pesquise em paralelo se a ferramenta permitir. Separe publicação, atualização e data do evento. Coloque itens sem horário verificável em uma lacuna de verificação. Se faltar novidade ou acesso, informe isso.
 
-Independent searches can run concurrently if supported. Do not assume provider-specific tools or permission behavior. Reject items older than 24 hours from the news list; distinguish publication, update and event dates. Unknown timestamps belong in a clearly marked verification gap. If nothing is new or a source is inaccessible, state that instead of recycling old news.
+## Entrega
 
-## Scannable output
+Frontmatter: `date`, `skill: morning-report`, `tags: [morning, research]`. Preserve os títulos estruturais abaixo e escreva o conteúdo em português brasileiro.
 
-Frontmatter: date, skill: morning-report, tags: [morning, research].
+1. **Headlines:** até três notícias em uma frase cada.
+2. **YouTube — What's Trending:** tabela `Video / Creator / Views / Posted`, temas, oportunidades e as subseções **own-channel performance** e **Competitor moves**. Em desempenho próprio, use comparações verificáveis ou registre dados indisponíveis.
+3. **Web — News & Articles:** manchetes com links e anúncios originais.
+4. **X / Twitter — The Conversation:** opinião predominante, vozes, divergências e dúvidas.
+5. **GitHub — Builder Activity:** projetos e versões com links, além da atividade observada.
+6. **Content Opportunities:** três pautas específicas e seu motivo de oportunidade.
+7. **Source Status:** janelas consultadas e lacunas.
 
-1. Headlines: up to three one-sentence stories.
-2. YouTube — What's Trending: Video / Creator / Views / Posted table, hot topics, evidenced **own-channel performance** against available comparable prior observations, **Competitor moves** from relevant creators, and content gaps. If own-channel data is unavailable, keep that named subsection with its limitation rather than substituting a competitor's figures.
-3. Web — News & Articles: linked headlines and original provider announcements.
-4. X / Twitter — The Conversation: mood, notable voices, differing takes and questions.
-5. GitHub — Builder Activity: linked projects/releases and observed ecosystem activity.
-6. Content Opportunities: three specific angles and why each is timely.
-7. Source Status: checked windows and unavailable or unverified sources.
-
-Keep paragraphs short and favor tables/bullets. Do not omit content opportunities or describe estimated engagement as measured velocity.
+Prefira parágrafos curtos, listas e tabelas. Separe engajamento estimado de velocidade medida.

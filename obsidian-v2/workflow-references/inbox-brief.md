@@ -1,36 +1,36 @@
-# Inbox brief — classification and qualification
+# Resumo da caixa de entrada
 
-Adapted from the vault's inbox-brief v1.2.0. This workflow's initial invocation is a read-only triage report. It does not create or send email, edit labels, or change templates/configuration.
+Esta execução prepara um relatório de triagem por leitura. Preserve mensagens, rótulos, modelos e configuração.
 
-## Scan
+## Leitura
 
-Discover the selected provider's authenticated Gmail read/search tools. Default to the last 24 hours of inbox messages, using 50-thread pages where supported and a maximum of 100 threads. State any truncation. For each thread capture latest-message subject, sender, date, snippet, message identifier, thread identifier, unread state and whether any message carries a SENT label. Read full threads when classification or lead extraction requires it. Do not infer a prior reply merely from thread length.
+Use a conexão autenticada de leitura e pesquisa do Gmail do provedor selecionado. Por padrão, leia as últimas 24 horas, com páginas de 50 e limite de 100 conversas. Informe cortes. Para cada fio, registre assunto, remetente, data, prévia, IDs da mensagem e da conversa, estado de leitura e presença de `SENT`. Abra o fio inteiro quando a classificação ou identificação do lead exigir. Confirme respostas anteriores por evidência.
 
-Use an explicitly supplied workflow configuration, or optional `system/workflow-config/inbox-brief.json`, for sender exclusions, lead fingerprints, lookback, templates and links. Do not read unrelated credential files, invent account details, or alter this configuration. Without configuration, use the defaults below and label missing sender verification.
+Aplique a configuração explícita ou `system/workflow-config/inbox-brief.json` para exclusões, assinaturas de formulários, janela, modelos e links. Preserve o arquivo. Na ausência de configuração, use os padrões e indique quando o remetente não pôde ser validado.
 
-## Exactly one category per thread, newest first
+## Uma categoria por conversa, da mais recente à mais antiga
 
-1. **Leads**, evaluated first: configured form fingerprints, including subject prefixes `New Agency Inquiry` and `New Mentorship Application`. Check configured sender restrictions. The prospect's identity is in the notification body, not its sender/recipient headers.
-2. **Urgent**: concrete contract signatures, dated deadlines, security notices, affiliate-link changes or explicit calendar action items. State the action and due date.
-3. **Warm threads**: an established partner or a thread the account has replied to that is pressing for a decision. New cold outreach does not qualify.
-4. **Sponsor pitches**: first-touch outreach explicitly naming a brand and requesting a paid partnership, sponsored video or platform integration. Free trials, vague tool pitches, newsletters, coaches and mass blasts are excluded. Previously replied-to threads belong in Warm threads.
-5. **Meetings**: accepted/declined/updated calendar notices and meeting follow-ups.
-6. **Noise**: remaining newsletters, promotions, ambiguous or unrelated cold outreach. Count this bucket without reproducing every message.
+1. **Leads** primeiro. Siga as assinaturas de formulários, inclusive os prefixos `New Agency Inquiry` e `New Mentorship Application`, e as restrições de remetente. Identifique o lead no corpo.
+2. **Urgent** para assinaturas, prazos, avisos de segurança, mudanças de link de afiliado ou ações explícitas de agenda. Informe ação e data.
+3. **Warm threads** para parceiros ou fios já respondidos que aguardam decisão.
+4. **Sponsor pitches** para primeiro contato com marca identificada e pedido explícito de parceria paga, vídeo patrocinado ou integração. Exclua testes grátis, ofertas vagas, newsletters, coaching e disparos em massa. Fios já respondidos entram em **Warm threads**.
+5. **Meetings** para avisos e acompanhamentos de reuniões.
+6. **Noise** para o restante. Informe a contagem.
 
-When uncertain, choose the less aggressive category and explain material ambiguity.
+Quando houver dúvida, escolha a categoria menos exigente e explique ambiguidades importantes.
 
-## Lead qualification
+## Qualificar os leads
 
-Extract prospect name/email and form answers. Agency fields: Website, Services, Timeline, Budget, Challenge. Mentorship fields: Situation, Timeline, Biggest Challenge. Use at most two read-only web checks per lead: name plus business domain, or name plus a supplied company when using a free email address. Missing search access is `(no web check)`, not a fabricated identity check.
+Extraia nome, e-mail e respostas. Para agência: Website, Services, Timeline, Budget e Challenge. Para mentoria: Situation, Timeline e Biggest Challenge. Faça até duas verificações públicas de leitura por lead usando nome e domínio ou nome e empresa informada para e-mail gratuito. Use `(no web check)` quando faltar acesso.
 
-- Agency: a budget band of 5k–15k or above is a strong pursue signal; under-5k needs a credible business/domain and concrete challenge. Vague exploratory low-budget or personal-use requests lean PASS.
-- Mentorship: a credible business/role, specific challenge and readiness to start lean PURSUE. Spam, inability-to-pay signals or generic copied answers lean PASS.
-- Borderline: show PURSUE? for user review. Every lead, including PASS, stays visible; never silently discard it.
+- Agência: faixa de 5 mil a 15 mil ou maior favorece avançar. Abaixo de 5 mil, confirme empresa ou domínio e desafio concreto. Pedidos vagos ou de uso pessoal tendem a `PASS`.
+- Mentoria: papel ou empresa verificável, desafio específico e prontidão favorecem `PURSUE`. Spam, sinais de falta de orçamento e respostas genéricas tendem a `PASS`.
+- Casos incertos recebem `PURSUE?` para revisão. Mantenha todos os leads visíveis.
 
-## Output
+## Entrega
 
-Use frontmatter date, skill: inbox-brief and tags: [inbox, brief]. Lead with `Inbox brief: N messages in the last Xh, Y unread.` Then Leads, Urgent, Warm threads pressing for reply, New sponsor pitches, Meetings, and Noise count. Number Leads and Sponsor pitches separately. Each lead row includes source, verified company/role or key form answer, verdict and one-line rationale; each sponsor row includes brand, requested platform and budget if stated. Preserve thread links/identifiers only where needed for later review.
+Use `date`, `skill: inbox-brief` e `tags: [inbox, brief]`. Preserve a abertura `Inbox brief: N messages in the last Xh, Y unread.` e as seções Leads, Urgent, Warm threads pressing for reply, New sponsor pitches, Meetings e Noise count para a leitura do painel. Numere leads e propostas separadamente. Para cada lead, inclua fonte, dado confirmado ou resposta-chave, classificação e razão. Em patrocínios, inclua marca, plataforma e orçamento informado. Guarde os identificadores necessários para revisão posterior.
 
-End with reviewable proposed actions, including how many leads merit pursuit and how many pitches merit replies. If the user later explicitly requests drafts for named items, recipient identity, approved templates and missing booking/media-kit links must be resolved first; lead outreach is a new message to the prospect parsed from the body, while sponsor replies use the actual latest message identifier. That separate request never implies permission to send.
+Termine com ações propostas e totais de leads e propostas que merecem resposta. Um pedido posterior de rascunhos deve especificar os itens. Resolva destinatário, modelo aprovado e links de agendamento ou mídia. Para leads, o destinatário vem do corpo do formulário. Para patrocinadores, use o identificador da mensagem mais recente. O pedido de rascunhos autoriza apenas prepará-los.
 
-Preserve the original lead-template personalization: one specific line tied to the prospect's stated business challenge or goal, drawn from their form answers and verified research note. Substitute only observed firstName and the configured booking link; do not flatter generically or invent project knowledge. Agency subject: `Your project inquiry — next step`; mentorship subject: `Your mentorship application — next step`. Sponsor replies retain the configured template/media-kit link and actual thread identifier. If the briefing is part of the combined morning workflow, retain its numbered SPONSOR_PITCHES and LEADS handoff fields for later selection, with no automatic draft creation.
+Personalize uma linha com o desafio ou objetivo verificado. Substitua apenas o `firstName` observado e o link de agendamento configurado. Preserve os assuntos `Your project inquiry — next step` e `Your mentorship application — next step` onde esses modelos forem usados. Para patrocinadores, preserve o modelo, link de mídia e ID reais. Quando o relatório integrar o boletim combinado, mantenha as listas numeradas `SPONSOR_PITCHES` e `LEADS` para seleção posterior.

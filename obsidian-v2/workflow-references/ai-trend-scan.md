@@ -1,23 +1,21 @@
-# AI Trend Scan — ranked content seeds
+# Tendências de IA para pautas de conteúdo
 
-Adapted from the original 24-hour YouTube/X scan rubric. Use available research tools; do not assume a private helper script or another provider's tool name exists.
+## Coletar evidências
 
-## Collect evidence
+Use a lista de fontes configurada, se existir. Caso contrário, cubra Claude/Anthropic, Codex/OpenAI, Gemini/Google e modelos abertos. Aplique preferências da conversa só nesta execução. Consulte YouTube e X em paralelo se possível, em geral nas últimas 24 horas e com até cinco resultados por fonte. Verifique horários de publicação. Se a fonte só mostrar a data, indique a aproximação.
 
-Read an explicitly configured source list if available; otherwise use current AI/agent-tooling topics including Claude/Anthropic, Codex/OpenAI, Gemini/Google and open models. Apply conversation overrides in memory only. Search YouTube and X concurrently when supported, usually the last 24 hours and up to five results per source. Verify publication timestamps: date-only evidence is approximate and should be labelled, not reported as exact hourly freshness.
+Fontes padrão do YouTube: AI Explained, Matthew Berman, David Ondrej, Yannic Kilcher e Wes Roth. Consultas padrão: Claude Code, Codex, Anthropic, Claude 4.7 e notícias de agentes de IA. No X, use @AnthropicAI, @alexalbert__, @simonw, @karpathy e @swyx, além de Claude Code, Codex e Anthropic como temas. Trate nomes de modelos como termos de busca. Configurações e pedidos explícitos têm prioridade.
 
-When no configured list is available, restore the original defaults: YouTube creators **AI Explained, Matthew Berman, David Ondrej, Yannic Kilcher, Wes Roth**; YouTube topic queries **Claude Code, Codex, Anthropic, Claude 4.7, AI agents news**; X handles **@AnthropicAI, @alexalbert__, @simonw, @karpathy, @swyx**; X topic queries **Claude Code, Codex, Anthropic**. These are search seeds, not claims that a named model is current. A configured list or explicit user override wins; retain provider/topic coverage beyond these defaults where relevant.
+Busque em `site:x.com` e `site:twitter.com` com termo e data de hoje. Verifique o conteúdo dos posts, datas e contadores. Para YouTube com apenas `upload_date`, admita a tolerância de 12 horas para granularidade diária. Marque a idade aproximada e a tolerância usada. Use horário exato apenas onde houver evidência.
 
-Search both `site:x.com` and `site:twitter.com` with the handle/topic and today's date, and inspect available post content to verify dates/counters. For YouTube metadata that contains only `upload_date`, retain the original **12-hour cutoff grace** for coarse day-resolution dates, but mark the age approximate and the grace-window inclusion. It is not permission to label a 36-hour item as verified last-24-hour news or manufacture exact hourly velocity.
+Registre plataforma, título ou assunto, criador, URL, publicação verificada, contadores e relevância em uma frase. Marque contadores ausentes como desconhecidos. Se uma fonte falhar, entregue o que estiver disponível e informe a falha. Use `BLOCKED:` se ambas falharem.
 
-Record platform, title/post premise, creator, direct URL, verified publication time, views or likes/reposts, and one sentence explaining relevance. Missing counters are unknown, not invented estimates. If one source fails, return useful partial results and identify the failure; if neither works, return BLOCKED:.
+## Classificar, agrupar e eliminar duplicatas
 
-## Rank, deduplicate, cluster
+No YouTube, velocidade = visualizações / máx(idade em horas, 1). No X, velocidade = (curtidas + republicações) / máx(idade em horas, 1). Quando houver dados, aplique os pisos de 100 visualizações por hora no YouTube e 50 interações por hora no X. Classifique primeiro dentro de cada plataforma e explique a ordenação editorial conjunta.
 
-YouTube velocity = views / max(age hours, 1). X velocity = (likes + reposts) / max(age hours, 1). Default noise floors are 100 YouTube views/hour and 50 X engagements/hour when those measurements are available. Do not compare these different units as an objective cross-platform popularity score; use them to rank within their platform, then explain the editorial combined order.
+Elimine URLs repetidas e títulos quase idênticos, com limiar de similaridade de 0,78 quando usado. Prefira a fonte primária mais forte e mantenha links corroborantes. Agrupe por Claude, OpenAI, Google, modelos abertos e locais, agentes e ferramentas, e outros. Omita grupos vazios.
 
-Deduplicate exact URLs and near-identical headlines (the original title-similarity threshold was 0.78). Prefer the strongest primary source while retaining corroborating links when a reaction adds evidence. Cluster into Claude Code & Anthropic; OpenAI / Codex / GPT; Gemini / Google; Open weights & local; Agents & tooling; Other. Omit empty themes.
+## Entrega
 
-## Result
-
-Return # AI Trend Scan with the top 15 seeds or fewer if evidence is sparse. Each numbered seed includes platform, linked title/premise, creator, measured engagement, age/precision, velocity when calculable, and Why this matters. Include coverage and source-status notes. Deliver raw seeds, not hooks, scripts or a silently modified source configuration.
+Use `# AI Trend Scan`. Liste até 15 ideias com plataforma, título ou assunto com link, criador, engajamento medido, idade e sua precisão, velocidade calculável e motivo da relevância. Informe a cobertura e o estado das fontes. Entregue pautas brutas. Preserve a configuração existente.

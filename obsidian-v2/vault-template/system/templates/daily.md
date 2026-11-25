@@ -1,7 +1,6 @@
 <%*
-// Templater header — sets file name + date variables.
-// Daily Notes plugin already creates the file at daily-notes/YYYY-MM-DD.md,
-// so we don't rename. We just inject the date everywhere.
+// O Templater prepara a data. O plugin Notas diárias já cria o arquivo
+// em daily-notes/YYYY-MM-DD.md, por isso o modelo reaproveita seu nome.
 const dateIso = tp.file.title.match(/^\d{4}-\d{2}-\d{2}$/)
   ? tp.file.title
   : tp.date.now("YYYY-MM-DD");
@@ -41,9 +40,9 @@ videos_shipped_today: 0
 - 
 
 ## Daily Drivers
-- [ ] Inbox triage
-- [ ] Deep work block
-- [ ] Daily review
+- [ ] Triar a caixa de entrada
+- [ ] Separar um bloco de foco
+- [ ] Revisar o dia
 
 ## Activity Log
 

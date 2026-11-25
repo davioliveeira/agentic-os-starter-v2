@@ -1,24 +1,15 @@
-# Vault Map
+# Mapa do cofre
 
-**Convention reference:** [[CLAUDE]]
+**Convenções do cofre:** [[CLAUDE]]
 
-## Pipeline (Karpathy 3-stage)
-```
-inbox  →  projects  →  content
-(stage)   (work)      (output)
-```
-Plus `wiki/` for post-ship knowledge harvests + utility folders for plumbing.
-
-## Top-Level Folders
-
-| Folder | Purpose |
+| Pasta | Uso |
 |---|---|
-| `inbox/` | Stage 1: source material + skill deliverables + untriaged capture |
-| `projects/` | Stage 2: active work — plans, outlines, scripts |
-| `content/` | Stage 3: published artifacts per platform |
-| `wiki/` | Post-ship knowledge harvests (evergreen) |
-| `daily-notes/` | Schema-locked daily rhythm (see system/schemas/daily-note.md) |
-| `ops/` | Business operations |
-| `system/` | Machine-readable plumbing — queue, runs, schemas, bases, metrics |
+| `inbox/` | Captura, pesquisas e relatórios dos fluxos |
+| `projects/` | Projetos ativos, planos, esboços e roteiros |
+| `content/` | Registro das publicações por plataforma |
+| `wiki/` | Conhecimento reutilizável consolidado após entregas |
+| `daily-notes/` | Notas diárias no formato de [[daily-note]] |
+| `ops/` | Operações do negócio |
+| `system/` | Preferências, filas, execuções, esquemas e métricas |
 
-Start by reading `CLAUDE.md` — it is the vault's convention contract.
+O material entra em `inbox/`, vira trabalho em `projects/` e chega a `content/` quando é publicado. Use `wiki/` para documentar aprendizados que valem para outros projetos.
