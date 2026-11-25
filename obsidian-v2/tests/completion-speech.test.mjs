@@ -18,8 +18,8 @@ test('unsuccessful work never gets a fabricated completion claim',()=>{
  assert.doesNotMatch(completionSpeech('Create a graphic','I need your approval before I can save it.'),/done|ready|completed/i);
  assert.match(completionSpeech('Save the report','## Unable to save\nThe folder is unavailable.'),/^Unable to save/);
  for(const file of ['/tmp/report.pdf','outputs/report.pdf','C:\\work\\report.pdf']){
-  assert.equal(completionSpeech('Save it',`I could not create ${file} because permissions were denied.`),'I could not create the output file because permissions were denied.');
-  assert.equal(completionSpeech('Save it',`I was unable to save ${file}.`),'I was unable to save the output file.');
+  assert.equal(completionSpeech('Save it',`Não consegui criar ${file} porque a permissão foi negada.`),'Não consegui criar o arquivo de saída porque a permissão foi negada.');
+  assert.equal(completionSpeech('Save it',`Não consegui salvar ${file}.`),'Não consegui salvar o arquivo de saída.');
  }
 });
 
@@ -29,14 +29,14 @@ test('spoken results omit document chrome and paths and stay short',()=>{
  assert.doesNotMatch(spoken,/C:|outputs|secretCode|https:|##/);
  const long=completionSpeech('Summarize this','Here is the result. '+ 'More details follow. '.repeat(100));
  assert.ok(long.length<=420);
- assert.match(long,/The full answer is in the written reply\.$/);
+ assert.match(long,/A resposta completa está no texto\.$/);
 });
 
 test('empty results and attention states remain honest and omit the task request',()=>{
- assert.equal(completionSpeech('Please create a report',''),'The turn has finished. Check the terminal for its written result.');
- assert.equal(workAttentionSpeech('codex','needs input','Approve the edit in the terminal.'),'Codex needs your input. Approve the edit in the terminal.');
- assert.equal(workAttentionSpeech('claude','error'),'Claude Code ran into a problem. Check its terminal for the details.');
- assert.equal(workAttentionSpeech('claude','needs input'),'Claude Code needs your input. Check its terminal to continue.');
+ assert.equal(completionSpeech('Please create a report',''),'A tarefa terminou. Confira o resultado no terminal.');
+ assert.equal(workAttentionSpeech('codex','needs input','Approve the edit in the terminal.'),'Codex precisa da sua ajuda. Approve the edit in the terminal.');
+ assert.equal(workAttentionSpeech('claude','error'),'Claude Code encontrou um problema. Confira os detalhes no terminal.');
+ assert.equal(workAttentionSpeech('claude','needs input'),'Claude Code precisa da sua ajuda. Abra o terminal para continuar.');
  const approval='Codex is waiting for your approval. Review the requested action in its terminal.';
  assert.equal(workAttentionSpeech('codex','needs input',approval),approval);
 });

@@ -74,7 +74,9 @@ function records(root,folder,limit=20,since=0){
 export function voiceMemory(root,provider,appScope='web',transport='local',liveCallId){
  const since=Math.max(Date.now()-10*60*1000,read(root,`${ROOT}/voice-clear.json`)?.ts||0);
  const epoch=readConversationEpoch(root,provider,appScope);
- return records(root,`${ROOT}/voice-results`,100,since).filter(r=>voiceReceiptTransport(r)===transport&&(transport!=='live'||liveCallId&&r.liveCallId===liveCallId&&r.origin!=='test')&&(r.appScope||'web')===appScope&&r.provider===provider&&(r.conversationEpoch??0)===epoch&&r.ts>=since&&r.ts<=Date.now()).sort((a,b)=>a.ts-b.ts).slice(-6).map(r=>({ts:new Date(r.ts).toISOString(),you:r.transcript,jarvis:r.reply,tier:r.tier,skill:r.skill,pendingSkill:r.pendingSkill,deliverable:r.deliverable,lookup:r.lookup,lookupRoute:r.lookupRoute,workIds:r.workIds,workTarget:r.workTarget||null,rule:r.decision?.rule||null}));
+ // records() is newest-first by file mtime. Retain that tie-break when two
+ // receipts share a millisecond, then return the selected history oldest-first.
+ return records(root,`${ROOT}/voice-results`,100,since).filter(r=>voiceReceiptTransport(r)===transport&&(transport!=='live'||liveCallId&&r.liveCallId===liveCallId&&r.origin!=='test')&&(r.appScope||'web')===appScope&&r.provider===provider&&(r.conversationEpoch??0)===epoch&&r.ts>=since&&r.ts<=Date.now()).sort((a,b)=>b.ts-a.ts).slice(0,6).reverse().map(r=>({ts:new Date(r.ts).toISOString(),you:r.transcript,jarvis:r.reply,tier:r.tier,skill:r.skill,pendingSkill:r.pendingSkill,deliverable:r.deliverable,lookup:r.lookup,lookupRoute:r.lookupRoute,workIds:r.workIds,workTarget:r.workTarget||null,rule:r.decision?.rule||null}));
 }
 export function invalidateVoiceSnapshot(root){snapshots.delete(root)}
 function conversationExchanges(exchanges,workTarget){

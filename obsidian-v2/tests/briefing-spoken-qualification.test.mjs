@@ -31,7 +31,7 @@ for(const [name,headline,caveat] of [
  withVoiceContext({root:f.root,exchanges:[]},()=>{
   const report=readMorningReport();assert.equal(report.heads[0],headline);
   const reply=rulesRoute('Brief me',state);assert.equal(reply.engine,'rules');assert.ok(reply.reply.includes(caveat),reply.reply);
-  const spoken=speechText(reply.reply);assert.ok(spoken.includes(caveat)||spoken==='The full answer is in the written reply.',spoken);
+  const spoken=speechText(reply.reply);assert.ok(spoken.includes(caveat)||spoken==='A resposta completa está no texto.',spoken);
  });
  assert.equal(fs.readFileSync(f.file,'utf8'),f.raw);
 });

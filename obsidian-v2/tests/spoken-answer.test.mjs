@@ -41,7 +41,7 @@ test('frontmatter, headings, fenced code and tables never become invented prose'
 
 test('structural-only results use a neutral pointer, not a success claim', () => {
  for (const text of ['```js\nreturn "done";\n```', '| Subject | Result |\n| --- | --- |\n| A | B |', 'Name | Status\n--- | ---\nJob | Done', '# Finished\n\n![Graphic](artifacts/graphic.png)', 'SAVED C:\\vault\\report.md', 'C:\\vault\\graphic.png']) {
-  assert.equal(selectSpokenAnswer(text), 'The detailed result is in the written reply.');
+  assert.equal(selectSpokenAnswer(text), 'O resultado detalhado está na resposta escrita.');
  }
 });
 
@@ -49,6 +49,14 @@ test('a direct failure late in a long answer is retained beside the opening', ()
  const opening = 'I prepared a draft graphic.';
  const result = opening + '\n\n' + 'The chart depicts each stage in the historical account. '.repeat(15) + '\n\nHowever, I could not verify the claimed solution.';
  assert.equal(selectSpokenAnswer(result), opening + ' However, I could not verify the claimed solution.');
+});
+
+test('Brazilian Portuguese speech preserves a late qualification and its referent', () => {
+ const opening = 'Preparei o gráfico.';
+ const detail = 'O último painel usa os dados da planilha.';
+ const caveat = 'Eles ainda não foram confirmados.';
+ const result = opening + '\n\n' + 'O relatório descreve cada etapa da pesquisa. '.repeat(15) + '\n\n' + detail + ' ' + caveat;
+ assert.equal(selectSpokenAnswer(result), opening + ' ' + detail + ' ' + caveat);
 });
 
 test('an approval requirement late in a long answer is retained', () => {
@@ -88,14 +96,14 @@ test('selection is idempotent and leaves full source content untouched', () => {
 
 test('an overlong sentence falls back without cutting its final qualification', () => {
  const input = 'This summary ' + 'carefully explains '.repeat(60) + 'the result, but does not establish historical certainty.';
- assert.equal(selectSpokenAnswer(input), 'There are important limitations in the result. Please read the full written reply.');
+ assert.equal(selectSpokenAnswer(input), 'O resultado tem limitações importantes. Leia a resposta completa.');
  assert.equal(selectSpokenAnswer(input, {mode: 'reply'}), input);
 });
 
 test('an authoritative workflow write failure overrides optimistic worker speech', () => {
  const record = {workflowCompleted: true, workflowStatus: 'error', error: 'The destination changed while this task ran. Proposed output saved separately; newer edits were preserved.'};
- assert.equal(selectCompletionAnswer(record, {text: 'I finished and saved the complete report.'}), 'The workflow did not complete. The destination changed while this task ran. Proposed output saved separately; newer edits were preserved.');
- assert.equal(selectCompletionAnswer({...record, error: 'BLOCKED: The calendar connector is unavailable.'}, {text: 'Done.'}), 'The workflow did not complete. The calendar connector is unavailable.');
+ assert.equal(selectCompletionAnswer(record, {text: 'I finished and saved the complete report.'}), 'O fluxo não foi concluído. The destination changed while this task ran. Proposed output saved separately; newer edits were preserved.');
+ assert.equal(selectCompletionAnswer({...record, error: 'BLOCKED: The calendar connector is unavailable.'}, {text: 'Done.'}), 'O fluxo não foi concluído. The calendar connector is unavailable.');
 });
 
 test('a previous workflow error does not mask a new successful unrelated answer', () => {
@@ -109,7 +117,7 @@ test('actual completion composition protects a late caveat beyond the old 420-ch
  const spoken = completionSpeech('', selectCompletionAnswer({}, turn));
  assert.ok(spoken.includes(caveat));
  assert.ok(spoken.length <= 420);
- assert.ok(!spoken.includes('The full answer is in the written reply.'));
+ assert.ok(!spoken.includes('A resposta completa está no texto.'));
  assert.ok(!spoken.includes('carefully arranged'));
 });
 
@@ -119,27 +127,27 @@ test('actual composition budgets expanded numbers before preserving approval req
  const spoken = completionSpeech('', selectCompletionAnswer({}, {text: opening + '\n\n' + caveat}));
  assert.ok(spoken.includes(caveat));
  assert.ok(spoken.length <= 420);
- assert.ok(!spoken.includes('The full answer is in the written reply.'));
+ assert.ok(!spoken.includes('A resposta completa está no texto.'));
 });
 
 test('an indivisibly long limitation gets an explicit qualified pointer rather than optimistic speech', () => {
  const limitation = 'I cannot confirm ' + 'the independently dated and attributed historical evidence, '.repeat(15) + 'so the result remains unverified.';
  const spoken = completionSpeech('', selectCompletionAnswer({}, {text: 'The draft is ready.\n\n' + limitation}));
- assert.equal(spoken, 'There are important limitations in the result. Please read the full written reply.');
+ assert.equal(spoken, 'O resultado tem limitações importantes. Leia a resposta completa.');
 });
 
 test('actual composition protects authoritative failure even with an extremely long error reason', () => {
  const record = {workflowCompleted: true, workflowStatus: 'error', error: 'The destination changed. ' + 'The conflicting content contains extensive detail. '.repeat(30)};
  const spoken = completionSpeech('', selectCompletionAnswer(record, {text: 'I finished and saved the report.'}));
- assert.equal(spoken, 'The workflow did not complete, so I cannot confirm that the result was saved.');
+ assert.equal(spoken, 'O fluxo não foi concluído. Ainda não consigo confirmar se o resultado foi salvo.');
  assert.ok(!spoken.includes('I finished'));
- assert.ok(!spoken.includes('The full answer is in the written reply.'));
+ assert.ok(!spoken.includes('A resposta completa está no texto.'));
 });
 
 test('valid raw JSON artifacts get a neutral pointer without changing their bytes', () => {
  for (const input of ['{\r\n  "status": "ok",\r\n  "data": [1, 2]\r\n}', '[{"name":"first","verified":false}]']) {
   const original = input;
-  assert.equal(selectSpokenAnswer(input), 'The detailed result is in the written reply.');
+  assert.equal(selectSpokenAnswer(input), 'O resultado detalhado está na resposta escrita.');
   assert.equal(input, original);
  }
  assert.equal(selectSpokenAnswer('{draft} is a placeholder, not an approved result.'), '{draft} is a placeholder, not an approved result.');

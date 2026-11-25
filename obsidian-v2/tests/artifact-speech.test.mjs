@@ -55,13 +55,13 @@ test('presentation wording is normalized for different artifact kinds while desc
 
 test('partial import errors never claim that all outputs were lost',()=>{
  const spoken=artifactOutcomeSpeech({}, {text:'I created two comparison charts. The second uses unverified source data.',artifacts:[artifact],artifactErrors:['Second image unavailable']});
- assert.match(spoken,/created two comparison charts/);assert.match(spoken,/unverified source data/);assert.match(spoken,/Some files couldn't be made available here/);
- const failed=artifactOutcomeSpeech({}, {text:'I prepared the image.',artifactErrors:['No supported output']});assert.match(failed,/couldn't make the output available here/);assert.doesNotMatch(failed,/Your image is ready/);
+ assert.match(spoken,/created two comparison charts/);assert.match(spoken,/unverified source data/);assert.match(spoken,/Alguns arquivos não ficaram disponíveis aqui/);
+ const failed=artifactOutcomeSpeech({}, {text:'I prepared the image.',artifactErrors:['No supported output']});assert.match(failed,/Não consegui disponibilizar o arquivo aqui/);assert.doesNotMatch(failed,/Seu arquivo está pronto/);
 });
 
 test('a workflow save rejection stays authoritative even when an artifact is valid',()=>{
  const spoken=artifactOutcomeSpeech({workflowCompleted:true,workflowStatus:'error',error:'The destination changed, so the existing note was preserved.'},{text:'I created and displayed the finished report.',artifacts:[artifact]});
- assert.match(spoken,/workflow did not complete/);assert.match(spoken,/existing note was preserved/);assert.doesNotMatch(spoken,/finished report/);
+ assert.match(spoken,/fluxo não foi concluído/);assert.match(spoken,/existing note was preserved/);assert.doesNotMatch(spoken,/finished report/);
 });
 
 test('long artifact results retain late limitations through the existing speech budget',()=>{
@@ -71,16 +71,16 @@ test('long artifact results retain late limitations through the existing speech 
 
 test('ordinary nonartifact completion behavior is unchanged and structural output gets a factual pointer',()=>{
  assert.equal(artifactOutcomeSpeech({}, {text:'The task is blocked because access is unavailable.'}),'The task is blocked because access is unavailable.');
- assert.equal(artifactOutcomeSpeech({}, {text:'![Generated image](image.png)',artifacts:[artifact]}),'Your file is ready.');
+ assert.equal(artifactOutcomeSpeech({}, {text:'![Generated image](image.png)',artifacts:[artifact]}),'Seu arquivo está pronto.');
 });
 
 test('retained drafts never inflate the number of final files announced',()=>{
  const draft={...artifact,isFinal:false,open:false},final={...artifact,isFinal:true,open:true};
- assert.equal(artifactOutcomeSpeech({}, {text:'![Final image](final.png)',artifacts:[final,draft,draft]}),'Your file is ready.');
- assert.equal(artifactOutcomeSpeech({}, {text:'![Final image](final.png)',artifacts:[artifact,draft]}),'Your file is ready.','legacy artifacts without final metadata remain available');
+ assert.equal(artifactOutcomeSpeech({}, {text:'![Final image](final.png)',artifacts:[final,draft,draft]}),'Seu arquivo está pronto.');
+ assert.equal(artifactOutcomeSpeech({}, {text:'![Final image](final.png)',artifacts:[artifact,draft]}),'Seu arquivo está pronto.','legacy artifacts without final metadata remain available');
 });
 
 test('a missing final file cannot borrow success from a retained draft',()=>{
  const spoken=artifactOutcomeSpeech({}, {text:'The final image could not be saved.',artifacts:[{...artifact,isFinal:false,open:false}],artifactErrors:['The final file is missing.']});
- assert.match(spoken,/final image could not be saved/);assert.match(spoken,/couldn't make the output available here/);assert.doesNotMatch(spoken,/Some files|ready/);
+ assert.match(spoken,/final image could not be saved/);assert.match(spoken,/Não consegui disponibilizar o arquivo aqui/);assert.doesNotMatch(spoken,/Alguns arquivos|está pronto/);
 });

@@ -83,8 +83,8 @@ test('cancelled capture ignores stale silence callbacks and manual send stays av
 test('speech cleans markdown, code, links, currency and stops at sentence boundaries',()=>{
  const clean=speechText('## Brief\nBudget is $200M at 13:00. [Read this](https://example.com).\n```js\nsecretCode()\n```');
  assert.match(clean,/two hundred million dollars at 1 PM/);assert.doesNotMatch(clean,/secretCode|https:|```|##/);
- const long=speechText('First complete sentence. '+('Another word '.repeat(200)),100);assert.match(long,/^First complete sentence\. The full answer/);
- assert.equal(speechText('First complete sentence. '+('another word '.repeat(200)),100),'The full answer is in the written reply.');
+ const long=speechText('First complete sentence. '+('Another word '.repeat(200)),100);assert.match(long,/^First complete sentence\. A resposta completa/);
+ assert.equal(speechText('First complete sentence. '+('another word '.repeat(200)),100),'A resposta completa está no texto.');
  for(const text of ['A full sentence. '.repeat(200),'$200M '.repeat(200),'x'.repeat(2000)])for(const max of [undefined,880,1800])assert.ok(speechText(text,max).length<=880);
 });
 test('both fast voice providers stay on CLI despite ambient API keys and obsolete transport settings',async t=>{
@@ -173,7 +173,7 @@ test('streaming and buffered speech requests fit the server cap while the writte
   globalThis.Audio=undefined;
   globalThis.AudioContext=class{destination={};resume(){return Promise.resolve()}close(){return Promise.resolve()}decodeAudioData(){return Promise.resolve({duration:1})}createAnalyser(){return {disconnect(){},connect(){}}}createBufferSource(){return {connect(){},disconnect(){},start(){queueMicrotask(()=>this.onended?.())},stop(){}}}};
   const buffered=new VoiceSession(transport,async()=>chosen);assert.equal(await buffered.speak(full),true);await buffered.destroy();
-  assert.equal(spoken.length,2);for(const text of spoken){assert.ok(text.length<=880);assert.match(text,/The full answer is in the written reply\.$/)}
+  assert.equal(spoken.length,2);for(const text of spoken){assert.ok(text.length<=880);assert.match(text,/A resposta completa está no texto\.$/)}
  }finally{globalThis.Audio=previousAudio;globalThis.AudioContext=previousContext}
 });
 test('interrupting streamed speech resolves delivery false and cannot restart buffered audio',async()=>{

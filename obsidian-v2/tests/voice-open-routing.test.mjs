@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
 import {routeVoice} from '../runner/bridge-core.mjs';
-import {invalidateVoiceSnapshot} from '../runner/voice-router.mjs';
+import {invalidateVoiceSnapshot,voiceMemory} from '../runner/voice-router.mjs';
 import {invalidateTargetIndex} from '../runner/voice-targets.mjs';
 import {localDate} from '../runner/brief-voice.mjs';
 import {shiftIso} from '../runner/spoken-dates.mjs';
@@ -60,6 +60,17 @@ test('named notes open by title, speech errors tolerated, and a tie becomes one 
  const unknown=await f.speak('open the quarterly tax memo');
  assert.match(unknown.reply,/couldn't find anything named "the quarterly tax memo"/);assert.deepEqual(unknown.workIds,[]);
  assert.equal(f.calls.length,0);
+});
+
+test('voice history keeps the newer reply last when two receipts share a timestamp',t=>{
+ const f=fixture(t),ts=Date.now();
+ const writeReceipt=(filename,transcript,mtime)=>{
+  const relative=f.write(`system/v2/voice-results/${filename}.json`,JSON.stringify({ts,provider:'codex',transcript,reply:'',appScope:'native'}));
+  fs.utimesSync(path.join(f.root,relative),mtime,mtime);
+ };
+ writeReceipt('a-newer','Open the content plan',new Date(ts));
+ writeReceipt('z-older','Open the playbook',new Date(ts-1000));
+ assert.deepEqual(voiceMemory(f.root,'codex','native').map(turn=>turn.you),['Open the playbook','Open the content plan']);
 });
 
 test('a selected conversation reopens its registered file without a worker turn; an HTML-only result is explained',async t=>{

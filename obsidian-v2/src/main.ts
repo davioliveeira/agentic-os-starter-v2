@@ -57,7 +57,7 @@ export default class ChaseCommandCenter extends Plugin {
 		// V2 does not alter the host web viewer or its authentication sessions.
 		this.injectThemeAssets();
         this.registerView(WORK_VIEW,leaf=>new WorkView(leaf,this));
-        this.addCommand({id:'toggle-voice-recording',name:'Start or send voice recording',callback:()=>{if(!this.settings.orbEnabled){this.settings.orbEnabled=true;this.remountOrb()}window.dispatchEvent(new Event('aos-toggle-voice'))}});
+        this.addCommand({id:'toggle-voice-recording',name:'Iniciar ou enviar gravação de voz',callback:()=>{if(!this.settings.orbEnabled){this.settings.orbEnabled=true;this.remountOrb()}window.dispatchEvent(new Event('aos-toggle-voice'))}});
         this.addCommand({id:'open-agent-work',name:'Abrir terminais',callback:()=>void this.activateWork()});
         this.addCommand({id:'run-workflow',name:'Executar um fluxo…',callback:()=>openWorkflowPicker(this.app)});
         const showWork=(event:Event)=>void this.activateWork((event as CustomEvent<string[]>).detail||[],false);window.addEventListener('aos-open-work',showWork);this.register(()=>window.removeEventListener('aos-open-work',showWork));

@@ -1,5 +1,5 @@
 import {createJiti} from 'jiti';
-import {selectCompletionAnswer,selectSpokenAnswer} from './spoken-answer.mjs';
+import {selectCompletionAnswer,selectSpokenAnswer,WRITTEN_RESULT} from './spoken-answer.mjs';
 const {completionSpeech}=createJiti(import.meta.url)('../shared/speech-text.ts');
 const viewerLocation='(?:in|on|inside)\\s+(?:(?:your|the|a|an|this|another|new|current)\\s+)*(?:screen|dashboard|tab|window|viewer|Obsidian)\\b(?:\\s+now)?';
 const presentationObject=/^\s+(?:(?:the|your|this|that|a|an|new|updated|final)\s+)*(?:image|graphic|file|document|report|result|preview|explainer|diagram|figure|illustration|chart|it|them|files|images)\b/i;
@@ -39,8 +39,8 @@ export function artifactOutcomeSpeech(record,turn){
  const artifacts=(turn?.artifacts||[]).filter(item=>item?.isFinal!==false),errors=turn?.artifactErrors||[];
  const selected=selectCompletionAnswer(record,turn);
  let outcome=pendingArtifactPresentation(selected);
- if(artifacts.length&&outcome==='The detailed result is in the written reply.')outcome=artifacts.length>1?'Your files are ready.':'Your file is ready.';
- if(errors.length)outcome+=' '+(artifacts.length?"Some files couldn't be made available here. Check the written result for those files.":"I couldn't make the output available here. Check the written result.");
+ if(artifacts.length&&outcome===WRITTEN_RESULT)outcome=artifacts.length>1?'Seus arquivos estão prontos.':'Seu arquivo está pronto.';
+ if(errors.length)outcome+=' '+(artifacts.length?'Alguns arquivos não ficaram disponíveis aqui. Veja os detalhes na resposta escrita.':'Não consegui disponibilizar o arquivo aqui. Veja os detalhes na resposta escrita.');
  // Run the established qualification-preserving selector again after adding an
  // authoritative import failure, so brevity cannot erase that failure.
  return completionSpeech(record?.title||'',selectSpokenAnswer(outcome));

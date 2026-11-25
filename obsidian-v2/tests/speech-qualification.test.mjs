@@ -29,13 +29,13 @@ test('shortening keeps sentence order and context of a qualified opening',()=>{
 
 test('a long indivisible sentence never loses a final negation',()=>{
  const input='I checked '+ 'every paragraph and supporting citation, '.repeat(40)+'but I cannot verify this account.';
- assert.equal(quick(input),'The full answer is in the written reply.');
- assert.equal(speechText(input,420),'The full answer is in the written reply.');
+ assert.equal(quick(input),'A resposta completa está no texto.');
+ assert.equal(speechText(input,420),'A resposta completa está no texto.');
 });
 
 test('too many qualifications use an honest pointer without claiming successful work',()=>{
  const written=Array.from({length:25},(_,i)=>`Source ${i+1} could not be independently verified against the available evidence.`).join(' ');
- assert.equal(quick(written),'The full answer is in the written reply.');
+ assert.equal(quick(written),'A resposta completa está no texto.');
  assert.doesNotMatch(quick(written),/done|completed|ready/);
 });
 
