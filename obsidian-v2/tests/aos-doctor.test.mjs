@@ -552,23 +552,23 @@ test('setup and start decide about voice the same way: a healthy shared service 
   const prepare = (values, plan) => prepareVoice(at, {wantVoice: true, log: line => said.push(line), plan: async () => plan, installVoice: async () => downloads.push('voice'), installed: () => false, ...values});
   assert.equal(await prepare({}, {url: 'http://127.0.0.1:3108', own: false, shared: true, healthy: true}), 'shared');
   assert.deepEqual(downloads, [], 'nothing is downloaded while another program\'s service is shared');
-  assert.match(said.join('\n'), /already running on this computer \(http:\/\/127\.0\.0\.1:3108\) and will be shared.*nothing to download.*`node aos\.mjs stop`, then `node aos\.mjs setup --voice yes`/s);
+  assert.match(said.join('\n'), /compartilhar o serviço de voz em execução neste computador \(http:\/\/127\.0\.0\.1:3108\).*Nenhum download é necessário.*`node aos\.mjs stop` e depois `node aos\.mjs setup --voice yes`/s);
   assert.equal(await prepare({}, {url: null, own: false, shared: false, healthy: false}), 'installed'); assert.deepEqual(downloads, ['voice']);
-  assert.match(said.at(-1), /about 1\.3 GB/);
+  assert.match(said.at(-1), /cerca de 1,3 GB/);
   // A stale AOS_V2_SPEECH_URL names a service that is not there: that must not cost the member their voice.
   assert.equal(await prepare({}, {url: 'http://127.0.0.1:3108', own: false, shared: true, healthy: false}), 'installed'); assert.deepEqual(downloads, ['voice', 'voice']);
-  assert.match(said.join('\n'), /AOS_V2_SPEECH_URL setting points at http:\/\/127\.0\.0\.1:3108, which is not answering.*remove the setting/);
+  assert.match(said.join('\n'), /AOS_V2_SPEECH_URL aponta para http:\/\/127\.0\.0\.1:3108, que está sem resposta.*remova a configuração/);
   // The same warning when the voice files are already there: repairing them cannot cure a dead address.
   said.length = 0;
   assert.equal(await prepare({installed: () => true, explicit: true}, {url: 'http://127.0.0.1:3108', own: false, shared: true, healthy: false}), 'repaired'); downloads.pop();
-  assert.match(said.join('\n'), /AOS_V2_SPEECH_URL setting points at/);
+  assert.match(said.join('\n'), /AOS_V2_SPEECH_URL aponta para/);
   said.length = 0;
   assert.equal(await prepare({installed: () => true}, {url: 'http://127.0.0.1:3108', own: false, shared: true, healthy: false}), 'present');
-  assert.match(said.join('\n'), /AOS_V2_SPEECH_URL setting points at/);
+  assert.match(said.join('\n'), /AOS_V2_SPEECH_URL aponta para/);
   // Installed already: left alone on an ordinary run, checked and repaired when --voice yes was typed.
   assert.equal(await prepare({installed: () => true}, {url: null, own: true, shared: false, healthy: false}), 'present'); assert.equal(downloads.length, 2);
   assert.equal(await prepare({installed: () => true, explicit: true}, {}), 'repaired'); assert.equal(downloads.length, 3);
-  assert.match(said.at(-1), /already installed; checking the files/);
+  assert.match(said.at(-1), /verificando a instalação e baixando os arquivos que faltam/);
   assert.equal(await prepare({wantVoice: false, explicit: true}, {}), 'off'); assert.equal(downloads.length, 3);
 
   // An update installs with the SAVED voice choice; it never claims the person typed --voice yes,
@@ -594,8 +594,8 @@ test('local requests: one connection each, local addresses only, binary both way
   const spoken = await request(`${services.sharedUrl}/speak?text=hello`);
   assert.equal(spoken.body.subarray(0, 4).toString(), 'RIFF'); assert.ok(spoken.body.length > 5000);
   assert.equal(JSON.parse((await request(`${services.sharedUrl}/stt`, {method: 'POST', body: spoken.body})).body).text, 'Voice check, one two three.');
-  await assert.rejects(request('http://example.com/'), /Only local services/);
-  await assert.rejects(request('https://127.0.0.1:1/'), /Only local services/);
+  await assert.rejects(request('http://example.com/'), /só acessa serviços locais/);
+  await assert.rejects(request('https://127.0.0.1:1/'), /só acessa serviços locais/);
   await services.set({bridgeOnline: false});
   await assert.rejects(fetchJson(`${local(services.ports.bridge)}/services`), error => ['ECONNRESET', 'EPIPE'].includes(error.code) || /hang up/.test(error.message));
 

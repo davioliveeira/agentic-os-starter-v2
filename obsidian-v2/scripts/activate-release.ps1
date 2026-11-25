@@ -1,4 +1,4 @@
-param(
+﻿param(
  [string]$Label=(Get-Date -Format 'yyyy-MM-dd-HHmm'),
  [switch]$SkipJarvisBuild,
  [switch]$SkipTests,
@@ -25,11 +25,11 @@ $taskVault=(Get-Content -LiteralPath (Join-Path $taskObsidian '.runtime\vault.js
 # 2. Refuse while anything is live.
 $taskBefore=Invoke-RestMethod 'http://127.0.0.1:3219/services' -TimeoutSec 8
 $taskWork=Invoke-RestMethod 'http://127.0.0.1:3219/work' -TimeoutSec 5
-if(@($taskBefore.surfaces | Where-Object {$_.mode -notin @('idle','error')}).Count){throw 'A voice surface is active. No service changed.'}
-if(@($taskBefore.tasks | Where-Object {$_.state -notin @('stopped','error','closed')}).Count){throw 'A task is active. No service changed.'}
-if(@($taskWork.tasks | Where-Object {$_.pid -or $_.state -notin @('stopped','error')}).Count){throw 'A terminal is active. No service changed.'}
+if(@($taskBefore.surfaces | Where-Object {$_.mode -notin @('idle','error')}).Count){throw 'Uma interface de voz está ativa. Nenhum serviço foi alterado.'}
+if(@($taskBefore.tasks | Where-Object {$_.state -notin @('stopped','error','closed')}).Count){throw 'Uma tarefa está ativa. Nenhum serviço foi alterado.'}
+if(@($taskWork.tasks | Where-Object {$_.pid -or $_.state -notin @('stopped','error')}).Count){throw 'Um terminal está ativo. Nenhum serviço foi alterado.'}
 $taskBridgeState=Invoke-RestMethod 'http://127.0.0.1:3219/state' -TimeoutSec 5
-if($taskBridgeState.vault -ne $taskVault){throw 'Bridge vault identity mismatch; nothing stopped.'}
+if($taskBridgeState.vault -ne $taskVault){throw 'A ponte está servindo outro cofre. Nenhum serviço foi parado.'}
 $taskNativeBefore=@($taskBefore.surfaces | Where-Object {$_.kind -eq 'native'} | Select-Object -First 1)
 @{label=$Label;version=$taskRepoVersion;bridgePid=$taskBefore.bridge.pid;surfaces=@($taskBefore.surfaces | Select-Object id,kind,version,mode);current=$taskWork.current;currentRevision=$taskWork.currentRevision;tasks=@($taskBefore.tasks | Select-Object id,state)} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $LogDirectory ("before-"+$Label+".json"))
 
@@ -38,7 +38,7 @@ function Get-ListenerProcess([int]$port,[string]$expectedFragment,[string]$expec
  $listener=Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Where-Object {$_.LocalAddress -eq '127.0.0.1'} | Select-Object -First 1
  if(!$listener){return $null}
  $process=Get-CimInstance Win32_Process -Filter "ProcessId=$($listener.OwningProcess)"
- if(!$process -or $process.Name -ne 'node.exe' -or !$process.CommandLine.Contains($expectedFragment) -or ($expectedArgs -and $process.CommandLine -notmatch $expectedArgs)){throw "Process identity mismatch on port $port; nothing stopped."}
+ if(!$process -or $process.Name -ne 'node.exe' -or !$process.CommandLine.Contains($expectedFragment) -or ($expectedArgs -and $process.CommandLine -notmatch $expectedArgs)){throw "A porta $port está sendo usada por um processo inesperado. Nenhum serviço foi parado."}
  return $process
 }
 $taskJarvisProcess=Get-ListenerProcess 3217 (Join-Path $taskJarvis 'node_modules\next\dist\bin\next') 'start --hostname 127\.0\.0\.1 --port 3217'
@@ -47,9 +47,9 @@ $taskBuildPath=[IO.Path]::GetFullPath((Join-Path $taskJarvis '.next'))
 $taskBackupPath=[IO.Path]::GetFullPath((Join-Path $taskJarvis ('.runtime\next-before-'+$Label)))
 $taskFailedPath=[IO.Path]::GetFullPath((Join-Path $taskJarvis ('.runtime\next-failed-'+$Label)))
 foreach($taskPath in @($taskBuildPath,$taskBackupPath,$taskFailedPath)){
- if(!$taskPath.StartsWith($taskJarvis+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'Unexpected build path; no service changed.'}
+ if(!$taskPath.StartsWith($taskJarvis+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'Caminho de compilação inesperado. Nenhum serviço foi alterado.'}
 }
-if(!$SkipJarvisBuild -and (Test-Path -LiteralPath $taskBackupPath)){throw "Build backup $taskBackupPath already exists. Choose another -Label; no service changed."}
+if(!$SkipJarvisBuild -and (Test-Path -LiteralPath $taskBackupPath)){throw "Já existe um backup da compilação em $taskBackupPath. Escolha outro valor para -Label. Nenhum serviço foi alterado."}
 if($CheckOnly){
  [ordered]@{checkOnly=$true;version=$taskRepoVersion;vault=$taskVault;bridgePid=$taskBefore.bridge.pid;jarvisPid=$(if($taskJarvisProcess){$taskJarvisProcess.ProcessId}else{$null});previewPid=$(if($taskPreviewProcess){$taskPreviewProcess.ProcessId}else{$null});nativeConnected=[bool]$taskNativeBefore.Count;readyToActivate=$true} | ConvertTo-Json
  return
@@ -59,26 +59,26 @@ if($CheckOnly){
 Push-Location $taskObsidian
 try{
  if(!$SkipTests){
-  Write-Step 'Running the Obsidian suite'
+  Write-Step 'Executando os testes do Obsidian'
   $taskTestLog=Join-Path $LogDirectory ("obsidian-tests-"+$Label+".log")
   & $taskNode --test --test-concurrency=4 --test-timeout=45000 'tests/*.test.mjs' *> $taskTestLog
-  if($LASTEXITCODE -ne 0){Get-Content -LiteralPath $taskTestLog | Select-String -Pattern '^not ok|^# (pass|fail)' | Select-Object -First 20;throw 'The Obsidian suite failed; nothing changed.'}
+  if($LASTEXITCODE -ne 0){Get-Content -LiteralPath $taskTestLog | Select-String -Pattern '^not ok|^# (pass|fail)' | Select-Object -First 20;throw 'Os testes do Obsidian falharam. Nenhuma alteração foi feita.'}
  }
- Write-Step ('Building plugin '+$taskRepoVersion)
+ Write-Step ('Compilando o plugin '+$taskRepoVersion)
  $taskBuildLog=Join-Path $LogDirectory ("obsidian-build-"+$Label+".log")
  & $taskNpm run build *> $taskBuildLog
- if($LASTEXITCODE -ne 0){Get-Content -LiteralPath $taskBuildLog -Tail 25;throw 'The plugin build failed; nothing changed.'}
+ if($LASTEXITCODE -ne 0){Get-Content -LiteralPath $taskBuildLog -Tail 25;throw 'A compilação do plugin falhou. Nenhuma alteração foi feita.'}
 }finally{Pop-Location}
 $taskDistManifest=Join-Path $taskObsidian 'dist\agentic-os-v2\manifest.json'
 $taskDistVersion=(Get-Content -LiteralPath $taskDistManifest -Raw | ConvertFrom-Json).version
-if($taskDistVersion -ne $taskRepoVersion){throw "The build produced $taskDistVersion but the repository is $taskRepoVersion; nothing changed."}
+if($taskDistVersion -ne $taskRepoVersion){throw "A versão compilada é $taskDistVersion e a versão do repositório é $taskRepoVersion. Nenhuma alteração foi feita."}
 
 $taskStopped=$false;$taskBuildSucceeded=$SkipJarvisBuild.IsPresent
 try{
  # 4. Graceful bridge shutdown (pauses recovery), then stop Jarvis and the preview.
  $taskAuth=Get-Content -LiteralPath (Join-Path $taskObsidian '.runtime\bridge-auth.json') -Raw | ConvertFrom-Json
  $taskStopped=$true
- Write-Step 'Stopping the idle bridge'
+ Write-Step 'Encerrando a ponte ociosa'
  Invoke-RestMethod 'http://127.0.0.1:3219/shutdown' -Method Post -Headers @{'X-V2-App'='native';'X-V2-Token'=$taskAuth.token} -ContentType 'application/json' -Body '{}' -TimeoutSec 5 | Out-Null
  foreach($taskProcess in @($taskJarvisProcess,$taskPreviewProcess)){
   if(!$taskProcess){continue}
@@ -87,13 +87,13 @@ try{
  }
  # 5. Rebuild Jarvis from a clean output folder, keeping the previous build.
  if(!$SkipJarvisBuild){
-  Write-Step 'Rebuilding Jarvis'
+  Write-Step 'Recompilando o Jarvis'
   if(Test-Path -LiteralPath $taskBuildPath){Move-Item -LiteralPath $taskBuildPath -Destination $taskBackupPath}
   Push-Location $taskJarvis
   try{
    $taskJarvisLog=Join-Path $LogDirectory ("jarvis-build-"+$Label+".log")
    & $taskNode node_modules/next/dist/bin/next build *> $taskJarvisLog
-   if($LASTEXITCODE -ne 0){Get-Content -LiteralPath $taskJarvisLog -Tail 25;throw 'Jarvis build failed.'}
+   if($LASTEXITCODE -ne 0){Get-Content -LiteralPath $taskJarvisLog -Tail 25;throw 'A compilação do Jarvis falhou.'}
    $taskBuildSucceeded=$true
   }finally{Pop-Location}
  }
@@ -104,30 +104,30 @@ try{
    Move-Item -LiteralPath $taskBackupPath -Destination $taskBuildPath
   }
   # 6. Restart bridge, preview and Jarvis through recovery before touching the plugin.
-  Write-Step 'Restarting services through recovery'
+  Write-Step 'Reiniciando os serviços pelo monitor de recuperação'
   & (Join-Path $PSScriptRoot 'start-recovery.ps1') -IncludePreview
  }
 }
-if(!$taskBuildSucceeded){throw 'Jarvis build failed; previous build restored and services restarted. Plugin not installed.'}
+if(!$taskBuildSucceeded){throw 'A compilação do Jarvis falhou. A compilação anterior foi restaurada e os serviços foram reiniciados. O plugin não foi instalado.'}
 
 # 7. Wait for the bridge to answer, so the automatic plugin reload finds it online.
 $taskDeadline=(Get-Date).AddSeconds(120);$taskBridge=$null
 while((Get-Date) -lt $taskDeadline){
  try{$taskBridge=Invoke-RestMethod 'http://127.0.0.1:3219/status' -TimeoutSec 3;break}catch{Start-Sleep -Seconds 2}
 }
-if(!$taskBridge){throw 'The bridge did not come back within 120 s. Check scripts/services.ps1 -Action Status; plugin not installed.'}
-if($taskBridge.vault -ne $taskVault){throw 'The restarted bridge serves a different vault; plugin not installed.'}
-Write-Step ("Bridge online as PID "+$taskBridge.health.pid)
+if(!$taskBridge){throw 'A ponte não voltou em até 120 s. Execute scripts/services.ps1 -Action Status para verificar. O plugin não foi instalado.'}
+if($taskBridge.vault -ne $taskVault){throw 'A ponte reiniciada está servindo outro cofre. O plugin não foi instalado.'}
+Write-Step ("Ponte disponível com PID "+$taskBridge.health.pid)
 
 # 8. Install the plugin last. With the .hotreload marker, Obsidian reloads it by itself.
-Write-Step ("Installing plugin "+$taskRepoVersion)
+Write-Step ("Instalando o plugin "+$taskRepoVersion)
 & $taskNode (Join-Path $taskObsidian 'scripts\install-live.mjs') $taskVault
-if($LASTEXITCODE -ne 0){throw 'Plugin installation failed. Services are running the new runner; the previous plugin bundle is in .runtime\backups.'}
+if($LASTEXITCODE -ne 0){throw 'A instalação do plugin falhou. Os serviços estão usando a nova versão do executor. A versão anterior do plugin está em .runtime\backups.'}
 # This installs what `node aos.mjs setup` would, so it leaves the same mark; the doctor's
 # "Setup finished for these files" line checks for it.
 Push-Location $taskObsidian
 try{& $taskNode --input-type=module -e 'const {layout}=await import(`./scripts/aos/services.mjs`);const {stampSetup}=await import(`./scripts/aos/setup-stamp.mjs`);stampSetup(layout());'}finally{Pop-Location}
-if($LASTEXITCODE -ne 0){Write-Step 'Could not record the finished setup; the doctor will ask for a setup run.'}
+if($LASTEXITCODE -ne 0){Write-Step 'Não foi possível registrar a conclusão da configuração. O diagnóstico vai pedir que você execute node aos.mjs setup.'}
 
 # 9. Report the loaded native version when Obsidian was connected before.
 $taskLoaded=$null

@@ -108,7 +108,7 @@ test('Windows wrapper preserves a failing supervisor exit code', {skip:!windows,
   const result = await until(wrapper.result, 'failing supervisor exit');
   assert.deepEqual(result, {code:7, signal:null}, wrapper.output());
   const diagnostic = fs.readFileSync(path.join(f.runtime, 'service-supervisor-startup-error.log'), 'utf8');
-  assert.match(diagnostic, /exited with code 7/);
+  assert.match(diagnostic, /saiu com o código 7/);
   assert.ok(diagnostic.length < 200, 'Wrapper failure diagnosis stays bounded');
 });
 

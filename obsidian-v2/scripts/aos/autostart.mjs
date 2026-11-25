@@ -55,7 +55,7 @@ export function scheduledTaskScript({node, config, wrapper, cwd}) {
     `$trigger=@((New-ScheduledTaskTrigger -AtLogOn -User $identity),(New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 5)))`,
     `$principal=New-ScheduledTaskPrincipal -UserId $identity -LogonType Interactive -RunLevel Limited`,
     `$settings=New-ScheduledTaskSettingsSet -Priority 5 -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -Hidden`,
-    `Register-ScheduledTask -TaskName ${q(TASK_NAME)} -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description 'Keeps local Agentic OS V2 web and voice bridge services available. Never replays voice requests or resumes saved tasks. Intentional Stop pauses recovery.' -Force | Out-Null`,
+    `Register-ScheduledTask -TaskName ${q(TASK_NAME)} -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description 'Mantém disponíveis os serviços locais da web e a ponte de voz do Agentic OS V2. Não repete solicitações de voz nem retoma tarefas salvas. Ao usar Stop, a recuperação é pausada.' -Force | Out-Null`,
   ].join(';');
 }
 
@@ -153,12 +153,12 @@ export function kickAutostart(at, {platform = process.platform, run = spawnSync}
 }
 
 export function enableAutostart(at, {platform = process.platform, run = spawnSync, home = os.homedir(), pathEnv = process.env.PATH || '', node = process.execPath} = {}) {
-  if (!fs.existsSync(at.config)) throw new Error('Run `node aos.mjs start` once before enabling start-at-login.');
-  if (autostartOwner(at, {platform, run, home}) === 'other') throw new Error('A different installation owns the recovery login item; nothing replaced.');
+  if (!fs.existsSync(at.config)) throw new Error('Execute `node aos.mjs start` uma vez antes de ativar a inicialização automática ao entrar na sessão.');
+  if (autostartOwner(at, {platform, run, home}) === 'other') throw new Error('O item de inicialização da recuperação pertence a outra instalação. Nenhum item foi substituído.');
   if (platform === 'win32') {
     const result = powershell(scheduledTaskScript({node, config: at.config, wrapper: wrapperOf(at), cwd: at.root}), run);
-    if (result.status !== 0) throw new Error('Windows refused the login task: ' + String(result.stderr || '').trim().slice(0, 300));
-    return 'Windows login task installed.';
+    if (result.status !== 0) throw new Error('O Windows recusou a tarefa de inicialização. Detalhes: ' + String(result.stderr || '').trim().slice(0, 300));
+    return 'Tarefa de inicialização instalada no Windows.';
   }
   if (platform === 'darwin') {
     // Only a job proven to be ours (checked above) is ever unloaded.
@@ -167,23 +167,23 @@ export function enableAutostart(at, {platform = process.platform, run = spawnSyn
     fs.writeFileSync(agentFile(home), launchAgentPlist({node, supervisor: at.supervisor, config: at.config, cwd: at.root, pathEnv, log: path.join(at.runtime, 'service-supervisor-startup-error.log')}));
     // Loading runs the job; while the pause marker is present the monitor exits at once and launchd leaves it.
     const loaded = run('launchctl', ['bootstrap', domain(), agentFile(home)], {encoding: 'utf8', timeout: 10000});
-    if (loaded.status !== 0 && run('launchctl', ['load', '-w', agentFile(home)], {timeout: 10000}).status !== 0) throw new Error('launchctl refused the login item: ' + String(loaded.stderr || '').trim().slice(0, 300));
-    return 'macOS login item installed.';
+    if (loaded.status !== 0 && run('launchctl', ['load', '-w', agentFile(home)], {timeout: 10000}).status !== 0) throw new Error('O launchctl recusou o item de inicialização. Detalhes: ' + String(loaded.stderr || '').trim().slice(0, 300));
+    return 'Item de inicialização instalado no macOS.';
   }
-  throw new Error('Start-at-login is available on Windows and macOS. On Linux, run `node aos.mjs start` from your session startup.');
+  throw new Error('A inicialização automática está disponível no Windows e no macOS. No Linux, configure sua sessão para executar `node aos.mjs start` ao entrar.');
 }
 
 export function disableAutostart(at, {platform = process.platform, run = spawnSync, home = os.homedir()} = {}) {
   const owner = autostartOwner(at, {platform, run, home});
-  if (owner === 'other') throw new Error('A different installation owns the recovery login item; nothing removed.');
-  if (!owner) return 'No login item was installed.';
+  if (owner === 'other') throw new Error('O item de inicialização da recuperação pertence a outra instalação. Nenhum item foi removido.');
+  if (!owner) return 'Nenhum item de inicialização estava instalado.';
   if (platform === 'win32') {
-    if (powershell(`Unregister-ScheduledTask -TaskName '${TASK_NAME}' -Confirm:$false`, run).status !== 0) throw new Error('Windows refused to remove the login task.');
-    return 'Windows login task removed. Running services were left alone.';
+    if (powershell(`Unregister-ScheduledTask -TaskName '${TASK_NAME}' -Confirm:$false`, run).status !== 0) throw new Error('O Windows recusou a remoção da tarefa de inicialização.');
+    return 'Tarefa de inicialização removida do Windows. Os serviços ativos continuam em execução.';
   }
   // Removing the file first means a later login cannot start it even if bootout fails.
   fs.rmSync(agentFile(home), {force: true});
   if (typeof loadedAgent(run) === 'string') run('launchctl', ['bootout', `${domain()}/${AGENT_LABEL}`], {timeout: 10000});
   // The monitor leaves on that signal without pausing (a logout sends the same one), so say what is true now.
-  return 'macOS login item removed. Running services were left alone, but its monitor was stopped, so nothing restarts a service that stops; run `node aos.mjs start` to bring the monitor back.';
+  return 'Item de inicialização removido do macOS. Os serviços ativos continuam em execução. O monitor foi encerrado e os serviços que pararem não serão reiniciados automaticamente. Execute `node aos.mjs start` para reativar o monitor.';
 }

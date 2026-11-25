@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {parseLsofPids, parsePsLine, parseWindowsProcess, samePath, which, listener, openUrl} from '../scripts/aos/platform.mjs';
-import {layout, desiredServices, mergePrior, bridgeIsOurs, hudIsOurs, speechIsOurs, loginItemBlocks, stop, PORTS} from '../scripts/aos/services.mjs';
+import {layout, desiredServices, mergePrior, bridgeIsOurs, hudIsOurs, speechIsOurs, loginItemBlocks, formatStatus, stop, PORTS} from '../scripts/aos/services.mjs';
 import {launchAgentPlist, scheduledTaskScript, autostartOwner, taskOwner, plistArguments, launchctlArguments, AGENT_LABEL, TASK_NAME} from '../scripts/aos/autostart.mjs';
 import {preflight, startCommand} from '../scripts/aos/setup.mjs';
 import {scaffoldVault, pluginEnabled} from '../scripts/aos/vault.mjs';
@@ -41,7 +41,7 @@ test('a listener is identified per platform, and two listeners on one port are n
   assert.deepEqual(listener(3217, {run: () => ({status: 0, stdout: '501\n502\n'}), platform: 'linux'}), {ambiguous: true});
   assert.equal(listener(3217, {run: () => ({status: 1, stdout: ''}), platform: 'darwin'}), null);
   assert.deepEqual(listener(3219, {run: () => ({status: 0, stdout: '{"ambiguous":true}'}), platform: 'win32'}), {ambiguous: true});
-  assert.throws(() => listener(0), /Invalid port/);
+  assert.throws(() => listener(0), /Porta inválida/);
 });
 
 function installation() {
@@ -97,7 +97,7 @@ test('the service list matches the PowerShell launcher, is accepted by the monit
   assert.deepEqual(desiredServices(at, {node}).map(service => service.id), ['bridge']);
   const merged = mergePrior(desiredServices(at, {node}), {runtimeDir: at.runtime, services: [...base, {id: 'other', port: 1}, {id: 'preview', port: 3218}]}, at.runtime);
   assert.deepEqual(merged.map(service => service.id), ['bridge', 'jarvis', 'speech'], 'the development preview is not something this launcher starts, even from an older configuration');
-  assert.throws(() => mergePrior([], {runtimeDir: path.resolve('/elsewhere/.runtime'), services: []}, at.runtime), /another installation/);
+  assert.throws(() => mergePrior([], {runtimeDir: path.resolve('/elsewhere/.runtime'), services: []}, at.runtime), /outra instalação/);
 });
 
 test('on Windows the voice service starts from pythonw.exe, so it never opens a console window (starter issue #17)', () => {
@@ -128,16 +128,16 @@ function stopWith(at, {state = {vault: path.join(at.root, 'vault')}, work = {tas
 
 test('stop fails closed: nothing is stopped unless the bridge, the vault, the tasks and every process check out', async () => {
   const cases = [
-    [() => ({state: null}), /Bridge is unavailable/],
-    [() => ({state: {vault: '/someone/else'}}), /another vault/],
-    [() => ({post: bridgeLike('c'.repeat(64))}), /does not accept this installation's token/],
-    [() => ({work: {tasks: [{state: 'ready', pid: null}]}}), /Stop active tasks/],
-    [() => ({work: {tasks: [{state: 'stopped', pid: 77}]}}), /Stop active tasks/],
-    [() => ({work: null}), /Stop active tasks/],
-    [() => ({hudService: null}), /Unexpected process on 3217/],
-    [at => ({hudService: {kind: 'jarvis-v2', pid: 99, root: at.jarvis}}), /Unexpected process on 3217/],
-    [() => ({listeners: {[PORTS.jarvis]: 'ambiguous'}}), /Unexpected process on 3217/],
-    [() => ({hudVault: '/someone/else'}), /Jarvis belongs to another vault/],
+    [() => ({state: null}), /A ponte está indisponível/],
+    [() => ({state: {vault: '/someone/else'}}), /outro cofre/],
+    [() => ({post: bridgeLike('c'.repeat(64))}), /recusou a credencial desta instalação/],
+    [() => ({work: {tasks: [{state: 'ready', pid: null}]}}), /Encerre as tarefas ativas/],
+    [() => ({work: {tasks: [{state: 'stopped', pid: 77}]}}), /Encerre as tarefas ativas/],
+    [() => ({work: null}), /Encerre as tarefas ativas/],
+    [() => ({hudService: null}), /processo desconhecido está usando a porta 3217/],
+    [at => ({hudService: {kind: 'jarvis-v2', pid: 99, root: at.jarvis}}), /processo desconhecido está usando a porta 3217/],
+    [() => ({listeners: {[PORTS.jarvis]: 'ambiguous'}}), /processo desconhecido está usando a porta 3217/],
+    [() => ({hudVault: '/someone/else'}), /O Jarvis pertence a outro cofre/],
   ];
   for (const [options, message] of cases) {
     const at = installation(), attempt = stopWith(at, options(at));
@@ -145,8 +145,8 @@ test('stop fails closed: nothing is stopped unless the bridge, the vault, the ta
     assert.deepEqual(attempt.killed, []); assert.deepEqual(attempt.posted, [], 'the bridge was not asked to shut down');
   }
   const at = installation();
-  const refused = stopWith(at, {post: async (url, options) => url.endsWith('/shutdown') ? {ok: false, status: 409, data: {error: 'Stop active terminal tasks and voice requests first.'}} : bridgeLike(TOKEN)(url, options)});
-  await assert.rejects(refused.run, /Stop active terminal tasks/);
+  const refused = stopWith(at, {post: async (url, options) => url.endsWith('/shutdown') ? {ok: false, status: 409, data: {error: 'Encerre as tarefas ativas do terminal e os pedidos de voz.'}} : bridgeLike(TOKEN)(url, options)});
+  await assert.rejects(refused.run, /Encerre as tarefas ativas do terminal/);
   assert.deepEqual(refused.killed, [], 'a bridge that refuses to shut down leaves the HUD running');
 });
 
@@ -166,19 +166,19 @@ test('stop shuts the bridge down through its own endpoint, stops only proven pro
 test('setup changes nothing when another installation owns the ports or the vault', async () => {
   const at = installation(), vault = path.join(scratch(), 'vault');
   const nothing = {get: async () => null, find: () => null};
-  await assert.rejects(preflight(at, vault, {get: async () => ({kind: 'agentic-os-service-supervisor', runtimeDir: path.resolve('/elsewhere/.runtime')}), find: () => null}), error => /Another installation .* port 3221.*Nothing was changed/.test(error.message) && error.message.includes(`It runs from "${path.resolve('/elsewhere/..')}"`) && /node aos\.mjs stop/.test(error.message));
-  await assert.rejects(preflight(at, vault, {get: async () => ({hello: 'world'}), find: () => null}), /port 3221/);
-  await assert.rejects(preflight(at, vault, {get: async () => null, find: port => port === PORTS.supervisor ? {pid: 9} : null}), /Another program is using port 3221/);
+  await assert.rejects(preflight(at, vault, {get: async () => ({kind: 'agentic-os-service-supervisor', runtimeDir: path.resolve('/elsewhere/.runtime')}), find: () => null}), error => /Outra instalação .*porta 3221.*não foi alterada/.test(error.message) && error.message.includes(`A outra cópia roda em "${path.resolve('/elsewhere/..')}"`) && /node aos\.mjs stop/.test(error.message));
+  await assert.rejects(preflight(at, vault, {get: async () => ({hello: 'world'}), find: () => null}), /porta 3221/);
+  await assert.rejects(preflight(at, vault, {get: async () => null, find: port => port === PORTS.supervisor ? {pid: 9} : null}), /Outro programa está usando a porta 3221/);
   const ourMonitor = {kind: 'agentic-os-service-supervisor', runtimeDir: at.runtime};
   const withMonitor = extra => async url => url.endsWith(':3221/status') ? ourMonitor : extra?.(url) ?? null;
-  await assert.rejects(preflight(at, vault, {get: withMonitor(), find: port => port === PORTS.bridge ? {pid: 9} : null, post: bridgeLike('d'.repeat(64))}), /using port 3219/, 'our monitor running excuses nobody');
-  await assert.rejects(preflight(at, vault, {get: withMonitor(), find: port => port === PORTS.jarvis ? {pid: 9} : null, post: bridgeLike(TOKEN)}), /using port 3217/);
+  await assert.rejects(preflight(at, vault, {get: withMonitor(), find: port => port === PORTS.bridge ? {pid: 9} : null, post: bridgeLike('d'.repeat(64))}), /usando a porta 3219/, 'our monitor running excuses nobody');
+  await assert.rejects(preflight(at, vault, {get: withMonitor(), find: port => port === PORTS.jarvis ? {pid: 9} : null, post: bridgeLike(TOKEN)}), /usando a porta 3217/);
   await assert.doesNotReject(preflight(at, vault, {get: withMonitor(url => url.endsWith('/api/service') ? {kind: 'jarvis-v2', pid: 9, root: at.jarvis} : null), find: port => [PORTS.bridge, PORTS.jarvis].includes(port) ? {pid: 9} : null, post: bridgeLike(TOKEN)}));
   await assert.doesNotReject(preflight(at, vault, nothing));
   const marker = path.join(vault, '.obsidian', 'plugins', 'agentic-os-v2');
   fs.mkdirSync(marker, {recursive: true});
   fs.writeFileSync(path.join(marker, 'terminal-runtime.json'), JSON.stringify({runtimeDir: path.resolve('/first/install/obsidian-v2/.runtime')}));
-  await assert.rejects(preflight(at, vault, nothing), /already connected to another installation .*--adopt/);
+  await assert.rejects(preflight(at, vault, nothing), /já está conectado a outra instalação .*--adopt/);
   await assert.doesNotReject(preflight(at, vault, {...nothing, adopt: true}));
   fs.writeFileSync(path.join(marker, 'terminal-runtime.json'), JSON.stringify({runtimeDir: at.runtime}));
   await assert.doesNotReject(preflight(at, vault, nothing));
@@ -257,8 +257,8 @@ test('a vault is completed without overwriting a note, and only a brand-new vaul
   fs.writeFileSync(path.join(existing, '.obsidian', 'app.json'), '{}');
   assert.equal(scaffoldVault(template, existing).newVault, false);
   assert.deepEqual(fs.readdirSync(path.join(existing, '.obsidian')), ['app.json'], 'an existing vault\'s settings folder is never written');
-  assert.throws(() => scaffoldVault(template, path.join(template, 'inside')), /outside this installation/);
-  assert.throws(() => scaffoldVault(template, 'relative/vault'), /absolute/);
+  assert.throws(() => scaffoldVault(template, path.join(template, 'inside')), /fora da pasta desta instalação/);
+  assert.throws(() => scaffoldVault(template, 'relative/vault'), /caminho absoluto/);
 });
 
 test('a linked folder or note inside the vault is never written through', {skip: process.platform === 'win32' && 'creating links needs elevation on Windows'}, () => {
@@ -291,6 +291,8 @@ test('the key page saves a well-formed key with the live settings, keeps tuned s
   assert.equal(bad.headers.get('referrer-policy'), 'same-origin', 'the retry form must preserve the browser POST origin'); html += await bad.text();
   const good = await fetch(address, form(FAKE_KEY)); assert.equal(good.status, 200); html += await good.text();
   assert.deepEqual(await pending, {saved: true});
+  assert.match(html, /lang="pt-BR".*Chave do Jev/s);
+  assert.match(html, /Cole sua chave do OpenRouter.*Salvar chave.*Não foi possível salvar a chave.*Chave salva/s);
   assert.equal(html.includes(FAKE_KEY), false); assert.equal(html.includes('hello'), false);
   const saved = JSON.parse(fs.readFileSync(path.join(dir, 'jev.json'), 'utf8'));
   assert.deepEqual(saved, {...JEV_DEFAULTS, theta: 0.95, key: FAKE_KEY});
@@ -349,8 +351,8 @@ test('Python 3.14 and newer are refused for voice, and the refusal names what wa
   const seen = [], fixture = pythonPath({python3: '3.14.7', python: '3.15.0'});
   assert.equal(findPython({...fixture, platform: 'darwin', seen}), null);
   assert.deepEqual(seen, ['3.14.7', '3.15.0']);
-  assert.match(voicePythonMissing(seen), /Found Python 3\.14\.7, 3\.15\.0, but voice needs Python 3\.10-3\.13.*winget install Python\.Python\.3\.12.*brew install python@3\.12/);
-  assert.match(voicePythonMissing([]), /^Python 3\.10-3\.13 was not found/);
+  assert.match(voicePythonMissing(seen), /Versões do Python encontradas: 3\.14\.7, 3\.15\.0.*exigem Python de 3\.10 a 3\.13.*winget install Python\.Python\.3\.12.*brew install python@3\.12/);
+  assert.match(voicePythonMissing([]), /^Nenhuma versão do Python entre 3\.10 e 3\.13 foi encontrada/);
   for (const [text, ok] of [['Python 3.9.6', false], ['Python 3.10.0', true], ['Python 3.13.9', true], ['Python 3.14.0', false], ['Python 4.0.0', false]]) assert.equal(pythonSupported(parsePythonVersion(text)), ok, text);
 });
 
@@ -387,8 +389,25 @@ test('command-line parsing and the local-page guard', () => {
   assert.deepEqual(parseArgs(['setup', '--vault', 'C:/My Vault', '--voice', 'no', '--rebuild']), {command: 'setup', flags: {vault: 'C:/My Vault', voice: 'no', rebuild: true}, words: []});
   assert.deepEqual(parseArgs(['autostart', 'on']), {command: 'autostart', flags: {}, words: ['on']});
   assert.deepEqual(parseArgs([]), {command: 'help', flags: {}, words: []});
-  assert.throws(() => openUrl('https://example.com/x', {run: () => ({status: 0})}), /Only local pages/);
+  assert.throws(() => openUrl('https://example.com/x', {run: () => ({status: 0})}), /abre apenas páginas locais/);
   assert.equal(openUrl('http://127.0.0.1:5123/token', {run: (command, args) => ({status: command === 'open' && args[0].endsWith('/token') ? 0 : 1}), platform: 'darwin'}), true);
+});
+
+test('interactive status translates service phases and active tasks without changing the JSON snapshot', () => {
+  const snapshot = {supervisor: {paused: false, services: [
+    {id: 'bridge', port: PORTS.bridge, phase: 'online'},
+    {id: 'jarvis', port: PORTS.jarvis, phase: 'waiting_for_listener'},
+  ]}, bridge: {speech: {shared: true, health: {ok: true, stt: {ok: true}}}, tasks: [
+    {title: 'Resumo', state: 'needs input'}, {title: 'Tarefa antiga', state: 'stopped'},
+  ]}};
+  const original = structuredClone(snapshot);
+  assert.equal(formatStatus(snapshot), [
+    'Monitor de recuperação: em execução', 'Ponte (porta 3219): em execução',
+    'Jarvis (porta 3217): aguardando resposta', 'Voz compartilhada: em execução',
+    '', 'Tarefas abertas', '- Resumo (aguardando sua ação)',
+  ].join('\n'));
+  assert.deepEqual(snapshot, original);
+  assert.equal(formatStatus({bridge: null, supervisor: null}), 'Monitor de recuperação: sem resposta\nPonte: sem resposta');
 });
 
 // Member report: a Mac login item marked "Background" ran every service about eight times slower.
@@ -415,11 +434,11 @@ test('the Mac login item runs at normal priority, and only our own old one is re
   // The swap, then the marker an old monitor may have written while being unloaded is cleared.
   const calls = [];
   assert.equal(replaceSlowLoginItem(at, {enable: () => calls.push('enable'), clearMarker: () => calls.push('clear'), log: line => calls.push(line)}), true);
-  assert.equal(calls[0], 'enable'); assert.match(calls[1], /normal speed/); assert.equal(calls[2], 'clear');
+  assert.equal(calls[0], 'enable'); assert.match(calls[1], /velocidade normal/); assert.equal(calls[2], 'clear');
   // launchctl refusing never blocks the start that follows, and the marker is still cleared.
   const said = [];
   assert.equal(replaceSlowLoginItem(at, {enable: () => { throw new Error('launchctl refused'); }, clearMarker: () => said.push('clear'), log: line => said.push(line)}), false);
-  assert.match(said[0], /could not update the Mac login item \(launchctl refused\)/); assert.equal(said[1], 'clear');
+  assert.match(said[0], /não foi possível atualizar o item de início de sessão do Mac \(launchctl refused\)/); assert.equal(said[1], 'clear');
   // The order inside start(): the old monitor leaves, the configuration is written, the marker is cleared, then the swap.
   const source = fs.readFileSync(new URL('../scripts/aos/services.mjs', import.meta.url), 'utf8');
   const order = ["const slowLoginItem = loginItemNeedsSpeedFix(at) && autostartOwner(at) === 'ours';", 'atomicWrite(at.config,', 'fs.rmSync(at.pause, {force: true});', 'if (slowLoginItem) replaceSlowLoginItem(', 'return launchMonitor(at, {log});'].map(piece => source.indexOf(piece));
@@ -435,10 +454,10 @@ test('start waits until what the monitor runs is online, says so, and returns 1 
   assert.equal(up, 0);
   assert.deepEqual(calls[0], {resetRecovery: false, log: calls[0].log});
   assert.deepEqual(calls[1].ids, ['bridge', 'jarvis', 'speech'], 'only the services the doctor checks are waited for');
-  assert.match(lines.join('\n'), /Waiting for bridge, jarvis, speech to come up \(voice models can take a minute\)\nEverything is up\./);
+  assert.match(lines.join('\n'), /Aguardando Ponte, Jarvis, Voz local \(os modelos de voz podem levar um minuto\)\nTodos os serviços estão prontos\./);
   // Not up in time: the command says what is still starting and what to do, and fails.
   const late = []; const slow = await startCommand({log: line => late.push(line), startImpl: async () => {}, monitor, timeoutMs: 180000, waitFor: async () => ['bridge']});
-  assert.equal(slow, 1); assert.match(late.join('\n'), /Still starting after 3 minutes: bridge\. Run `node aos\.mjs status`/);
+  assert.equal(slow, 1); assert.match(late.join('\n'), /Ainda iniciando após 3 min: Ponte\. Rode `node aos\.mjs status`/);
   // --no-wait returns as soon as the monitor is up, as before.
   let waited = false;
   assert.equal(await startCommand({wait: false, log: () => {}, startImpl: async () => {}, monitor, waitFor: async () => { waited = true; return []; }}), 0);

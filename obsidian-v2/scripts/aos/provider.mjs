@@ -36,20 +36,20 @@ export function chooseProvider({explicit, stored, presence, env = {}}) {
   if (explicit) {
     const model = stored.state === 'valid' && stored.selection.provider === explicit ? stored.selection.model : DEFAULT_MODEL[explicit];
     return {selection: {provider: explicit, model}, write: !(stored.state === 'valid' && stored.selection.provider === explicit && stored.selection.model === model),
-      note: presence[explicit] === 'missing' ? `${NAME[explicit]} is not installed here yet; install it and sign in before using the buttons.` : ''};
+      note: presence[explicit] === 'missing' ? `Instale o ${NAME[explicit]} e entre na sua conta antes de usar os botões.` : ''};
   }
   if (stored.state === 'valid') {
     const chosen = stored.selection.provider;
     const note = presence[chosen] === 'missing' && presence[other(chosen)] === 'installed'
-      ? `Your buttons and voice use ${NAME[chosen]}, which is not installed here; ${NAME[other(chosen)]} is. To switch: node aos.mjs setup --provider ${other(chosen)}`
+      ? `Os botões e a voz usam o ${NAME[chosen]}, que ainda precisa ser instalado. Para usar o ${NAME[other(chosen)]}, que já está instalado, execute node aos.mjs setup --provider ${other(chosen)}`
       : '';
     return {selection: stored.selection, write: false, note};
   }
-  if (stored.state === 'invalid') return {selection: null, write: false, note: 'system/v2/provider.json could not be read; it was left as it is. To choose again: node aos.mjs setup --provider claude (or codex)'};
+  if (stored.state === 'invalid') return {selection: null, write: false, note: 'Não foi possível ler system/v2/provider.json. O arquivo foi preservado. Para escolher novamente, execute node aos.mjs setup --provider claude (ou use codex no lugar de claude).'};
   const installed = ['claude', 'codex'].filter(provider => presence[provider] === 'installed');
   // Both installed: the tool running this setup (Claude Code sets CLAUDECODE=1 in its shells).
   const provider = installed.length === 1 ? installed[0] : installed.length === 2 && env.CLAUDECODE === '1' ? 'claude' : 'codex';
-  return {selection: {provider, model: DEFAULT_MODEL[provider]}, write: true, note: installed.length ? '' : 'Neither Claude Code nor Codex was found; the buttons need one of them.'};
+  return {selection: {provider, model: DEFAULT_MODEL[provider]}, write: true, note: installed.length ? '' : 'Nenhuma das duas ferramentas foi encontrada. Para usar os botões, instale o Claude Code ou o Codex.'};
 }
 
 export function applyProviderChoice(vault, {explicit, runtimeDir, env = process.env, log = console.log, presence} = {}) {
@@ -60,7 +60,7 @@ export function applyProviderChoice(vault, {explicit, runtimeDir, env = process.
     fs.mkdirSync(path.dirname(file), {recursive: true});
     fs.writeFileSync(temporary, JSON.stringify(choice.selection));
     fs.renameSync(temporary, file);
-    log(`-> Buttons and voice use ${NAME[choice.selection.provider]} (${choice.selection.model})`);
+    log(`-> Os botões e a voz usam o ${NAME[choice.selection.provider]} (${choice.selection.model})`);
   }
   if (choice.note) log(`-> ${choice.note}`);
   return choice;

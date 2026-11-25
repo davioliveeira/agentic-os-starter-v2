@@ -20,9 +20,9 @@ function copyMissing(from, to, report) {
 }
 
 export function scaffoldVault(template, vault) {
-  if (!path.isAbsolute(vault)) throw new Error('The vault path must be absolute.');
+  if (!path.isAbsolute(vault)) throw new Error('Informe o caminho absoluto do cofre.');
   const blocked = [template, path.dirname(template)].some(dir => { const relative = path.relative(dir, vault); return !relative || (!relative.startsWith('..') && !path.isAbsolute(relative)); });
-  if (blocked) throw new Error('Choose a vault folder outside this installation folder.');
+  if (blocked) throw new Error('Escolha uma pasta de cofre fora da pasta desta instalação.');
   const report = {vault, created: 0, kept: 0, newVault: !fs.lstatSync(path.join(vault, '.obsidian'), {throwIfNoEntry: false})};
   copyMissing(template, vault, report);
   // Only a vault Obsidian has never opened gets starter settings (the plugin listed, so

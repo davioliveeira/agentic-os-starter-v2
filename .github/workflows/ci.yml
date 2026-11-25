@@ -123,7 +123,7 @@ jobs:
         run: |
           mkdir -p ci-logs
           node aos.mjs setup --vault "$RUNNER_TEMP/vault" --voice yes --autostart no --ci | tee ci-logs/setup-shared.log
-          grep -q "will be shared, so there is nothing to download" ci-logs/setup-shared.log
+          grep -q "compartilhar o serviço de voz em execução.*Nenhum download é necessário" ci-logs/setup-shared.log
           test ! -e obsidian-v2/.runtime/speech-venv
       # Conversations inside Obsidian: the Terminal plugin runs its helper with this managed Python
       # (Windows needs psutil + pywinctl in it). Checked through the managed interpreter, not the runner's.
@@ -136,15 +136,15 @@ jobs:
       - name: Doctor with the shared voice
         run: |
           node aos.mjs doctor --ci | tee ci-logs/doctor-shared.log
-          grep -q "PASS Voice service healthy - .*shared service at http://127.0.0.1:3108" ci-logs/doctor-shared.log
-          grep -q "PASS Text to speech" ci-logs/doctor-shared.log
-          grep -q "PASS Speech to text hears it back" ci-logs/doctor-shared.log
+          grep -q "PASS Serviço de voz operacional - .*serviço compartilhado em http://127.0.0.1:3108" ci-logs/doctor-shared.log
+          grep -q "PASS Síntese de voz" ci-logs/doctor-shared.log
+          grep -q "PASS Transcrição do áudio de teste" ci-logs/doctor-shared.log
       - name: The monitor runs no speech service of its own, and stop leaves the other program's alone
         run: |
-          node aos.mjs status > ci-logs/status-shared.json
+          node aos.mjs status --json > ci-logs/status-shared.json
           node -e "const s=JSON.parse(require('fs').readFileSync('ci-logs/status-shared.json','utf8'));const ids=s.supervisor.services.map(x=>x.id);console.log(ids,s.bridge.speech.url);if(ids.includes('speech')||s.bridge.speech.url!=='http://127.0.0.1:3108')process.exit(1)"
           node aos.mjs stop | tee ci-logs/stop-shared.log
-          if grep -q "Stopped speech" ci-logs/stop-shared.log; then echo "stop touched the shared speech service"; exit 1; fi
+          if grep -q "Serviço encerrado: Voz local" ci-logs/stop-shared.log; then echo "stop touched the shared speech service"; exit 1; fi
           curl -fs http://127.0.0.1:3108/health
       - name: The other program goes away
         run: |
@@ -161,8 +161,8 @@ jobs:
       - name: Doctor
         run: |
           node aos.mjs doctor --ci | tee ci-logs/doctor-own.log
-          grep -q "PASS Voice service healthy - .*this installation's own service on 3220" ci-logs/doctor-own.log
-          grep -q "PASS Speech to text hears it back" ci-logs/doctor-own.log
+          grep -q "PASS Serviço de voz operacional - .*serviço desta instalação na porta 3220" ci-logs/doctor-own.log
+          grep -q "PASS Transcrição do áudio de teste" ci-logs/doctor-own.log
       # A vault that asks for another language: setup fetches that language's speech model, voice starts
       # in it, and the doctor speaks and listens in it. English words heard back would fail this.
       - name: Voice in another language (Portuguese)
@@ -171,8 +171,8 @@ jobs:
           node -e "const fs=require('fs'),f=process.env.RUNNER_TEMP+'/vault/system/v2/profile.json';const p=JSON.parse(fs.readFileSync(f,'utf8'));p.speechLanguage='pt';fs.writeFileSync(f,JSON.stringify(p,null,1))"
           node aos.mjs setup --vault "$RUNNER_TEMP/vault" --voice yes --autostart no --ci | tee ci-logs/setup-language.log
           node aos.mjs doctor --ci | tee ci-logs/doctor-language.log
-          grep -q "PASS Voice service healthy - .*hearing and speaking Portuguese (Brazil)" ci-logs/doctor-language.log
-          grep -q "PASS Speech to text hears it back" ci-logs/doctor-language.log
+          grep -q "PASS Serviço de voz operacional - .*ouvindo e falando em Português (Brasil)" ci-logs/doctor-language.log
+          grep -q "PASS Transcrição do áudio de teste" ci-logs/doctor-language.log
       - name: Status
         if: always()
         run: node aos.mjs status || true
@@ -223,12 +223,14 @@ jobs:
           python-version: '3.12'
       - name: Clone the public repository and stand where that member stands (main at 0.3.64)
         run: |
-          git clone https://github.com/ctskool/agentic-os-starter-v2 "$RUNNER_TEMP/agentic-os"
+          git clone "${{ github.server_url }}/${{ github.repository }}.git" "$RUNNER_TEMP/agentic-os"
           cd "$RUNNER_TEMP/agentic-os"
           git cat-file -e "$NEW_SHA^{commit}" 2>/dev/null || git fetch origin "$NEW_SHA"
           git merge-base --is-ancestor "$OLD_SHA" "$NEW_SHA"
           git show "$NEW_SHA:obsidian-v2/tests/fixtures/ci-upgrade.cjs" > "$RUNNER_TEMP/ci-upgrade.cjs"
           git show "$NEW_SHA:obsidian-v2/tests/fixtures/ci-upgrade-check.cjs" > "$RUNNER_TEMP/ci-upgrade-check.cjs"
+          # The original release's guard only accepts the upstream origin.
+          git remote set-url origin https://github.com/ctskool/agentic-os-starter-v2.git
           git checkout -q main
           git reset -q --hard "$OLD_SHA"
           git update-ref refs/remotes/origin/main "$OLD_SHA"
@@ -259,8 +261,8 @@ jobs:
           cd "$RUNNER_TEMP/agentic-os"
           node aos.mjs doctor --ci > "$RUNNER_TEMP/doctor-short.log" 2>&1 || true
           cat "$RUNNER_TEMP/doctor-short.log"
-          grep -q "FAIL Setup finished for these files" "$RUNNER_TEMP/doctor-short.log"
-          grep -q "Run \`node aos.mjs stop\`, then \`node aos.mjs setup\` once to finish the update" "$RUNNER_TEMP/doctor-short.log"
+          grep -q "FAIL Instalação concluída para esta versão" "$RUNNER_TEMP/doctor-short.log"
+          grep -Fq 'Rode `node aos.mjs stop` e `node aos.mjs setup` para concluir a atualização' "$RUNNER_TEMP/doctor-short.log"
           # As the doctor says: stop first, so setup can bring the voice packages up to date.
           node aos.mjs stop
           node aos.mjs setup --ci
@@ -268,12 +270,12 @@ jobs:
         run: |
           cd "$RUNNER_TEMP/agentic-os"
           node aos.mjs doctor --ci | tee "$RUNNER_TEMP/doctor-new.log"
-          grep -q "PASS Setup finished for these files" "$RUNNER_TEMP/doctor-new.log"
-          grep -q "PASS Bridge answering" "$RUNNER_TEMP/doctor-new.log"
-          grep -q "PASS Jarvis HUD answering" "$RUNNER_TEMP/doctor-new.log"
-          grep -q "PASS Voice service healthy - .*this installation's own service on 3220" "$RUNNER_TEMP/doctor-new.log"
-          grep -q "PASS Speech to text hears it back" "$RUNNER_TEMP/doctor-new.log"
-          grep -q "SKIP Live voice (OpenAI key) - not set up" "$RUNNER_TEMP/doctor-new.log"
+          grep -q "PASS Instalação concluída para esta versão" "$RUNNER_TEMP/doctor-new.log"
+          grep -q "PASS Ponte respondendo na porta 3219" "$RUNNER_TEMP/doctor-new.log"
+          grep -q "PASS Jarvis respondendo na porta 3217" "$RUNNER_TEMP/doctor-new.log"
+          grep -q "PASS Serviço de voz operacional - .*serviço desta instalação na porta 3220" "$RUNNER_TEMP/doctor-new.log"
+          grep -q "PASS Transcrição do áudio de teste" "$RUNNER_TEMP/doctor-new.log"
+          grep -q "SKIP Voz ao vivo (chave da OpenAI) - configuração opcional" "$RUNNER_TEMP/doctor-new.log"
       - name: What the member had is still there
         run: |
           cd "$RUNNER_TEMP/agentic-os"
@@ -281,6 +283,7 @@ jobs:
       - name: The checkout still counts as a stock starter, so the next update is allowed
         run: |
           cd "$RUNNER_TEMP/agentic-os"
+          git remote set-url origin "${{ github.server_url }}/${{ github.repository }}.git"
           git status -sb
           node -e "import('./obsidian-v2/scripts/aos/upgrade-checkout.mjs').then(m => { const a = m.assessCheckout(require('path').resolve('obsidian-v2')); console.log(a.kind, a.issues, a.changes); if (a.updateAllowed !== true) process.exit(1); })"
       - name: Status

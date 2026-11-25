@@ -86,7 +86,7 @@ test('a stock V2 is assessed without updating files or stopping anything', async
   assert.equal(report.candidates[0].installPath, root);
   assert.equal(report.candidates[0].vaultPath, vault);
   assert.equal(report.candidates[0].route, 'review-stock-update', JSON.stringify(report.candidates[0]));
-  assert.match(report.limitation, /not a compatibility test/);
+  assert.match(report.limitation, /compatibilidade precisa ser verificada/);
   assert.deepEqual(snapshot(home), before);
 });
 
@@ -114,18 +114,18 @@ test('multiple vaults require a member choice and never select one by position',
   put(home, 'Library/Application Support/obsidian/obsidian.json', {vaults});
   const before = snapshot(home), report = await inspectUpgrade({...isolated(home), platform: 'darwin'});
   assert.equal(report.candidates.length, 2); assert.equal(report.selectionRequired, true);
-  assert.match(report.nextStep, /ask which system/);
+  assert.match(report.nextStep, /pergunte qual sistema/);
   assert.equal('selected' in report, false); assert.deepEqual(snapshot(home), before);
 });
 
 test('no discovery result asks for a recognizable vault rather than installing over something unknown', async t => {
   const home = scratch(t), report = await inspectUpgrade(isolated(home));
   assert.deepEqual(report.candidates, []);
-  assert.match(report.nextStep, /Obsidian vault/);
+  assert.match(report.nextStep, /cofre do Obsidian/);
   assert.equal(report.changesApplied, false);
   assert.ok(report.availableFeatures.some(feature => feature.id === 'voice' && feature.dependencies.length));
   for (const id of ['live', 'about']) assert.ok(report.availableFeatures.some(feature => feature.id === id && feature.dependencies.length), id);
-  assert.match(report.availableFeatures.find(feature => feature.id === 'live').dependencies[0], /own OpenAI API key locally/);
+  assert.match(report.availableFeatures.find(feature => feature.id === 'live').dependencies[0], /própria chave da API da OpenAI localmente/);
 });
 
 test('an explicitly isolated home cannot fall back to the actual installation or live monitor', async t => {
@@ -151,10 +151,11 @@ test('a stale vault reference is not recommended for a stock update or recreated
 test('upgrade help and invalid arguments perform no discovery; there is no automatic apply flag', async () => {
   const discover = () => assert.fail('discovery was invoked'), output = [];
   assert.equal(await upgradeCommand({flags: {help: true}, discover, log: value => output.push(value)}), 0);
-  assert.match(output.join('\n'), /does not install/);
-  await assert.rejects(upgradeCommand({flags: {apply: true}, discover}), /no apply option/);
-  await assert.rejects(upgradeCommand({flags: {install: true}, discover}), /absolute folder path/);
-  await assert.rejects(upgradeCommand({flags: {vault: 'relative-folder'}, discover}), /absolute folder path/);
+  assert.match(output.join('\n'), /em modo somente leitura/);
+  await assert.rejects(upgradeCommand({flags: {apply: true}, discover}), /apenas consulta informações/);
+  await assert.rejects(upgradeCommand({flags: {install: true}, discover}), /caminho absoluto de uma pasta/);
+  await assert.rejects(upgradeCommand({flags: {vault: 'relative-folder'}, discover}), /caminho absoluto de uma pasta/);
+  await assert.rejects(upgradeCommand({flags: {json: 'yes'}, discover}), /--json não aceita valor/);
 });
 
 test('JSON command output includes a plain feature catalogue and no mutation permission', async t => {
@@ -165,8 +166,9 @@ test('JSON command output includes a plain feature catalogue and no mutation per
   assert.ok(report.availableFeatures.every(feature => feature.description && feature.dependencies.length));
 });
 
-test('the actual launcher inspects an explicit throwaway installation without contacting any service', async t => {
+test('the actual launcher inspects an installation of the PT-BR edition without contacting any service', async t => {
   const home = scratch(t), {root} = starter(home);
+  git(root, 'remote', 'set-url', 'origin', 'https://github.com/davioliveeira/agentic-os-starter-v2.git');
   const noNetwork = put(home, 'no-network.mjs', "import http from 'node:http'; import https from 'node:https'; const refuse=()=>{console.error('A service was contacted during explicit discovery');process.exit(73)}; http.get=refuse; http.request=refuse; https.get=refuse; https.request=refuse; globalThis.fetch=refuse;");
   const before = snapshot(home);
   const launcher = fileURLToPath(new URL('../scripts/aos.mjs', import.meta.url));
@@ -176,5 +178,10 @@ test('the actual launcher inspects an explicit throwaway installation without co
   assert.equal(report.candidates.length, 1);
   assert.equal(report.candidates[0].route, 'review-stock-update');
   assert.equal(report.changesApplied, false);
+
+  const plain = spawnSync(process.execPath, ['--import', pathToFileURL(noNetwork).href, launcher, 'upgrade', '--install', root], {encoding: 'utf8', timeout: 20000, windowsHide: true});
+  assert.equal(plain.status, 0, plain.stderr);
+  assert.match(plain.stdout, /Avaliação de atualização em modo somente leitura/);
+  assert.match(plain.stdout, /Avaliar uma atualização padrão do V2/);
   assert.deepEqual(snapshot(home), before);
 });

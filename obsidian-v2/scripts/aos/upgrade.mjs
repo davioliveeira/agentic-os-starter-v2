@@ -8,25 +8,25 @@ import {discoverInstallations} from './upgrade-discovery.mjs';
 import {assessCheckout} from './upgrade-checkout.mjs';
 
 export const UPGRADE_FEATURES = Object.freeze([
-  {id: 'cockpit', name: 'Obsidian cockpit', description: 'Planning, conversations and workflows inside your vault.', dependencies: ['Compatible local bridge and plugin; Terminal plugin for interactive conversations.']},
-  {id: 'hud', name: 'Jarvis HUD', description: 'A browser dashboard for conversations, workflows and voice.', dependencies: ['Matching bridge and HUD versions; shared dashboard data.']},
-  {id: 'voice', name: 'Local voice', description: 'Speak requests and hear replies on your computer.', dependencies: ['Compatible bridge and speech service; microphone permission; Python for an owned speech service.']},
-  {id: 'jev', name: 'Optional Jev router', description: 'Route voice requests using an optional OpenRouter model.', dependencies: ['Working voice and compatible bridge; the member enters their own OpenRouter key locally.']},
-  {id: 'live', name: 'Optional Live voice', description: 'A two-way call that answers from your day and hands real work to your agents.', dependencies: ['Matching bridge, plugin and HUD from 0.4 on; microphone permission; the member enters their own OpenAI API key locally, and OpenAI bills the calls.']},
-  {id: 'about', name: 'About me', description: 'A short profile in your vault that your agents read, so answers fit you.', dependencies: ['Compatible bridge; the member approves the text. With Live voice on, it is sent to OpenAI at the start of each call.']},
-  {id: 'dashboard', name: 'Your own skill buttons', description: 'Choose and order up to ten buttons shared by both dashboards.', dependencies: ['Compatible bridge and dashboard interfaces; each personal skill needs its own tools and accounts.']},
-  {id: 'workflows', name: 'Bundled workflows', description: 'Planning, research and writing workflows that save reports in your vault.', dependencies: ['Compatible bridge and vault conventions; a signed-in coding tool; accounts required by the chosen workflow.']},
+  {id: 'cockpit', name: 'Painel do Obsidian', description: 'Planejamento, conversas e fluxos de trabalho dentro do seu cofre.', dependencies: ['Ponte local e plugin compatíveis. Para conversas interativas, instale o plugin Terminal.']},
+  {id: 'hud', name: 'Jarvis HUD', description: 'Um painel no navegador para conversas, fluxos de trabalho e voz.', dependencies: ['Ponte e HUD com versões compatíveis, além dos dados compartilhados do painel.']},
+  {id: 'voice', name: 'Voz local', description: 'Faça pedidos por voz e ouça as respostas no seu computador.', dependencies: ['Ponte e serviço de voz compatíveis, permissão para usar o microfone e Python se você for executar seu próprio serviço de voz.']},
+  {id: 'jev', name: 'Roteador Jev (opcional)', description: 'Encaminhe pedidos por voz usando um modelo opcional do OpenRouter.', dependencies: ['Voz funcionando e ponte compatível. Você insere sua própria chave do OpenRouter localmente.']},
+  {id: 'live', name: 'Voz ao vivo (opcional)', description: 'Converse sobre o seu dia em uma chamada e delegue tarefas aos seus agentes.', dependencies: ['Ponte, plugin e HUD com versões compatíveis a partir da 0.4 e permissão para usar o microfone. Você insere sua própria chave da API da OpenAI localmente. A OpenAI cobra pelas chamadas.']},
+  {id: 'about', name: 'Sobre mim', description: 'Um perfil curto no seu cofre que os agentes leem para adaptar as respostas a você.', dependencies: ['Ponte compatível e sua aprovação do texto. Com a voz ao vivo ativada, o texto é enviado à OpenAI no início de cada chamada.']},
+  {id: 'dashboard', name: 'Botões de skills personalizados', description: 'Escolha e organize até dez botões compartilhados pelos dois painéis.', dependencies: ['Ponte e painéis compatíveis. Cada skill pessoal precisa das suas próprias ferramentas e contas.']},
+  {id: 'workflows', name: 'Fluxos de trabalho incluídos', description: 'Fluxos de planejamento, pesquisa e escrita que salvam relatórios no seu cofre.', dependencies: ['Ponte compatível, cofre com a estrutura esperada, uma ferramenta de programação com login ativo e as contas exigidas pelo fluxo escolhido.']},
 ]);
 
-export const UPGRADE_HELP = `Inspect an existing Agentic OS before upgrading it:
+export const UPGRADE_HELP = `Confira a instalação existente do Agentic OS antes de atualizá-la.
 
   node aos.mjs upgrade
-  node aos.mjs upgrade --install "<absolute installation folder>"
-  node aos.mjs upgrade --vault "<absolute vault folder>" [--json]
+  node aos.mjs upgrade --install "<caminho absoluto da instalação>"
+  node aos.mjs upgrade --vault "<caminho absoluto do cofre>" [--json]
 
-Finds likely installations, checks local checkout metadata, and lists available
-features. It does not install, fetch updates, copy files, stop services or apply
-changes. Follow setup/UPGRADE.md to choose changes and preserve customizations.
+Localiza possíveis instalações, verifica os metadados locais do repositório e
+lista os recursos disponíveis em modo somente leitura. Consulte setup/UPGRADE.md
+para escolher as mudanças e preservar suas personalizações.
 `;
 
 // Only a fixed loopback status endpoint is read. Bound both time and body size;
@@ -78,39 +78,39 @@ export async function inspectUpgrade(options = {}) {
     candidates, warnings: inventory.warnings, searched: inventory.searched,
     availableFeatures: UPGRADE_FEATURES,
     nextStep: candidates.length === 0
-      ? 'Ask which Obsidian vault the member uses, or help them reveal its folder in Obsidian. No installation was selected.'
+      ? 'Pergunte qual cofre do Obsidian a pessoa usa ou ajude a localizar a pasta pelo Obsidian. Nenhuma instalação foi selecionada.'
       : candidates.length > 1
-        ? 'Show the vault names and installation folders, then ask which system the member wants to upgrade. Do not choose one automatically.'
-        : 'Confirm the detected system with the member, compare its non-secret customizations, then follow setup/UPGRADE.md before making changes.',
-    limitation: 'An inventory is not a compatibility test. A clean checkout does not prove that installed plugin files, vault content or external integrations are unchanged. Review the selected system before recommending an update.',
+        ? 'Mostre os nomes dos cofres e as pastas de instalação e pergunte qual sistema a pessoa quer atualizar. Aguarde a escolha antes de prosseguir.'
+        : 'Confirme a instalação detectada com a pessoa, compare as personalizações que não contêm dados sigilosos e siga setup/UPGRADE.md antes de fazer alterações.',
+    limitation: 'A compatibilidade precisa ser verificada separadamente. Mesmo com o repositório Git limpo, revise os arquivos do plugin instalado, o conteúdo do cofre e as integrações externas do sistema escolhido antes de recomendar a atualização.',
   };
 }
 
 export function printUpgradeReport(report, log = console.log) {
-  log('Upgrade assessment — read only. Nothing has been changed.');
-  if (!report.candidates.length) log('No confirmed installation found in the checked locations.');
+  log('Avaliação de atualização em modo somente leitura. Nenhuma alteração foi feita.');
+  if (!report.candidates.length) log('Nenhuma instalação foi confirmada nos locais consultados.');
   report.candidates.forEach((candidate, index) => {
     log(`\n${index + 1}. ${line(candidate.label || candidate.kind)}`);
-    if (candidate.vaultPath) log(`   Vault: ${line(candidate.vaultPath)}`);
-    if (candidate.installPath) log(`   Installation: ${line(candidate.installPath)}`);
-    log(`   Route: ${candidate.route === 'review-stock-update' ? 'Review a standard V2 update' : candidate.route === 'review-v1-upgrade' ? 'Review an upgrade from the original starter' : 'Review and preserve this customized or unrecognized system'}`);
-    for (const issue of [...(candidate.warnings || []), ...(candidate.checkout?.issues || [])]) log(`   Review: ${line(issue)}`);
-    for (const changed of (candidate.checkout?.changes || [])) log(`   Changed file: ${line(changed)}`);
+    if (candidate.vaultPath) log(`   Cofre: ${line(candidate.vaultPath)}`);
+    if (candidate.installPath) log(`   Instalação: ${line(candidate.installPath)}`);
+    log(`   Opção: ${candidate.route === 'review-stock-update' ? 'Avaliar uma atualização padrão do V2' : candidate.route === 'review-v1-upgrade' ? 'Avaliar uma atualização a partir da versão original' : 'Avaliar e preservar este sistema personalizado ou não reconhecido'}`);
+    for (const issue of [...(candidate.warnings || []), ...(candidate.checkout?.issues || [])]) log(`   A verificar: ${line(issue)}`);
+    for (const changed of (candidate.checkout?.changes || [])) log(`   Arquivo alterado: ${line(changed)}`);
   });
-  for (const warning of report.warnings || []) log(`\nDiscovery note: ${line(warning)}`);
-  log('\nFeatures available in this starter (compatibility must be checked):');
+  for (const warning of report.warnings || []) log(`\nAviso da busca: ${line(warning)}`);
+  log('\nRecursos disponíveis nesta versão (confira a compatibilidade)');
   for (const feature of report.availableFeatures) log(`- ${feature.name}: ${feature.description}`);
   log(`\n${report.nextStep}`);
   log(report.limitation);
-  log('Guide: setup/UPGRADE.md');
+  log('Guia: setup/UPGRADE.md');
 }
 
 export async function upgradeCommand({flags = {}, words = [], log = console.log, ...options} = {}) {
   const allowed = new Set(['help', 'install', 'vault', 'json']);
-  if (words.length || Object.keys(flags).some(key => !allowed.has(key))) throw new Error('Use node aos.mjs upgrade [--install "<folder>"] [--vault "<folder>"] [--json]. Upgrade inspection has no apply option.');
-  for (const name of ['help', 'json']) if (flags[name] !== undefined && flags[name] !== true) throw new Error(`--${name} takes no value.`);
+  if (words.length || Object.keys(flags).some(key => !allowed.has(key))) throw new Error('Use node aos.mjs upgrade [--install "<pasta>"] [--vault "<pasta>"] [--json]. O comando apenas consulta informações.');
+  for (const name of ['help', 'json']) if (flags[name] !== undefined && flags[name] !== true) throw new Error(`--${name} não aceita valor.`);
   if (flags.help) { log(UPGRADE_HELP); return 0; }
-  for (const name of ['install', 'vault']) if (flags[name] !== undefined && (typeof flags[name] !== 'string' || !path.isAbsolute(flags[name]) || /[\x00-\x1f\x7f]/.test(flags[name]))) throw new Error(`--${name} needs an absolute folder path. Run node aos.mjs upgrade without a path to discover installations first.`);
+  for (const name of ['install', 'vault']) if (flags[name] !== undefined && (typeof flags[name] !== 'string' || !path.isAbsolute(flags[name]) || /[\x00-\x1f\x7f]/.test(flags[name]))) throw new Error(`--${name} exige o caminho absoluto de uma pasta. Rode node aos.mjs upgrade sem indicar um caminho para localizar instalações.`);
   const report = await inspectUpgrade({...options, install: flags.install, vault: flags.vault});
   if (flags.json) log(JSON.stringify(report, null, 2)); else printUpgradeReport(report, log);
   return 0;

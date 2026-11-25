@@ -1,4 +1,4 @@
-param(
+﻿param(
  [switch]$InstallAtLogon,
  [switch]$IncludePreview,
  [switch]$ResetRecovery,
@@ -16,8 +16,8 @@ $taskWrapper=Join-Path $PSScriptRoot 'run-recovery.ps1'
 $taskName='Agentic OS V2 Service Recovery'
 $taskSupervisor=$null
 try {$taskSupervisor=Invoke-RestMethod 'http://127.0.0.1:3221/status' -TimeoutSec 2} catch {}
-if($taskSupervisor -and ($taskSupervisor.kind -ne 'agentic-os-service-supervisor' -or $taskSupervisor.runtimeDir -ne $taskRuntime)){throw 'Port 3221 belongs to another installation; nothing changed.'}
-if(!$taskSupervisor -and (Get-NetTCPConnection -LocalPort 3221 -State Listen -ErrorAction SilentlyContinue)){throw 'An unrecognized service owns port 3221; nothing changed.'}
+if($taskSupervisor -and ($taskSupervisor.kind -ne 'agentic-os-service-supervisor' -or $taskSupervisor.runtimeDir -ne $taskRuntime)){throw 'A porta 3221 pertence a outra instalação. Nenhuma alteração foi feita.'}
+if(!$taskSupervisor -and (Get-NetTCPConnection -LocalPort 3221 -State Listen -ErrorAction SilentlyContinue)){throw 'Um serviço desconhecido está usando a porta 3221. Nenhuma alteração foi feita.'}
 New-Item -ItemType Directory -Path $taskRuntime -Force | Out-Null
 if($ResetRecovery -and $taskSupervisor){[System.IO.File]::WriteAllText($taskPauseFile,'{"reason":"explicit recovery reset"}',[System.Text.UTF8Encoding]::new($false))}
 # A paused monitor may still be exiting. Do not clear its marker until it leaves.
@@ -26,7 +26,7 @@ if($taskSupervisor -and (Test-Path -LiteralPath $taskPauseFile)){
   Start-Sleep -Milliseconds 500
   try {$taskSupervisor=Invoke-RestMethod 'http://127.0.0.1:3221/status' -TimeoutSec 1} catch {$taskSupervisor=$null;break}
  }
- if($taskSupervisor){throw 'The recovery monitor is still pausing; try again shortly.'}
+ if($taskSupervisor){throw 'O monitor de recuperação ainda está sendo pausado. Tente novamente em instantes.'}
 }
 if($ResetRecovery){
  $taskRecoveryState=Join-Path $taskRuntime 'service-recovery-state.json'
@@ -53,13 +53,13 @@ if($taskSupervisor -and @($taskServices | Where-Object {$_.id -notin @($taskSupe
   Start-Sleep -Milliseconds 500
   try {$taskSupervisor=Invoke-RestMethod 'http://127.0.0.1:3221/status' -TimeoutSec 1}catch{$taskSupervisor=$null;break}
  }
- if($taskSupervisor){throw 'The recovery monitor is still reconfiguring; try again shortly.'}
+ if($taskSupervisor){throw 'O monitor de recuperação ainda está sendo reconfigurado. Tente novamente em instantes.'}
 }
 if(!$taskSupervisor){
  # Subsequent normal starts keep the configured set of services, including Jarvis.
  if(Test-Path -LiteralPath $taskConfigFile){
   $taskPrior=Get-Content -LiteralPath $taskConfigFile -Raw | ConvertFrom-Json
-  if($taskPrior.runtimeDir -ne $taskRuntime){throw 'Recovery configuration belongs to another installation.'}
+  if($taskPrior.runtimeDir -ne $taskRuntime){throw 'A configuração de recuperação pertence a outra instalação.'}
   foreach($taskService in $taskPrior.services){
    if($taskService.id -notin @($taskServices.id) -and $taskService.id -in @('preview','jarvis')){$taskServices+=$taskService}
   }
@@ -82,11 +82,11 @@ function Test-OurRecoveryTask($task){
 }
 if($InstallAtLogon){
  $taskPowerShell=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
- if(!(Test-Path -LiteralPath $taskPowerShell)){throw 'Windows PowerShell is unavailable for the recovery task.'}
+ if(!(Test-Path -LiteralPath $taskPowerShell)){throw 'O Windows PowerShell está indisponível para executar a tarefa de recuperação.'}
  # Bypass applies to this one process: a fresh Windows (policy Restricted) otherwise refuses -File. No policy is changed.
  $taskArguments='-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File "'+$taskWrapper+'" -NodeExecutable "'+$taskNode+'" -ConfigFile "'+$taskConfigFile+'"'
  $taskExisting=Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
- if($taskExisting -and !(Test-OurRecoveryTask $taskExisting)){throw 'A different installation owns the recovery task; nothing replaced.'}
+ if($taskExisting -and !(Test-OurRecoveryTask $taskExisting)){throw 'A tarefa de recuperação pertence a outra instalação. Nenhuma tarefa foi substituída.'}
  $taskIdentity=[System.Security.Principal.WindowsIdentity]::GetCurrent().Name
  $taskAction=New-ScheduledTaskAction -Execute $taskPowerShell -Argument $taskArguments -WorkingDirectory $taskRoot
  # Logon start, plus a 5-minute check: IgnoreNew makes it a no-op while the monitor runs, the wrapper exits
@@ -96,22 +96,22 @@ if($InstallAtLogon){
  # Priority 5 = normal. Task Scheduler's default (7) is below normal, and every service inherits it: on a busy
  # machine the bridge stalled 4-15 s per request (2026-11-22); at normal it answers in ~1 ms.
  $taskSettings=New-ScheduledTaskSettingsSet -Priority 5 -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -Hidden
- Register-ScheduledTask -TaskName $taskName -Action $taskAction -Trigger $taskTrigger -Principal $taskPrincipal -Settings $taskSettings -Description 'Keeps local Agentic OS V2 web and voice bridge services available. Never replays voice requests or resumes saved tasks. Intentional Stop pauses recovery.' -Force | Out-Null
+ Register-ScheduledTask -TaskName $taskName -Action $taskAction -Trigger $taskTrigger -Principal $taskPrincipal -Settings $taskSettings -Description 'Mantém disponíveis os serviços locais da web e a ponte de voz do Agentic OS V2. Não repete solicitações de voz nem retoma tarefas salvas. Ao usar Stop, a recuperação é pausada.' -Force | Out-Null
 }
 if(Test-Path -LiteralPath $taskPauseFile){Remove-Item -LiteralPath $taskPauseFile}
-if($taskSupervisor){Write-Output 'Recovery is already running. Existing services and conversations were retained.';return}
+if($taskSupervisor){Write-Output 'A recuperação já está em execução. Os serviços e as conversas foram preservados.';return}
 $taskScheduled=Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
 if($taskScheduled){
- if(!(Test-OurRecoveryTask $taskScheduled)){throw 'A different installation owns the recovery task.'}
+ if(!(Test-OurRecoveryTask $taskScheduled)){throw 'A tarefa de recuperação pertence a outra instalação.'}
  # Let a previous intentional stop finish before asking Task Scheduler to start again.
  for($taskAttempt=0;$taskAttempt -lt 20 -and (Get-ScheduledTask -TaskName $taskName).State -eq 'Running';$taskAttempt++){Start-Sleep -Milliseconds 500}
  Start-ScheduledTask -TaskName $taskName
 }else{
  $taskProcess=Start-Process -FilePath $taskNode -ArgumentList @(('"'+$taskRunner+'"'),'--config',('"'+$taskConfigFile+'"')) -WorkingDirectory $taskRoot -WindowStyle Hidden -PassThru
- Write-Output "Recovery monitor started: $($taskProcess.Id)"
+ Write-Output "Monitor de recuperação iniciado (PID $($taskProcess.Id))"
 }
 for($taskAttempt=0;$taskAttempt -lt 24;$taskAttempt++){
  Start-Sleep -Milliseconds 500
- try {$taskReady=Invoke-RestMethod 'http://127.0.0.1:3221/status' -TimeoutSec 1;if($taskReady.runtimeDir -eq $taskRuntime){Write-Output 'Local service recovery is active on 127.0.0.1:3221.';return}}catch{}
+ try {$taskReady=Invoke-RestMethod 'http://127.0.0.1:3221/status' -TimeoutSec 1;if($taskReady.runtimeDir -eq $taskRuntime){Write-Output 'A recuperação dos serviços locais está ativa em 127.0.0.1:3221.';return}}catch{}
 }
-throw 'The recovery monitor did not become available. Inspect .runtime/service-supervisor.jsonl and the Windows task result.'
+throw 'O monitor de recuperação não ficou disponível. Consulte .runtime/service-supervisor.jsonl e o resultado da tarefa no Agendador de Tarefas do Windows.'

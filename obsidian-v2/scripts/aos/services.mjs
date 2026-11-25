@@ -11,6 +11,8 @@ import {autostartOwner, kickAutostart, refreshAutostartPolicy, loginItemNeedsSpe
 import {speechLanguage, speechArguments} from '../../shared/speech-language.mjs';
 
 export const PORTS = {jarvis: 3217, preview: 3218, bridge: 3219, speech: 3220, supervisor: 3221};
+const SERVICE_LABELS = new Map([['bridge', 'Ponte'], ['jarvis', 'Jarvis'], ['speech', 'Voz local'], ['preview', 'Prévia']]);
+export const serviceLabel = id => SERVICE_LABELS.get(id) ?? id;
 const local = port => `http://127.0.0.1:${port}`;
 const OPEN_STATES = new Set(['working', 'ready', 'editing', 'starting', 'needs input']);
 
@@ -50,7 +52,7 @@ export function desiredServices(at, {node = process.execPath, speechUrl = null, 
 // Pure: a normal start keeps optional services an earlier start configured.
 export function mergePrior(services, prior, runtimeDir) {
   if (!prior) return services;
-  if (!samePath(prior.runtimeDir, runtimeDir)) throw new Error('Recovery configuration belongs to another installation.');
+  if (!samePath(prior.runtimeDir, runtimeDir)) throw new Error('A configuração de recuperação pertence a outra instalação.');
   const ids = new Set(services.map(service => service.id));
   return [...services, ...(prior.services || []).filter(service => ['jarvis', 'speech'].includes(service.id) && !ids.has(service.id))];
 }
@@ -80,7 +82,7 @@ export async function speechPlan(at, {get = tryJson, env = process.env, installe
 // Where another running copy of this system lives, from what its monitor reports about itself
 // (<folder>/obsidian-v2/.runtime). Empty when the thing on the port is not this system at all.
 export const otherInstallation = monitor => monitor?.kind === 'agentic-os-service-supervisor' && typeof monitor.runtimeDir === 'string' && monitor.runtimeDir
-  ? ` It runs from "${path.resolve(monitor.runtimeDir, '..', '..')}": stop it there first (\`node aos.mjs stop\` in that folder), or keep using that copy.` : '';
+  ? ` A outra cópia roda em "${path.resolve(monitor.runtimeDir, '..', '..')}". Continue usando essa cópia ou rode \`node aos.mjs stop\` na pasta dela antes de continuar.` : '';
 
 const supervisorStatus = (timeoutMs = 2000) => tryJson(`${local(PORTS.supervisor)}/status`, {timeoutMs});
 async function waitForSupervisorExit() {
@@ -100,13 +102,13 @@ export const loginItemBlocks = (owner, env = process.env) => owner === 'other' &
 export async function start({root = projectRoot, resetRecovery = false, log = console.log} = {}) {
   const at = layout(root);
   let supervisor = await supervisorStatus();
-  if (supervisor && (supervisor.kind !== 'agentic-os-service-supervisor' || !samePath(supervisor.runtimeDir, at.runtime))) throw new Error(`Port 3221 belongs to another installation; nothing changed.${otherInstallation(supervisor)}`);
-  if (!supervisor && listener(PORTS.supervisor)) throw new Error('An unrecognized service owns port 3221; nothing changed.');
+  if (supervisor && (supervisor.kind !== 'agentic-os-service-supervisor' || !samePath(supervisor.runtimeDir, at.runtime))) throw new Error(`A porta 3221 pertence a outra instalação. Esta cópia não foi alterada.${otherInstallation(supervisor)}`);
+  if (!supervisor && listener(PORTS.supervisor)) throw new Error('Um serviço desconhecido está usando a porta 3221. Esta cópia não foi alterada.');
   fs.mkdirSync(at.runtime, {recursive: true});
   if (resetRecovery && supervisor) atomicWrite(at.pause, '{"reason":"explicit recovery reset"}');
   // A paused monitor may still be exiting. Do not clear its marker until it leaves.
   if (supervisor && fs.existsSync(at.pause)) {
-    if (!await waitForSupervisorExit()) throw new Error('The recovery monitor is still pausing; try again shortly.');
+    if (!await waitForSupervisorExit()) throw new Error('O monitor de recuperação ainda está pausando. Tente novamente em instantes.');
     supervisor = null;
   }
   if (resetRecovery) fs.rmSync(at.recoveryState, {force: true});
@@ -115,7 +117,7 @@ export async function start({root = projectRoot, resetRecovery = false, log = co
   if (supervisor && services.some(service => !supervisor.services.some(known => known.id === service.id))) {
     // Reconfigure the monitor alone when an existing installation adds a service.
     atomicWrite(at.pause, '{"reason":"recovery services changed"}');
-    if (!await waitForSupervisorExit()) throw new Error('The recovery monitor is still reconfiguring; try again shortly.');
+    if (!await waitForSupervisorExit()) throw new Error('O monitor de recuperação ainda está sendo reconfigurado. Tente novamente em instantes.');
     supervisor = null;
   }
   // An old Mac login item (background priority) is replaced below. Its monitor leaves first, through the
@@ -124,7 +126,7 @@ export async function start({root = projectRoot, resetRecovery = false, log = co
   const slowLoginItem = loginItemNeedsSpeedFix(at) && autostartOwner(at) === 'ours';
   if (slowLoginItem && supervisor) {
     atomicWrite(at.pause, '{"reason":"login item change"}');
-    if (!await waitForSupervisorExit()) throw new Error('The recovery monitor is still pausing; try again shortly.');
+    if (!await waitForSupervisorExit()) throw new Error('O monitor de recuperação ainda está pausando. Tente novamente em instantes.');
     supervisor = null;
   }
   if (!supervisor) {
@@ -137,15 +139,15 @@ export async function start({root = projectRoot, resetRecovery = false, log = co
   if (slowLoginItem) replaceSlowLoginItem(at, {log, clearMarker: () => fs.rmSync(at.pause, {force: true})});
   // Before the "already running" return, so installations that are up right now are repaired too.
   refreshLoginItem(at, {log});
-  if (supervisor) { log('Recovery is already running. Existing services and conversations were retained.'); return {started: false}; }
+  if (supervisor) { log('O monitor de recuperação já está em execução. Os serviços e as conversas foram preservados.'); return {started: false}; }
   return launchMonitor(at, {log});
 }
 
 // Windows login tasks registered before the execution-policy fix are re-registered (ours only).
 // A failure here never blocks starting: the direct-start fallback below still brings services up.
 export function refreshLoginItem(at, {log = console.log, refresh = refreshAutostartPolicy} = {}) {
-  try { if (refresh(at)) log('-> Start at login: updated the Windows login task so it also runs where scripts are blocked by default.'); }
-  catch (error) { log(`-> Start at login: could not update the Windows login task (${String(error.message || error).slice(0, 200)}). Services still start now; run \`node aos.mjs autostart on\` later.`); }
+  try { if (refresh(at)) log('-> Inicialização automática: a tarefa do Windows foi atualizada para funcionar quando a política padrão bloqueia scripts.'); }
+  catch (error) { log(`-> Inicialização automática: não foi possível atualizar a tarefa do Windows (${String(error.message || error).slice(0, 200)}). Os serviços serão iniciados agora. Rode \`node aos.mjs autostart on\` mais tarde.`); }
 }
 
 // macOS login items written before the speed fix run the monitor, and every service it starts, at
@@ -157,10 +159,10 @@ export function refreshLoginItem(at, {log = console.log, refresh = refreshAutost
 export function replaceSlowLoginItem(at, {log = console.log, enable = enableAutostart, clearMarker = () => {}} = {}) {
   try {
     enable(at);
-    log('-> Start at login: updated the Mac login item so the system runs at normal speed (voice was about eight times slower). Services that were already running pick this up after `node aos.mjs stop` and `node aos.mjs start`, or the next time the Mac restarts.');
+    log('-> Inicialização automática: o item de início de sessão do Mac foi atualizado para restaurar a velocidade normal do sistema. Para aplicar a correção aos serviços em execução, rode `node aos.mjs stop` e `node aos.mjs start` ou reinicie o Mac.');
     return true;
   } catch (error) {
-    log(`-> Start at login: could not update the Mac login item (${String(error.message || error).slice(0, 200)}). Services still start now; run \`node aos.mjs autostart on\` later.`);
+    log(`-> Inicialização automática: não foi possível atualizar o item de início de sessão do Mac (${String(error.message || error).slice(0, 200)}). Os serviços serão iniciados agora. Rode \`node aos.mjs autostart on\` mais tarde.`);
     return false;
   } finally { clearMarker(); }
 }
@@ -171,20 +173,20 @@ export function replaceSlowLoginItem(at, {log = console.log, enable = enableAuto
 // normally (code 0), so launchd does not keep retrying it; a stranger on the port still makes it exit
 // with an error.
 export async function launchMonitor(at, {log = console.log, owner = autostartOwner(at), kick = kickAutostart, spawnMonitor, status = supervisorStatus, wait = sleep, kickGraceAttempts = 12, attempts = 24} = {}) {
-  if (loginItemBlocks(owner)) throw new Error('A different installation owns the start-at-login item, so two copies would fight at the next login. Turn it off from that installation first (`node aos.mjs autostart off` in its folder). Nothing was started.');
+  if (loginItemBlocks(owner)) throw new Error('Outra instalação controla a inicialização automática. Rode `node aos.mjs autostart off` na pasta dela antes de iniciar esta cópia. Nenhum serviço foi iniciado.');
   spawnMonitor ||= () => spawn(process.execPath, [at.supervisor, '--config', at.config], {cwd: at.root, detached: true, windowsHide: true, stdio: 'ignore'}).unref();
   let direct = !(owner === 'ours' && kick(at));
   if (direct) spawnMonitor();
   for (let attempt = 0; attempt < attempts; attempt++) {
     await wait(500);
     const ready = await status(1000);
-    if (ready && samePath(ready.runtimeDir, at.runtime)) { log('Local service recovery is active on 127.0.0.1:3221.'); return {started: true}; }
+    if (ready && samePath(ready.runtimeDir, at.runtime)) { log('Monitor de recuperação dos serviços ativo em 127.0.0.1:3221.'); return {started: true}; }
     if (!direct && attempt + 1 >= kickGraceAttempts) {
-      log('-> The login item did not start the recovery monitor; starting it directly.');
+      log('-> O item de início de sessão não iniciou o monitor de recuperação. Iniciando diretamente.');
       direct = true; spawnMonitor();
     }
   }
-  throw new Error('The recovery monitor did not become available. Inspect .runtime/service-supervisor.jsonl.');
+  throw new Error('O monitor de recuperação não ficou disponível. Confira .runtime/service-supervisor.jsonl.');
 }
 
 export async function waitForServices(ids, {timeoutMs = 120000} = {}) {
@@ -202,6 +204,35 @@ export async function waitForServices(ids, {timeoutMs = 120000} = {}) {
 export async function status({root = projectRoot} = {}) {
   void layout(root);
   return {bridge: await tryJson(`${local(PORTS.bridge)}/services`, {timeoutMs: 5000}), supervisor: await supervisorStatus()};
+}
+
+const SERVICE_PHASES = new Map([
+  ['online', 'em execução'], ['starting', 'iniciando'], ['checking', 'verificando'],
+  ['waiting_for_listener', 'aguardando resposta'], ['backoff', 'aguardando nova tentativa'], ['blocked', 'recuperação bloqueada'],
+]);
+const TASK_STATES = new Map([
+  ['starting', 'iniciando'], ['working', 'em andamento'], ['ready', 'pronta'], ['editing', 'editando'],
+  ['needs input', 'aguardando sua ação'], ['stopping', 'encerrando'], ['stopped', 'encerrada'], ['error', 'falhou'],
+]);
+
+export function formatStatus({bridge, supervisor}) {
+  const monitor = supervisor ? supervisor.paused ? 'pausado' : 'em execução' : 'sem resposta';
+  const services = supervisor?.services ?? [];
+  const lines = [`Monitor de recuperação: ${monitor}`];
+  for (const {id, phase, port} of services) {
+    lines.push(`${serviceLabel(id)} (porta ${port}): ${SERVICE_PHASES.get(phase) ?? 'estado desconhecido'}`);
+  }
+  if (!services.some(service => service.id === 'bridge')) lines.push(`Ponte: ${bridge?.bridge?.online ? 'em execução' : 'sem resposta'}`);
+  if (bridge?.speech?.shared) {
+    const health = bridge.speech.health;
+    lines.push(`Voz compartilhada: ${health?.ok && health.stt?.ok ? 'em execução' : 'indisponível'}`);
+  }
+  const tasks = bridge?.tasks?.filter(task => OPEN_STATES.has(task.state) || task.state === 'stopping');
+  if (tasks?.length) {
+    lines.push('', 'Tarefas abertas');
+    for (const task of tasks) lines.push(`- ${task.title || task.id} (${TASK_STATES.get(task.state)})`);
+  } else if (tasks) lines.push('Nenhuma tarefa aberta.');
+  return lines.join('\n');
 }
 
 // A service proves itself over its own port; nothing is inferred from a command line.
@@ -231,20 +262,20 @@ export async function speechIsOurs(at, {get = tryJson, find = listener} = {}) {
 export async function stop({root = projectRoot, log = console.log, find = listener, inspect = processInfo, kill = pid => process.kill(pid), get = tryJson, post = fetchJson} = {}) {
   const at = layout(root);
   const vault = configuredVaultPath(at);
-  if (!vault) throw new Error('This installation has no configured vault; nothing stopped.');
+  if (!vault) throw new Error('Esta instalação está sem cofre configurado. Nenhum serviço foi interrompido.');
   const state = await get(`${local(PORTS.bridge)}/state`);
   // Fail closed before stopping any service: no unsent CLI drafts or active agents discarded.
-  if (!state) throw new Error('Bridge is unavailable, so task state cannot be verified. No service was stopped.');
-  if (!samePath(state.vault, vault)) throw new Error('The bridge belongs to another vault; nothing stopped.');
-  if (!await bridgeIsOurs(at, {post})) throw new Error('The bridge on 3219 does not accept this installation\'s token; nothing stopped.');
+  if (!state) throw new Error('A ponte está indisponível e não foi possível conferir as tarefas. Nenhum serviço foi interrompido.');
+  if (!samePath(state.vault, vault)) throw new Error('A ponte pertence a outro cofre. Nenhum serviço foi interrompido.');
+  if (!await bridgeIsOurs(at, {post})) throw new Error('A ponte na porta 3219 recusou a credencial desta instalação. Nenhum serviço foi interrompido.');
   const work = await get(`${local(PORTS.bridge)}/work`);
-  if (!work || (work.tasks || []).some(task => task.pid || OPEN_STATES.has(task.state))) throw new Error('Stop active tasks in Terminals first. No service was stopped.');
+  if (!work || (work.tasks || []).some(task => task.pid || OPEN_STATES.has(task.state))) throw new Error('Encerre as tarefas ativas em Terminais. Nenhum serviço foi interrompido.');
   const targets = [];
   if (find(PORTS.jarvis)) {
     const hud = await hudIsOurs(at, {get, find});
-    if (!hud) throw new Error('Unexpected process on 3217; nothing stopped.');
+    if (!hud) throw new Error('Um processo desconhecido está usando a porta 3217. Nenhum serviço foi interrompido.');
     const web = await get(`${local(PORTS.jarvis)}/api/state`, {timeoutMs: 5000});
-    if (!web || !samePath(web.vault_root, state.vault)) throw new Error('Jarvis belongs to another vault; nothing stopped.');
+    if (!web || !samePath(web.vault_root, state.vault)) throw new Error('O Jarvis pertence a outro cofre. Nenhum serviço foi interrompido.');
     targets.push({name: 'jarvis', pid: hud.pid, startedAt: hud.startedAt});
   }
   // Speech may be shared with another installation: only our own is stopped, anything else is left running.
@@ -252,12 +283,12 @@ export async function stop({root = projectRoot, log = console.log, find = listen
   if (speech) targets.push({name: 'speech', pid: speech.pid, startedAt: speech.startedAt});
   const token = readJson(at.auth).token;
   const shutdown = await post(`${local(PORTS.bridge)}/shutdown`, {method: 'POST', headers: {'X-V2-Token': token}, body: {}, timeoutMs: 5000});
-  if (!shutdown.ok) throw new Error(shutdown.data?.error || 'The bridge refused to stop; nothing stopped.');
+  if (!shutdown.ok) throw new Error(shutdown.data?.error || 'A ponte recusou a solicitação. Nenhum serviço foi interrompido.');
   for (const target of targets) {
     // Process ids are reused: stop only the exact process verified above.
     const current = inspect(target.pid);
-    if (current && current.startedAt === target.startedAt) { try { kill(target.pid); log(`Stopped ${target.name}.`); } catch { log(`Could not stop ${target.name} (${target.pid}).`); } }
+    if (current && current.startedAt === target.startedAt) { try { kill(target.pid); log(`Serviço encerrado: ${serviceLabel(target.name)}.`); } catch { log(`Não foi possível encerrar ${serviceLabel(target.name)} (PID ${target.pid}).`); } }
   }
-  log('Idle services stopped; automatic recovery is paused. Saved conversations and message-box drafts are retained. Run `node aos.mjs start` to start again.');
+  log('Os serviços ociosos foram encerrados e a recuperação automática foi pausada. As conversas salvas e os rascunhos foram preservados. Rode `node aos.mjs start` para iniciar de novo.');
   return {stopped: ['bridge', ...targets.map(target => target.name)]};
 }

@@ -7,7 +7,17 @@ const MAX_BYTES = 64 * 1024, MAX_PATHS = 32, MAX_READS = 256;
 const V2 = 'agentic-os-v2', V1 = 'chase-command-center';
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const unique = values => [...new Set(values)];
-const labels = {'starter-v2': 'Agentic OS V2 starter', v2: 'Agentic OS V2', v1: 'First Agentic OS starter', unknown: 'Unconfirmed installation'};
+const labels = {'starter-v2': 'Agentic OS V2 (pacote inicial)', v2: 'Agentic OS V2', v1: 'Primeira versão do Agentic OS', unknown: 'Instalação não confirmada'};
+const pathErrors = {
+  'invalid path': 'caminho inválido',
+  'path is too deep': 'caminho com níveis demais',
+  'linked path': 'caminho com link simbólico',
+  'invalid parent folder': 'pasta superior inválida',
+  'not a folder': 'o caminho não aponta para uma pasta',
+  'not an ordinary unlinked file': 'o caminho precisa apontar para um arquivo comum sem links',
+  missing: 'caminho inexistente',
+  unreadable: 'caminho inacessível',
+};
 
 /** No network is performed unless getMonitor is supplied. Explicit home isolates default env paths. */
 export async function discoverInstallations(options = {}) {
@@ -54,12 +64,12 @@ export async function discoverInstallations(options = {}) {
   function metadata(file, label) {
     const id = key(file);
     if (cache.has(id)) return cache.get(id);
-    if (reads >= MAX_READS) { warn('Metadata read limit reached; discovery is incomplete.'); return null; }
+    if (reads >= MAX_READS) { warn('O limite de leitura de metadados foi atingido. A busca está incompleta.'); return null; }
     reads++;
     searched.push(file);
     const checked = inspect(file, 'file');
     if (checked.error) {
-      if (checked.error !== 'missing') warn(`${label} was skipped: ${checked.error}.`);
+      if (checked.error !== 'missing') warn(`${label}: ${pathErrors[checked.error]}.`);
       cache.set(id, null); return null;
     }
     let fd;
@@ -76,13 +86,13 @@ export async function discoverInstallations(options = {}) {
       const data = JSON.parse(buffer.subarray(0, length).toString('utf8').replace(/^\uFEFF/, ''));
       if (!object(data)) throw new Error('shape');
       cache.set(id, data); return data;
-    } catch { warn(`${label} was skipped: invalid, oversized or changing metadata.`); cache.set(id, null); return null; }
+    } catch { warn(`${label}: metadados inválidos, acima do limite de tamanho ou alterados durante a leitura.`); cache.set(id, null); return null; }
     finally { if (fd !== undefined) fs.closeSync(fd); }
   }
 
   function queue(map, value, evidence, {explicit = false, installed = false, vaultPath} = {}) {
     const normalized = absolute(value);
-    if (!normalized) { warn(`${evidence} supplied an invalid local path; it was ignored.`); return; }
+    if (!normalized) { warn(`${evidence}: caminho local inválido, ignorado na busca.`); return; }
     const id = key(normalized), prior = map.get(id);
     if (prior) {
       const changed = !prior.evidence.includes(evidence) || (explicit && !prior.explicit) || (installed && !prior.installed) || (vaultPath && !prior.vaultPaths.includes(vaultPath));
@@ -91,7 +101,7 @@ export async function discoverInstallations(options = {}) {
       if (changed) prior.done = false;
       return;
     }
-    if (map.size >= MAX_PATHS) { warn('Installation or vault limit reached; discovery is incomplete.'); return; }
+    if (map.size >= MAX_PATHS) { warn('O limite de instalações ou cofres foi atingido. A busca está incompleta.'); return; }
     map.set(id, {path: normalized, evidence: [evidence], explicit, installed, vaultPaths: vaultPath ? [vaultPath] : [], done: false});
   }
 
@@ -121,33 +131,33 @@ export async function discoverInstallations(options = {}) {
 
   function runtimeOwner(value, evidence, vaultPath) {
     const runtime = absolute(value);
-    if (!runtime || path.basename(runtime) !== '.runtime') { warn(`${evidence} has no valid runtime folder reference.`); return; }
+    if (!runtime || path.basename(runtime) !== '.runtime') { warn(`${evidence}: não aponta para uma pasta de execução válida.`); return; }
     const checked = inspect(runtime, 'directory');
-    if (checked.error && checked.error !== 'missing') { warn(`${evidence} runtime folder was skipped: ${checked.error}.`); return; }
+    if (checked.error && checked.error !== 'missing') { warn(`${evidence}: pasta de execução ignorada (${pathErrors[checked.error]}).`); return; }
     queue(installs, path.dirname(runtime), evidence, {installed: true, vaultPath});
   }
 
-  if (install !== undefined) queue(installs, install, 'Explicit installation path', {explicit: true});
-  if (vault !== undefined) queue(vaults, vault, 'Explicit vault path', {explicit: true});
-  if (!explicitSelection && root !== undefined) queue(installs, root, 'Current clone');
+  if (install !== undefined) queue(installs, install, 'Caminho de instalação informado', {explicit: true});
+  if (vault !== undefined) queue(vaults, vault, 'Caminho do cofre informado', {explicit: true});
+  if (!explicitSelection && root !== undefined) queue(installs, root, 'Clone atual');
   const homePath = absolute(home);
   if (!explicitSelection && homePath && !inspect(homePath, 'directory').error) {
-    for (const parts of [['agentic-os'], ['agentic-os-starter-v2'], ['agentic-os-starter'], ['Documents', 'agentic-os'], ['Documents', 'agentic-os-starter-v2'], ['Desktop', 'agentic-os'], ['Projects', 'agentic-os']]) queue(installs, path.join(homePath, ...parts), 'Conventional installation folder');
+    for (const parts of [['agentic-os'], ['agentic-os-starter-v2'], ['agentic-os-starter'], ['Documents', 'agentic-os'], ['Documents', 'agentic-os-starter-v2'], ['Desktop', 'agentic-os'], ['Projects', 'agentic-os']]) queue(installs, path.join(homePath, ...parts), 'Local típico de instalação');
     const config = platform === 'win32' ? absolute(env?.APPDATA) || path.join(homePath, 'AppData', 'Roaming')
       : platform === 'darwin' ? path.join(homePath, 'Library', 'Application Support') : absolute(env?.XDG_CONFIG_HOME) || path.join(homePath, '.config');
-    const registry = metadata(path.join(config, 'obsidian', 'obsidian.json'), 'Obsidian vault registry');
+    const registry = metadata(path.join(config, 'obsidian', 'obsidian.json'), 'Registro de cofres do Obsidian');
     if (registry) {
-      if (!object(registry.vaults)) warn('Obsidian vault registry has an invalid vault list.');
+      if (!object(registry.vaults)) warn('A lista de cofres no registro do Obsidian é inválida.');
       else {
         const entries = Object.values(registry.vaults);
-        if (entries.length > MAX_PATHS) warn('Obsidian vault registry limit reached; discovery is incomplete.');
+        if (entries.length > MAX_PATHS) warn('O limite de cofres do registro do Obsidian foi atingido. A busca está incompleta.');
         for (const item of entries.slice(0, MAX_PATHS)) {
-          if (object(item)) queue(vaults, item.path, 'Obsidian vault registry');
-          else warn('Obsidian vault registry contains an invalid entry.');
+          if (object(item)) queue(vaults, item.path, 'Registro de cofres do Obsidian');
+          else warn('O registro de cofres do Obsidian contém uma entrada inválida.');
         }
       }
     }
-  } else if (!explicitSelection) warn('Home folder was unavailable; conventional locations were not searched.');
+  } else if (!explicitSelection) warn('A pasta pessoal estava indisponível. A busca ignorou os locais típicos de instalação.');
 
   if (!explicitSelection && typeof getMonitor === 'function') {
     searched.push('http://127.0.0.1:3221/status');
@@ -155,10 +165,10 @@ export async function discoverInstallations(options = {}) {
     try {
       const monitor = await Promise.race([Promise.resolve().then(() => getMonitor('http://127.0.0.1:3221/status', {timeoutMs: 1200})), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('timeout')), 1500); })]);
       if (monitor !== null && monitor !== undefined) {
-        if (object(monitor) && monitor.kind === 'agentic-os-service-supervisor') runtimeOwner(monitor.runtimeDir, 'Local service monitor');
-        else warn('Local monitor did not return recognizable installation metadata.');
+        if (object(monitor) && monitor.kind === 'agentic-os-service-supervisor') runtimeOwner(monitor.runtimeDir, 'Monitor de serviços locais');
+        else warn('O monitor local não retornou metadados de uma instalação reconhecida.');
       }
-    } catch { warn('Local monitor was unavailable; discovery continued without it.'); }
+    } catch { warn('O monitor local estava indisponível. A busca continuou pelas outras fontes.'); }
     finally { clearTimeout(timer); }
   }
 
@@ -169,78 +179,78 @@ export async function discoverInstallations(options = {}) {
       item.done = true; searched.push(item.path);
       const checked = inspect(item.path, 'directory');
       if (checked.error) {
-        if (item.explicit && checked.error === 'missing') add({vaultPath: item.path, kind: 'unknown', evidence: item.evidence, warnings: ['The supplied vault folder was not found.']});
-        else if (checked.error !== 'missing' || item.explicit) warn(`Vault folder was skipped: ${checked.error}.`);
+        if (item.explicit && checked.error === 'missing') add({vaultPath: item.path, kind: 'unknown', evidence: item.evidence, warnings: ['A pasta do cofre informado não foi encontrada.']});
+        else if (checked.error !== 'missing' || item.explicit) warn(`Pasta do cofre ignorada: ${pathErrors[checked.error]}.`);
         continue;
       }
       const plugin = path.join(item.path, '.obsidian', 'plugins');
-      const current = metadata(path.join(plugin, V2, 'manifest.json'), 'V2 vault plugin manifest');
-      const legacy = metadata(path.join(plugin, V1, 'manifest.json'), 'V1 vault plugin manifest');
+      const current = metadata(path.join(plugin, V2, 'manifest.json'), 'Manifesto do plugin V2 no cofre');
+      const legacy = metadata(path.join(plugin, V1, 'manifest.json'), 'Manifesto do plugin V1 no cofre');
       const v2 = current?.id === V2, v1 = legacy?.id === V1;
       if (v2) {
-        const evidence = [...item.evidence, 'V2 vault plugin manifest'];
-        const marker = metadata(path.join(plugin, V2, 'terminal-runtime.json'), 'V2 terminal runtime reference');
-        const notes = v1 ? ['The first starter cockpit is also installed in this vault.'] : [];
+        const evidence = [...item.evidence, 'Manifesto do plugin V2 no cofre'];
+        const marker = metadata(path.join(plugin, V2, 'terminal-runtime.json'), 'Referência à pasta de execução do terminal do V2');
+        const notes = v1 ? ['O painel da primeira versão também está instalado neste cofre.'] : [];
         add({vaultPath: item.path, kind: 'v2', evidence, warnings: notes});
-        if (marker && (marker.vault === undefined || (absolute(marker.vault) && key(absolute(marker.vault)) === key(item.path)))) runtimeOwner(marker.runtimeDir, 'V2 terminal runtime reference', item.path);
-        else if (marker) warn('V2 terminal runtime reference names a different vault; its installation reference was ignored.');
-      } else if (v1) add({vaultPath: item.path, kind: 'v1', evidence: [...item.evidence, 'V1 vault plugin manifest'], warnings: []});
-      else if (item.explicit) add({vaultPath: item.path, kind: 'unknown', evidence: item.evidence, warnings: ['No recognized Agentic OS plugin manifest was found.']});
+        if (marker && (marker.vault === undefined || (absolute(marker.vault) && key(absolute(marker.vault)) === key(item.path)))) runtimeOwner(marker.runtimeDir, 'Referência à pasta de execução do terminal do V2', item.path);
+        else if (marker) warn('A referência à pasta de execução do terminal do V2 aponta para outro cofre. A instalação indicada nela foi ignorada.');
+      } else if (v1) add({vaultPath: item.path, kind: 'v1', evidence: [...item.evidence, 'Manifesto do plugin V1 no cofre'], warnings: []});
+      else if (item.explicit) add({vaultPath: item.path, kind: 'unknown', evidence: item.evidence, warnings: ['Nenhum manifesto de plugin do Agentic OS foi reconhecido.']});
     }
     for (const item of installs.values()) {
       if (item.done) continue;
       item.done = true; searched.push(item.path);
       const checked = inspect(item.path, 'directory');
       if (checked.error) {
-        if (item.explicit && checked.error === 'missing') add({installPath: item.path, kind: 'unknown', evidence: item.evidence, warnings: ['The supplied installation folder was not found.']});
-        else if (checked.error !== 'missing' || item.installed) warn(`Installation folder was skipped: ${checked.error}.`);
+        if (item.explicit && checked.error === 'missing') add({installPath: item.path, kind: 'unknown', evidence: item.evidence, warnings: ['A pasta de instalação informada não foi encontrada.']});
+        else if (checked.error !== 'missing' || item.installed) warn(`Pasta de instalação ignorada: ${pathErrors[checked.error]}.`);
         continue;
       }
       let bridge = item.path, installPath = item.path;
-      let manifest = metadata(path.join(bridge, 'manifest.json'), 'Installation manifest');
+      let manifest = metadata(path.join(bridge, 'manifest.json'), 'Manifesto da instalação');
       if (manifest?.id !== V2 && manifest?.id !== V1) {
-        const nested = metadata(path.join(bridge, 'obsidian-v2', 'manifest.json'), 'Starter bridge manifest');
+        const nested = metadata(path.join(bridge, 'obsidian-v2', 'manifest.json'), 'Manifesto da ponte do pacote inicial');
         if (nested?.id === V2) { bridge = path.join(bridge, 'obsidian-v2'); manifest = nested; }
       }
       const packaged = manifest?.id === V2 && path.basename(bridge) === 'obsidian-v2' && !inspect(path.join(path.dirname(bridge), 'aos.mjs'), 'file').error;
       if (packaged) installPath = path.dirname(bridge);
-      const state = metadata(path.join(bridge, '.runtime', 'aos-setup.json'), 'Installer setup record');
+      const state = metadata(path.join(bridge, '.runtime', 'aos-setup.json'), 'Registro de configuração do instalador');
       const associationWarnings = [];
       let savedVault = state && absolute(state.vault);
       if (savedVault) {
         const checkedVault = inspect(savedVault, 'directory');
         if (checkedVault.error && checkedVault.error !== 'missing') {
-          warn(`Installer vault reference was skipped: ${checkedVault.error}.`);
-          associationWarnings.push('The saved vault reference could not be inspected safely; confirm its location.'); savedVault = null;
+          warn(`Referência ao cofre no instalador ignorada: ${pathErrors[checkedVault.error]}.`);
+          associationWarnings.push('Não foi possível verificar com segurança a referência salva do cofre. Confirme a localização.'); savedVault = null;
         }
       }
-      if (state && !savedVault) { warn('Installer setup record has no valid vault path.'); associationWarnings.push('The installer setup record has no usable vault path.'); }
-      if (savedVault) queue(vaults, savedVault, 'Installer setup record');
+      if (state && !savedVault) { warn('O registro de configuração do instalador não contém um caminho válido para o cofre.'); associationWarnings.push('O caminho do cofre no registro de configuração do instalador não pôde ser usado.'); }
+      if (savedVault) queue(vaults, savedVault, 'Registro de configuração do instalador');
       const installed = item.installed || !!savedVault;
       if (!installed && !item.explicit) continue;
       const recognized = [V1, V2].includes(manifest?.id);
       const kind = installed && recognized ? packaged ? 'starter-v2' : manifest.id === V1 ? 'v1' : 'v2' : 'unknown';
-      const evidence = [...item.evidence, ...(savedVault ? ['Installer setup record'] : []), ...(manifest?.id === V2 ? ['V2 installation manifest'] : manifest?.id === V1 ? ['V1 installation manifest'] : [])];
-      const notes = [...associationWarnings, ...(!installed ? ['No installed-state evidence was found; this may be a reference checkout.'] : !recognized ? ['The installation reference could not be confirmed by a recognized source manifest.'] : [])];
+      const evidence = [...item.evidence, ...(savedVault ? ['Registro de configuração do instalador'] : []), ...(manifest?.id === V2 ? ['Manifesto da instalação V2'] : manifest?.id === V1 ? ['Manifesto da instalação V1'] : [])];
+      const notes = [...associationWarnings, ...(!installed ? ['Não há indícios de que o sistema esteja instalado. Esta pode ser uma cópia de referência.'] : !recognized ? ['A referência à instalação precisa ser confirmada por um manifesto reconhecido no código-fonte.'] : [])];
       const paths = unique([...item.vaultPaths, ...(savedVault ? [savedVault] : [])]);
-      if (paths.length > 1) notes.push('This installation has references to more than one vault; confirm the active vault.');
-      if (install !== undefined && vault !== undefined && savedVault && absolute(vault) && key(savedVault) !== key(absolute(vault))) notes.push('The explicit vault differs from the saved installation vault; confirm which association is intended.');
+      if (paths.length > 1) notes.push('Esta instalação tem referências a mais de um cofre. Confirme qual está em uso.');
+      if (install !== undefined && vault !== undefined && savedVault && absolute(vault) && key(savedVault) !== key(absolute(vault))) notes.push('O cofre informado difere do cofre salvo na instalação. Confirme qual deles a instalação deve usar.');
       for (const vaultPath of paths.length ? paths : [undefined]) {
         const candidateWarnings = [...notes];
         if (vaultPath) {
           const associated = inspect(vaultPath, 'directory');
-          if (associated.error === 'missing') candidateWarnings.push('The associated vault folder no longer exists; confirm its location before any update.');
-          else if (associated.error) candidateWarnings.push('The associated vault folder could not be inspected safely.');
+          if (associated.error === 'missing') candidateWarnings.push('A pasta do cofre associado não existe mais. Confirme a localização antes de atualizar.');
+          else if (associated.error) candidateWarnings.push('Não foi possível verificar com segurança a pasta do cofre associado.');
           else {
             const expected = manifest?.id === V1 ? V1 : V2;
-            const plugin = metadata(path.join(vaultPath, '.obsidian', 'plugins', expected, 'manifest.json'), 'Associated vault plugin manifest');
-            if (plugin?.id !== expected) candidateWarnings.push('The associated vault has no matching Agentic OS plugin manifest; confirm which installation it uses.');
+            const plugin = metadata(path.join(vaultPath, '.obsidian', 'plugins', expected, 'manifest.json'), 'Manifesto do plugin no cofre associado');
+            if (plugin?.id !== expected) candidateWarnings.push('O cofre associado não tem o manifesto do plugin do Agentic OS correspondente. Confirme qual instalação ele usa.');
           }
-        } else candidateWarnings.push('No associated vault was identified; confirm the vault before any update.');
+        } else candidateWarnings.push('Nenhum cofre associado foi identificado. Confirme qual é o cofre antes de atualizar.');
         add({installPath, ...(vaultPath ? {vaultPath} : {}), kind, evidence, warnings: candidateWarnings});
       }
     }
   }
-  if (candidates.length > 1) warn('Multiple installation or vault candidates were found; choose explicitly after reviewing the evidence.');
+  if (candidates.length > 1) warn('A busca encontrou mais de uma opção de instalação ou cofre. Confira os indícios e confirme a escolha.');
   return {candidates, warnings, searched: unique(searched)};
 }

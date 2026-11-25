@@ -39,7 +39,7 @@ test('Windows registry discovers a custom vault and follows its V2 runtime to th
   const result = await f.discover({platform: 'win32', env: {APPDATA: appdata}});
   assert.equal(result.candidates.length, 1);
   assert.deepEqual([result.candidates[0].installPath, result.candidates[0].vaultPath, result.candidates[0].kind], [at.installPath, vault, 'starter-v2']);
-  assert.ok(result.candidates[0].evidence.includes('V2 terminal runtime reference'));
+  assert.ok(result.candidates[0].evidence.includes('Referência à pasta de execução do terminal do V2'));
   assert.doesNotMatch(JSON.stringify(result), /CANARY/);
 });
 
@@ -65,7 +65,7 @@ test('an uninstalled reference clone is searched but never offered as an install
   assert.deepEqual(result.candidates, []); assert.ok(result.searched.includes(at.bridge));
   const explicit = await f.discover({install: at.installPath});
   assert.equal(explicit.candidates.length, 1); assert.equal(explicit.candidates[0].kind, 'unknown');
-  assert.match(explicit.candidates[0].warnings.join(' '), /reference checkout/);
+  assert.match(explicit.candidates[0].warnings.join(' '), /cópia de referência/);
 });
 
 test('multiple existing systems stay separate instead of being automatically selected', async t => {
@@ -74,7 +74,7 @@ test('multiple existing systems stay separate instead of being automatically sel
   f.vault(firstVault, {runtime: first.runtime}); f.vault(secondVault, {runtime: second.runtime}); f.registry('darwin', [firstVault, secondVault]);
   const result = await f.discover({platform: 'darwin'});
   assert.equal(result.candidates.length, 2); assert.deepEqual(new Set(result.candidates.map(item => item.kind)), new Set(['starter-v2', 'v2']));
-  assert.match(result.warnings.join(' '), /Multiple/);
+  assert.match(result.warnings.join(' '), /mais de uma opção/);
 });
 
 test('explicit installation selection reads only that installation and its linked vault', async t => {
@@ -92,14 +92,14 @@ test('explicit vault selection follows only its owner and preserves missing-owne
   const result = await f.discover({vault}); assert.equal(result.candidates.length, 1); assert.equal(result.candidates[0].installPath, at.installPath);
   f.json(path.join(vault, '.obsidian', 'plugins', 'agentic-os-v2', 'terminal-runtime.json'), {runtimeDir: path.join(f.base, 'gone', '.runtime')});
   const missing = await f.discover({vault}); assert.equal(missing.candidates[0].kind, 'v2'); assert.equal(missing.candidates[0].installPath, undefined);
-  assert.match(missing.warnings.join(' '), /Installation folder was skipped: missing/);
+  assert.match(missing.warnings.join(' '), /Pasta de instalação ignorada: caminho inexistente/);
 });
 
 test('explicit unknown or missing folders remain available for a manual assessment', async t => {
   const f = fixture(t), install = f.folder('unrecognized');
   const existing = await f.discover({install}); assert.equal(existing.candidates[0].kind, 'unknown');
   const missing = await f.discover({vault: path.join(f.base, 'missing')}); assert.equal(missing.candidates[0].kind, 'unknown');
-  assert.match(missing.candidates[0].warnings.join(' '), /not found/);
+  assert.match(missing.candidates[0].warnings.join(' '), /não foi encontrada/);
 });
 
 test('metadata reads are whitelisted and contain no source, notes, credential or environment reads', async t => {
@@ -116,9 +116,9 @@ test('metadata reads are whitelisted and contain no source, notes, credential or
 test('linked folders and hard-linked metadata are rejected without following their contents', async t => {
   const f = fixture(t), vault = f.vault(f.folder('vault')), real = f.install(f.folder('real'), vault), linked = path.join(f.base, 'linked');
   fs.symlinkSync(real.installPath, linked, process.platform === 'win32' ? 'junction' : 'dir');
-  const symlink = await f.discover({install: linked}); assert.equal(symlink.candidates.length, 0); assert.match(symlink.warnings.join(' '), /linked path/);
+  const symlink = await f.discover({install: linked}); assert.equal(symlink.candidates.length, 0); assert.match(symlink.warnings.join(' '), /caminho com link simbólico/);
   const record = path.join(real.bridge, '.runtime', 'aos-setup.json'); fs.linkSync(record, path.join(f.base, 'record-copy.json'));
-  const hardlink = await f.discover({install: real.installPath}); assert.equal(hardlink.candidates[0].kind, 'unknown'); assert.match(hardlink.warnings.join(' '), /unlinked file/);
+  const hardlink = await f.discover({install: real.installPath}); assert.equal(hardlink.candidates[0].kind, 'unknown'); assert.match(hardlink.warnings.join(' '), /arquivo comum sem links/);
 });
 
 test('traversal, remote paths and malformed runtime owners never extend discovery', async t => {
@@ -127,7 +127,7 @@ test('traversal, remote paths and malformed runtime owners never extend discover
   assert.deepEqual(invalid.candidates, []); assert.deepEqual(invalid.searched, []);
   f.json(path.join(vault, '.obsidian', 'plugins', 'agentic-os-v2', 'terminal-runtime.json'), {runtimeDir: path.join(f.base, 'private-note.json'), vault});
   const result = await f.discover({vault}); assert.equal(result.candidates.length, 1); assert.equal(result.candidates[0].installPath, undefined);
-  assert.match(result.warnings.join(' '), /no valid runtime/);
+  assert.match(result.warnings.join(' '), /não aponta para uma pasta de execução válida/);
 });
 
 test('malformed, oversized and wrong-shaped metadata yield sanitized warnings', async t => {
@@ -143,7 +143,7 @@ test('malformed, oversized and wrong-shaped metadata yield sanitized warnings', 
 test('a mismatching terminal vault reference is ignored', async t => {
   const f = fixture(t), vault = f.vault(f.folder('vault')), other = f.folder('other'), at = f.install(f.folder('install'), null, {installed: false});
   f.json(path.join(vault, '.obsidian', 'plugins', 'agentic-os-v2', 'terminal-runtime.json'), {runtimeDir: at.runtime, vault: other});
-  const result = await f.discover({vault}); assert.equal(result.candidates[0].installPath, undefined); assert.match(result.warnings.join(' '), /different vault/);
+  const result = await f.discover({vault}); assert.equal(result.candidates[0].installPath, undefined); assert.match(result.warnings.join(' '), /outro cofre/);
 });
 
 test('registry work is bounded and an explicit home never inherits the actual machine APPDATA', async t => {
@@ -151,15 +151,15 @@ test('registry work is bounded and an explicit home never inherits the actual ma
   f.json(config, {vaults: Object.fromEntries(Array.from({length: 80}, (_, index) => [index, {path: path.join(f.base, 'vault-' + index)}]))});
   const result = await discoverInstallations({home: f.home, platform: 'win32'});
   assert.ok(result.searched.includes(config)); assert.ok(result.searched.every(item => item.startsWith(f.base)));
-  assert.match(result.warnings.join(' '), /limit reached/); assert.ok(result.searched.length < 100);
+  assert.match(result.warnings.join(' '), /limite .* foi atingido/); assert.ok(result.searched.length < 100);
 });
 
 test('monitor errors and unrecognized metadata are sanitized and nonfatal', async t => {
   const f = fixture(t);
   const failed = await f.discover({getMonitor: async () => { throw Error('SECRET_CANARY'); }});
-  assert.match(failed.warnings.join(' '), /monitor was unavailable/); assert.doesNotMatch(JSON.stringify(failed), /CANARY/);
+  assert.match(failed.warnings.join(' '), /monitor local estava indisponível/); assert.doesNotMatch(JSON.stringify(failed), /CANARY/);
   const unknown = await f.discover({getMonitor: async () => ({kind: 'something-else', runtimeDir: 'SECRET_CANARY'})});
-  assert.deepEqual(unknown.candidates, []); assert.match(unknown.warnings.join(' '), /recognizable/);
+  assert.deepEqual(unknown.candidates, []); assert.match(unknown.warnings.join(' '), /metadados de uma instalação reconhecida/);
 });
 
 test('metadata references to multiple vaults preserve ambiguity', async t => {
@@ -167,24 +167,24 @@ test('metadata references to multiple vaults preserve ambiguity', async t => {
   const at = f.install(f.folder('install'), first); f.vault(second, {runtime: at.runtime});
   const result = await f.discover({vault: second});
   assert.equal(result.candidates.length, 2); assert.deepEqual(new Set(result.candidates.map(item => item.vaultPath)), new Set([first, second]));
-  assert.ok(result.candidates.every(item => item.warnings.some(message => /more than one vault/.test(message))));
+  assert.ok(result.candidates.every(item => item.warnings.some(message => /mais de um cofre/.test(message))));
 });
 
 test('linked runtime and saved vault references are rejected even when their owner folder is ordinary', async t => {
   const f = fixture(t), vault = f.vault(f.folder('vault')), at = f.install(f.folder('install'), null, {installed: false}), target = f.folder('target');
   fs.symlinkSync(target, at.runtime, process.platform === 'win32' ? 'junction' : 'dir');
   f.vault(vault, {runtime: at.runtime});
-  const runtime = await f.discover({vault}); assert.equal(runtime.candidates[0].installPath, undefined); assert.match(runtime.warnings.join(' '), /linked path/);
+  const runtime = await f.discover({vault}); assert.equal(runtime.candidates[0].installPath, undefined); assert.match(runtime.warnings.join(' '), /caminho com link simbólico/);
   const linkedVault = path.join(f.base, 'linked-vault'); fs.symlinkSync(vault, linkedVault, process.platform === 'win32' ? 'junction' : 'dir');
   const second = f.install(f.folder('second'), linkedVault);
   const saved = await f.discover({install: second.installPath}); assert.equal(saved.candidates[0].kind, 'unknown'); assert.equal(saved.candidates[0].vaultPath, undefined);
-  assert.match(saved.warnings.join(' '), /linked path/);
+  assert.match(saved.warnings.join(' '), /caminho com link simbólico/);
 });
 
 test('an unresponsive injected monitor cannot hold discovery indefinitely', async t => {
   const f = fixture(t), started = performance.now();
   const result = await f.discover({getMonitor: () => new Promise(() => {})});
-  assert.match(result.warnings.join(' '), /monitor was unavailable/);
+  assert.match(result.warnings.join(' '), /monitor local estava indisponível/);
   assert.ok(performance.now() - started < 5000); assert.deepEqual(result.candidates, []);
 });
 
@@ -192,10 +192,10 @@ test('a stale or unrecognized saved vault blocks an automatic stock-update recom
   const f = fixture(t), missing = path.join(f.base, 'deleted-vault'), at = f.install(f.folder('install'), missing);
   const deleted = await f.discover({install: at.installPath});
   assert.equal(deleted.candidates[0].kind, 'starter-v2'); assert.equal(deleted.candidates[0].vaultPath, missing);
-  assert.match(deleted.candidates[0].warnings.join(' '), /no longer exists/); assert.equal(fs.existsSync(missing), false);
+  assert.match(deleted.candidates[0].warnings.join(' '), /não existe mais/); assert.equal(fs.existsSync(missing), false);
   fs.mkdirSync(missing);
   const unrecognized = await f.discover({install: at.installPath});
-  assert.match(unrecognized.candidates[0].warnings.join(' '), /no matching Agentic OS plugin manifest/);
+  assert.match(unrecognized.candidates[0].warnings.join(' '), /manifesto do plugin do Agentic OS correspondente/);
 });
 
 test('conflicting explicit and saved vaults remain separate and warn on the installation candidate', async t => {
@@ -203,7 +203,7 @@ test('conflicting explicit and saved vaults remain separate and warn on the inst
   const result = await f.discover({install: at.installPath, vault: selected});
   assert.equal(result.candidates.length, 2);
   const installed = result.candidates.find(item => item.installPath);
-  assert.equal(installed.vaultPath, saved); assert.match(installed.warnings.join(' '), /explicit vault differs/);
+  assert.equal(installed.vaultPath, saved); assert.match(installed.warnings.join(' '), /cofre informado difere/);
 });
 
 test('an installed runtime reference without a matching source manifest remains unknown', async t => {
@@ -211,5 +211,5 @@ test('an installed runtime reference without a matching source manifest remains 
   f.vault(vault, {runtime: path.join(install, '.runtime')});
   const result = await f.discover({vault});
   assert.equal(result.candidates.length, 1); assert.equal(result.candidates[0].kind, 'unknown');
-  assert.match(result.candidates[0].warnings.join(' '), /recognized source manifest/);
+  assert.match(result.candidates[0].warnings.join(' '), /manifesto reconhecido no código-fonte/);
 });

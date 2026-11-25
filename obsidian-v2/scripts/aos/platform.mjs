@@ -100,7 +100,7 @@ function processCwd(pid, {run}) {
 // The loopback listener on a port, or null. More than one listener is reported
 // as ambiguous so a caller never picks a process to stop by position.
 export function listener(port, {run = spawnSync, platform = process.platform} = {}) {
-  if (!Number.isSafeInteger(port) || port < 1 || port > 65535) throw new Error('Invalid port');
+  if (!Number.isSafeInteger(port) || port < 1 || port > 65535) throw new Error('Porta inválida.');
   if (platform === 'win32') {
     const script = `$c=@(Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue|Where-Object{$_.LocalAddress -eq '127.0.0.1'});if($c.Count -gt 1){'{"ambiguous":true}'}elseif($c.Count -eq 1){$id=$c[0].OwningProcess;${processScript('ProcessId=$id')}}`;
     const out = String(powershell(script, run).stdout || '');
@@ -121,7 +121,7 @@ export function which(command, {env = process.env, exists = fs.existsSync, platf
 }
 
 export function openUrl(url, {run = spawnSync, platform = process.platform} = {}) {
-  if (!/^http:\/\/127\.0\.0\.1:\d{2,5}\//.test(url)) throw new Error('Only local pages are opened');
+  if (!/^http:\/\/127\.0\.0\.1:\d{2,5}\//.test(url)) throw new Error('O comando abre apenas páginas locais.');
   if (platform === 'win32') return run('rundll32.exe', ['url.dll,FileProtocolHandler', url], {windowsHide: true, timeout: 10000}).status === 0;
   return run(platform === 'darwin' ? 'open' : 'xdg-open', [url], {timeout: 10000}).status === 0;
 }
@@ -135,7 +135,7 @@ export function openUrl(url, {run = spawnSync, platform = process.platform} = {}
 export function request(url, {method = 'GET', headers = {}, body, timeoutMs = 4000} = {}) {
   return new Promise((resolve, reject) => {
     const target = new URL(url);
-    if (target.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(target.hostname)) { reject(new Error('Only local services are contacted this way')); return; }
+    if (target.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(target.hostname)) { reject(new Error('Esta operação só acessa serviços locais.')); return; }
     const payload = body === undefined ? null : Buffer.isBuffer(body) ? body : Buffer.from(String(body));
     const outgoing = http.request(target, {method, agent: false, headers: {...headers, ...(payload ? {'Content-Length': payload.length} : {})}}, response => {
       const chunks = [];

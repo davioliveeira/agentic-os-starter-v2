@@ -10,7 +10,7 @@ Rode os comandos na pasta raiz do Agentic OS. Para uma instalação guiada, cons
 
 | Comando | O que faz |
 |---|---|
-| `node aos.mjs status` | Mostra quais serviços estão rodando. |
+| `node aos.mjs status [--json]` | Mostra os serviços e as tarefas abertas no terminal. Use `--json` para obter a saída estruturada. |
 | `node aos.mjs start` | Inicia os serviços desta instalação. |
 | `node aos.mjs stop` | Encerra os serviços quando todas as conversas no terminal estiverem fechadas. |
 | `node aos.mjs doctor` | Verifica os serviços, o plugin, os provedores, a síntese e a transcrição de voz. Se a voz ao vivo estiver configurada, também verifica a chave da OpenAI salva. |

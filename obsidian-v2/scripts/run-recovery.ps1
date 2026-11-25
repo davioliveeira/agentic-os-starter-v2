@@ -1,4 +1,4 @@
-param(
+﻿param(
  [Parameter(Mandatory=$true)][string]$NodeExecutable,
  [Parameter(Mandatory=$true)][string]$ConfigFile,
  [ValidateRange(0,10)][int]$MaxRestarts=3,
@@ -24,13 +24,13 @@ try {
    $taskHandle=$taskProcess.Handle
    $taskProcess.WaitForExit()
    $taskExitCode=$taskProcess.ExitCode
-   if($null -eq $taskExitCode){throw 'Recovery monitor exit code unavailable.'}
+   if($null -eq $taskExitCode){throw 'Código de saída do monitor de recuperação indisponível.'}
   }catch{
    $taskExitCode=1
    Write-RecoveryDiagnostic ($_.Exception.GetType().Name+' '+$_.FullyQualifiedErrorId)
   }
   if($taskExitCode -eq 0 -or (Test-Path -LiteralPath $taskPauseFile)){exit 0}
-  Write-RecoveryDiagnostic "Recovery monitor exited with code $taskExitCode. Restarts used: $taskRestarts/$MaxRestarts. Inspect service-supervisor.jsonl."
+  Write-RecoveryDiagnostic "O monitor de recuperação saiu com o código $taskExitCode. Reinicializações usadas: $taskRestarts/$MaxRestarts. Consulte service-supervisor.jsonl."
   if($taskRestarts -ge $MaxRestarts){exit $taskExitCode}
   $taskDelay=[Math]::Min(60,$RetryDelaySeconds*[Math]::Pow(2,$taskRestarts))
   $taskRetryAt=[DateTime]::UtcNow.AddSeconds($taskDelay)

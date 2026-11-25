@@ -23,5 +23,5 @@ test('the one-paste launcher still loads before npm dependencies exist', t => {
     encoding: 'utf8', timeout: 15000, windowsHide: true,
   });
   assert.equal(upgrade.status, 0, upgrade.stderr);
-  assert.match(upgrade.stdout, /does not install/);
+  assert.match(upgrade.stdout, /em modo somente leitura/);
 });

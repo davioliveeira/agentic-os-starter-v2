@@ -308,7 +308,7 @@ test('an originating voice surface cannot be claimed by the other app',async t=>
 test('idle shutdown is refused while a would-be strict-rules check is owned: waiting for the answer, queued, or running',async t=>{
  const f=fixture(t,{classifierProcesses:ownedClassifiers});
  let runQueued,finishCheck;
- const refused=async window=>{const response=await f.request('/shutdown');assert.equal(response.status,409,window);assert.match(response.value.error,/voice requests first/)};
+ const refused=async window=>{const response=await f.request('/shutdown');assert.equal(response.status,409,window);assert.match(response.value.error,/Encerre as tarefas ativas do terminal e os pedidos de voz/)};
  const strict=strictRules({root:f.root,id:crypto.randomUUID(),config:{open:'shadow',ui:'shadow'},log:()=>{},defer:callback=>{runQueued=callback},evaluate:()=>new Promise(resolve=>{finishCheck=()=>resolve({kind:'open',stage:'resolver',reason:'no-match'})})});
  assert.equal(await strict.atBoundary({transcript:'Pop open the plan',validateText:()=>null}),null);
  assert.equal(f.active.size,0);

@@ -43,10 +43,10 @@ export function findPython({env = process.env, run = spawnSync, platform = proce
 }
 
 export function voicePythonMissing(seen = []) {
-  const install = 'Install Python 3.12 (Windows: `winget install Python.Python.3.12`; Mac: `brew install python@3.12`) and run this again. If it is installed somewhere unusual, set AOS_V2_PYTHON to its absolute executable path.';
+  const install = 'Instale o Python 3.12 com `winget install Python.Python.3.12` no Windows ou `brew install python@3.12` no Mac e rode o comando novamente. Se a instalação estiver em uma pasta personalizada, defina AOS_V2_PYTHON com o caminho absoluto do executável.';
   return seen.length
-    ? `Found Python ${seen.join(', ')}, but voice needs Python 3.10-3.13 (its speech libraries do not support newer versions yet). ${install}`
-    : `Python 3.10-3.13 was not found. ${install}`;
+    ? `Versões do Python encontradas: ${seen.join(', ')}. As bibliotecas de voz exigem Python de 3.10 a 3.13. ${install}`
+    : `Nenhuma versão do Python entre 3.10 e 3.13 foi encontrada. ${install}`;
 }
 
 // The version an existing environment's interpreter reports, or null when it does not answer.
@@ -64,7 +64,7 @@ export function venvVersion(python, {run = spawnSync, exists = fs.existsSync} = 
 // Nothing is moved before a supported interpreter is found; a failed rename (Windows locks a
 // running interpreter's folder) also defers.
 export const voiceRebuildMarker = at => path.join(at.runtime, 'voice-rebuild-pending.json');
-export const VOICE_BUSY = 'The voice environment was made with an unsupported Python and needs rebuilding, but the voice service may still be running. Run `node aos.mjs stop`, then `node aos.mjs setup --voice yes`.';
+export const VOICE_BUSY = 'O ambiente de voz precisa ser recriado com uma versão compatível do Python. Como o serviço pode estar em execução, rode `node aos.mjs stop` e depois `node aos.mjs setup --voice yes`.';
 export async function setAsideUnsupportedVoice(at, {run = spawnSync, find = options => findPython({run, ...options}), busy, inUse, rename = fs.renameSync, remove = fs.rmSync, now = Date.now, log = console.log} = {}) {
   if (!fs.existsSync(at.speechPython)) return {state: 'not-needed'};
   const current = venvVersion(at.speechPython, {run});
@@ -79,7 +79,7 @@ export async function setAsideUnsupportedVoice(at, {run = spawnSync, find = opti
   // retried by the next ordinary setup or update instead of passing for an installed voice.
   fs.writeFileSync(voiceRebuildMarker(at), JSON.stringify({since: new Date(now()).toISOString()}));
   try { rename(at.venv, aside); } catch { fs.rmSync(voiceRebuildMarker(at), {force: true}); return {state: 'deferred', reason: VOICE_BUSY}; }
-  log(`  the voice environment used Python ${current?.text || '(not answering)'}; it was set aside and will be rebuilt`);
+  log(`  o ambiente de voz usava Python ${current?.text || '(sem resposta)'}. Ele foi separado para que um novo seja criado`);
   // Kept until the replacement installed successfully (the caller then calls removeSetAsideVoice).
   return {state: 'set-aside', aside};
 }
@@ -96,13 +96,13 @@ export function removeSetAsideVoice(at, {inUse, remove = fs.rmSync} = {}) {
 }
 
 async function download(url, target, minBytes, log) {
-  if (fs.existsSync(target) && fs.statSync(target).size >= minBytes) { log(`  already have ${path.basename(target)}`); return; }
-  log(`  downloading ${path.basename(target)} ...`);
+  if (fs.existsSync(target) && fs.statSync(target).size >= minBytes) { log(`  ${path.basename(target)} já está disponível`); return; }
+  log(`  baixando ${path.basename(target)}…`);
   const response = await fetch(url, {redirect: 'follow', signal: AbortSignal.timeout(30 * 60 * 1000)});
-  if (!response.ok || !response.body) throw new Error(`Download failed (${response.status}) for ${path.basename(target)}`);
+  if (!response.ok || !response.body) throw new Error(`Falha ao baixar ${path.basename(target)} (HTTP ${response.status}).`);
   const part = `${target}.part`;
   await pipeline(Readable.fromWeb(response.body), fs.createWriteStream(part));
-  if (fs.statSync(part).size < minBytes) { fs.rmSync(part, {force: true}); throw new Error(`${path.basename(target)} arrived incomplete; run the command again.`); }
+  if (fs.statSync(part).size < minBytes) { fs.rmSync(part, {force: true}); throw new Error(`O download de ${path.basename(target)} ficou incompleto. Rode o comando outra vez.`); }
   fs.renameSync(part, target);
 }
 
@@ -110,31 +110,31 @@ export async function setupSpeech(at, {log = console.log, run = spawnSync, find 
   const step = (label, command, args, timeout) => {
     log(`  ${label}`);
     const result = run(command, args, {encoding: 'utf8', timeout, windowsHide: true, cwd: at.root, maxBuffer: 32 * 1024 * 1024});
-    if (result.status !== 0) throw new Error(`${label} failed: ${String(result.stderr || result.stdout || result.error?.message || '').trim().split(/\r?\n/).slice(-6).join(' | ').slice(0, 900)}`);
+    if (result.status !== 0) throw new Error(`Falha na etapa de voz (${label}): ${String(result.stderr || result.stdout || result.error?.message || '').trim().split(/\r?\n/).slice(-6).join(' | ').slice(0, 900)}`);
   };
   fs.mkdirSync(at.runtime, {recursive: true});
   if (!fs.existsSync(at.speechPython)) {
     const seen = [], python = find({seen});
     if (!python) throw new Error(voicePythonMissing(seen));
-    step(`creating the voice environment with Python ${python.version}`, python.command, [...python.prefix, '-m', 'venv', at.venv], 5 * 60 * 1000);
+    step(`criando o ambiente de voz com Python ${python.version}`, python.command, [...python.prefix, '-m', 'venv', at.venv], 5 * 60 * 1000);
   } else if (!pythonSupported(venvVersion(at.speechPython, {run}))) {
     // Reached only when the caller did not set the old environment aside (it may be in use).
-    throw new Error('The voice environment was made with an unsupported Python. Run `node aos.mjs stop`, then `node aos.mjs setup --voice yes` to rebuild it.');
+    throw new Error('O ambiente de voz usa uma versão incompatível do Python. Rode `node aos.mjs stop` e depois `node aos.mjs setup --voice yes` para recriá-lo.');
   }
   // Exact pins for our direct packages, bounds for the heavy ones; prefer published wheels over building.
-  step('installing voice packages (a few minutes the first time)', at.speechPython, ['-m', 'pip', 'install', '--disable-pip-version-check', '-q', '--prefer-binary', '-r', path.join(at.root, 'runner', 'speech-requirements.txt')], 30 * 60 * 1000);
+  step('instalando os pacotes de voz. A primeira instalação pode demorar alguns minutos', at.speechPython, ['-m', 'pip', 'install', '--disable-pip-version-check', '-q', '--prefer-binary', '-r', path.join(at.root, 'runner', 'speech-requirements.txt')], 30 * 60 * 1000);
   fs.mkdirSync(at.speechAssets, {recursive: true});
   for (const asset of SPEECH_ASSETS) await download(`${RELEASE}/${asset.name}`, path.join(at.speechAssets, asset.name), asset.minBytes, log);
   // The service loads Whisper with local_files_only, so the model is fetched once here.
   // English is always fetched: it is what the service falls back to. Another language adds its own model.
   const models = [...new Set(['small.en', SPEECH_LANGUAGES[language]?.whisper || 'small.en'])];
   for (const model of models) {
-    const fetch = () => step(model === 'small.en' ? 'fetching the speech-recognition model (about 460 MB the first time)' : `fetching the speech-recognition model for ${SPEECH_LANGUAGES[language].name} (about 460 MB the first time)`, at.speechPython,
+    const fetch = () => step(model === 'small.en' ? 'baixando o modelo de reconhecimento de fala (cerca de 460 MB na primeira vez)' : `baixando o modelo de reconhecimento de fala para ${SPEECH_LANGUAGES[language].name} (cerca de 460 MB na primeira vez)`, at.speechPython,
       ['-c', `from faster_whisper import WhisperModel; WhisperModel('${model}', device='cpu', compute_type='int8'); print('ready')`], 40 * 60 * 1000);
     if (model === 'small.en') { fetch(); continue; }
     // The other language is an extra. Without its model voice still works, in English, and the doctor says so.
     try { fetch(); }
-    catch (error) { log(`  could not fetch the speech model for ${SPEECH_LANGUAGES[language].name} (${String(error.message || error).slice(0, 200)}). Voice will hear and speak English until \`node aos.mjs setup --voice yes\` succeeds.`); }
+    catch (error) { log(`  não foi possível baixar o modelo de fala para ${SPEECH_LANGUAGES[language].name} (${String(error.message || error).slice(0, 200)}). O serviço será iniciado em inglês até que \`node aos.mjs setup --voice yes\` seja executado com sucesso.`); }
   }
   return true;
 }

@@ -54,7 +54,7 @@ test('refreshing the login task re-registers only our own old-shape task, only o
   assert.equal(enabled.length, 0);
   const said = [];
   refreshLoginItem(at, {log: line => said.push(line), refresh: () => { throw new Error('Windows refused'); }});
-  assert.match(said[0], /could not update the Windows login task \(Windows refused\)\. Services still start now/);
+  assert.match(said[0], /não foi possível atualizar a tarefa do Windows \(Windows refused\)\. Os serviços serão iniciados agora/);
 });
 
 test('a login item that never brings the monitor up is followed by a direct start; a working one is not', async () => {
@@ -71,8 +71,8 @@ test('a login item that never brings the monitor up is followed by a direct star
   const noItem = await run({upAfter: 2, owner: null});
   assert.deepEqual([noItem.result.started, noItem.spawned], [true, 1]);
   const never = await run({upAfter: 999});
-  assert.match(never.result.message, /did not become available/); assert.equal(never.spawned, 1, 'the fallback runs once');
-  await assert.rejects(launchMonitor(at, {log: quiet, owner: 'other', kick: () => assert.fail(), spawnMonitor: () => assert.fail()}), /different installation owns/);
+  assert.match(never.result.message, /monitor de recuperação não ficou disponível/); assert.equal(never.spawned, 1, 'the fallback runs once');
+  await assert.rejects(launchMonitor(at, {log: quiet, owner: 'other', kick: () => assert.fail(), spawnMonitor: () => assert.fail()}), /Outra instalação controla a inicialização automática/);
 });
 
 // ---------- 2. Voice and Python 3.14 ----------
@@ -99,13 +99,13 @@ test('a voice environment made with Python 3.14 is set aside only when it is pro
   }
   const {at: install, run} = voiceInstall();
   const noPython = await setAsideUnsupportedVoice(install, {run, find: ({seen}) => { seen.push('3.14.7'); return null; }, busy: async () => assert.fail('not asked'), inUse: () => assert.fail('not asked'), log: quiet});
-  assert.equal(noPython.state, 'no-python'); assert.match(noPython.reason, /Found Python 3\.14\.7/); assert.equal(fs.existsSync(install.speechPython), true);
+  assert.equal(noPython.state, 'no-python'); assert.match(noPython.reason, /Versões do Python encontradas: 3\.14\.7/); assert.equal(fs.existsSync(install.speechPython), true);
   const said = [];
   const done = await setAsideUnsupportedVoice(install, {run, find: supported, busy: async () => false, inUse: () => [], log: line => said.push(line)});
   assert.equal(done.state, 'set-aside'); assert.equal(fs.existsSync(install.venv), false);
   assert.equal(fs.existsSync(voiceRebuildMarker(install)), true, 'the rebuild is marked pending before anything moves');
   assert.equal(fs.existsSync(done.aside), true, 'the old environment is kept until its replacement installed');
-  assert.match(said[0], /used Python 3\.14\.7; it was set aside and will be rebuilt/);
+  assert.match(said[0], /usava Python 3\.14\.7.*foi separado para que um novo seja criado/);
   const healthy = voiceInstall({version: '3.12.9'});
   assert.equal((await setAsideUnsupportedVoice(healthy.at, {run: healthy.run, find: () => assert.fail(), busy: () => assert.fail(), inUse: () => assert.fail()})).state, 'not-needed');
 });
@@ -123,7 +123,7 @@ test('an ordinary update reaches the voice repair: prepareVoice checks before it
   const said = [], plan = async () => ({own: true, shared: false, healthy: false, url: 'http://127.0.0.1:3220'});
   const deferred = await prepareVoice(install, {wantVoice: true, log: line => said.push(line), plan, installed: () => true, installVoice: async () => assert.fail('not reinstalled while deferred'),
     setAside: async () => ({state: 'deferred', reason: VOICE_BUSY})});
-  assert.equal(deferred, 'deferred'); assert.match(said.at(-1), /needs rebuilding.*node aos\.mjs stop/);
+  assert.equal(deferred, 'deferred'); assert.match(said.at(-1), /precisa ser recriado.*node aos\.mjs stop/);
   let installs = 0;
   const removed = [];
   const rebuilt = await prepareVoice(install, {wantVoice: true, log: quiet, plan, installed: () => false, installVoice: async () => { installs++; assert.equal(removed.length, 0, 'not removed before the install'); }, setAside: async () => ({state: 'set-aside'}), removeAside: () => removed.push(1)});
@@ -205,7 +205,7 @@ test('a failed repair removes the record even though the old python file is stil
   assert.equal(fs.existsSync(good.python), true, 'the interpreter file is still present');
   assert.equal(fs.existsSync(terminalMarker(install.runtime)), false);
   assert.equal(recordedTerminalPython(install.runtime, {platform}), null);
-  assert.match(said.at(-1), /could not be prepared.*use the same buttons in Jarvis/);
+  assert.match(said.at(-1), /Não foi possível preparar o auxiliar Python.*\(no network\).*use os mesmos botões no Jarvis/);
 });
 
 test('the helper environment is never repaired or replaced while a conversation may be using it', () => {
@@ -214,7 +214,7 @@ test('the helper environment is never repaired or replaced while a conversation 
   for (const inUse of [() => [4242], () => null]) {
     const broken = fakePython(install, platform, {checkOk: false}), said = [];
     const outcome = prepareTerminalPython(install, {log: line => said.push(line), run: broken.run, platform, find: () => assert.fail('no rebuild while in use'), inUse});
-    assert.equal(outcome, 'deferred'); assert.match(said[0], /may be using it\. Close those conversations/);
+    assert.equal(outcome, 'deferred'); assert.match(said[0], /pode estar em uso em uma conversa no Obsidian\. Feche essas conversas/);
     assert.equal(broken.calls.some(call => call.includes(' -m pip') || call.includes(' -m venv')), false, 'no package changes and no new environment');
     assert.equal(fs.existsSync(good.python), true, 'nothing deleted');
     assert.equal(recordedTerminalPython(install.runtime, {platform}), null, 'the broken helper is no longer advertised');
@@ -228,7 +228,7 @@ test('the helper environment is never repaired or replaced while a conversation 
 test('without any usable Python, setup continues and says what to install', () => {
   const install = terminalInstall(), said = [];
   assert.equal(prepareTerminalPython(install, {inUse: () => [], log: line => said.push(line), run: () => ({status: 1}), platform: 'win32', find: ({seen}) => { seen.push('3.8.10'); return null; }}), 'no-python');
-  assert.match(said[0], /no usable Python found \(found 3\.8\.10\).*winget install Python\.Python\.3\.12/);
+  assert.match(said[0], /Nenhuma versão compatível do Python foi encontrada.*\(versões detectadas: 3\.8\.10\).*winget install Python\.Python\.3\.12/);
 });
 
 test('the record is only trusted for this installation\'s own interpreter, when it still exists', () => {
@@ -286,14 +286,14 @@ test('a fresh install picks the one coding tool that is installed, or the one ru
   assert.deepEqual(pick(presence('installed', 'installed'), {CLAUDECODE: '1'}), {provider: 'claude', model: 'opus'});
   assert.deepEqual(pick(presence('installed', 'installed')), {provider: 'codex', model: 'astra'});
   assert.deepEqual(pick(presence('unknown', 'missing')), {provider: 'codex', model: 'astra'}, 'unknown is not installed');
-  assert.match(chooseProvider({stored: absent, presence: presence('missing', 'missing')}).note, /Neither Claude Code nor Codex/);
+  assert.match(chooseProvider({stored: absent, presence: presence('missing', 'missing')}).note, /instale o Claude Code ou o Codex/);
 });
 
 test('an existing choice is never changed without --provider, only explained', () => {
   const stored = {state: 'valid', selection: {provider: 'codex', model: 'astra'}};
   const kept = chooseProvider({stored, presence: presence('installed', 'missing')});
   assert.deepEqual([kept.write, kept.selection], [false, stored.selection]);
-  assert.match(kept.note, /use Codex, which is not installed here; Claude Code is\. To switch: node aos\.mjs setup --provider claude/);
+  assert.match(kept.note, /usam o Codex, que ainda precisa ser instalado\. Para usar o Claude Code, que já está instalado, execute node aos\.mjs setup --provider claude/);
   assert.equal(chooseProvider({stored, presence: presence('installed', 'unknown')}).note, '', 'an unreadable pin is not "missing"');
   const custom = {state: 'valid', selection: {provider: 'claude', model: 'haiku'}};
   assert.deepEqual(chooseProvider({explicit: 'claude', stored: custom, presence: presence('installed', 'installed')}), {selection: {provider: 'claude', model: 'haiku'}, write: false, note: ''}, 'same provider keeps its model');
@@ -306,7 +306,7 @@ test('setup writes the choice before the plugin install and leaves an existing f
   const vault = scratch(), said = [];
   applyProviderChoice(vault, {log: line => said.push(line), env: {}, presence: presence('installed', 'missing')});
   assert.deepEqual(readStoredSelection(vault), {state: 'valid', selection: {provider: 'claude', model: 'opus'}});
-  assert.match(said[0], /Buttons and voice use Claude Code \(opus\)/);
+  assert.match(said[0], /Os botões e a voz usam o Claude Code \(opus\)/);
   fs.writeFileSync(providerFile(vault), JSON.stringify({provider: 'claude', model: 'sonnet'}));
   applyProviderChoice(vault, {log: quiet, env: {}, presence: presence('missing', 'installed')});
   assert.deepEqual(JSON.parse(fs.readFileSync(providerFile(vault), 'utf8')), {provider: 'claude', model: 'sonnet'}, 'update never rewrites a member\'s choice');
@@ -333,6 +333,6 @@ test('update runs setup in a fresh process from the updated files and reports it
   assert.deepEqual(calls[0].args, [path.join('/aos/obsidian-v2', 'scripts', 'aos.mjs'), 'setup', '--vault', '/v', '--rebuild']);
   assert.equal(calls[0].options.stdio, 'inherit');
   assert.deepEqual(setupInFreshProcess({root: '/r', vault: '/v', log: quiet, spawnImpl}), {ok: false, exitCode: 3});
-  assert.throws(() => setupInFreshProcess({root: '/r', vault: '/v', log: quiet, spawnImpl: () => ({error: new Error('ENOENT')})}), /Could not run the updated setup.*ENOENT/);
+  assert.throws(() => setupInFreshProcess({root: '/r', vault: '/v', log: quiet, spawnImpl: () => ({error: new Error('ENOENT')})}), /Não foi possível executar o setup atualizado.*ENOENT/);
   assert.match(update.toString(), /install = options => setupInFreshProcess\(options\)/, 'the default install is the fresh process');
 });

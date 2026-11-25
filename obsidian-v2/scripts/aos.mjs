@@ -4,7 +4,7 @@
 //   node aos.mjs start | stop | status | doctor [--full] | jev-key | autostart on|off | update
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {layout, stop, status} from './aos/services.mjs';
+import {formatStatus, layout, stop, status} from './aos/services.mjs';
 import {disableAutostart} from './aos/autostart.mjs';
 import {collectJevKey, hasJevKey} from './aos/jev-key.mjs';
 import {doctor} from './aos/doctor.mjs';
@@ -17,7 +17,7 @@ const HELP = `Agentic OS V2
                       (--provider escolhe a ferramenta dos botões e da voz, entre as instaladas)
   start [--no-wait]   iniciar os serviços locais (ponte, Jarvis e voz) e aguardar resposta
   stop                parar os serviços quando não houver tarefas abertas
-  status              mostrar os serviços e as tarefas em execução
+  status [--json]     mostrar os serviços e as tarefas abertas
   doctor [--full]     executar o diagnóstico, com um fluxo real se usar --full
   jev-key             abrir uma página local para salvar a chave do OpenRouter, sem expô-la ao agente
   openai-key          salvar a chave da OpenAI e a autorização para a voz ao vivo (consulte com --check)
@@ -52,7 +52,11 @@ export async function main(argv = process.argv.slice(2), log = console.log) {
     case 'setup': return (await setup({vault: typeof flags.vault === 'string' ? flags.vault : undefined, voice: yesNo(flags.voice, 'voice'), autostart: yesNo(flags.autostart, 'autostart'), provider: providerFlag(flags.provider), rebuild: flags.rebuild === true, ci: flags.ci === true, adopt: flags.adopt === true, log})).ok ? 0 : 1;
     case 'start': return startCommand({resetRecovery: flags['reset-recovery'] === true, wait: flags['no-wait'] !== true, log});
     case 'stop': await stop({log}); return 0;
-    case 'status': log(JSON.stringify(await status(), null, 1)); return 0;
+    case 'status': {
+      const snapshot = await status();
+      log(process.stdout.isTTY && flags.json !== true ? formatStatus(snapshot) : JSON.stringify(snapshot, null, 1));
+      return 0;
+    }
     case 'doctor': return (await doctor({ci: flags.ci === true, full: flags.full === true, phase: flags.phase === 'install' ? 'install' : 'ready', log})).ok ? 0 : 1;
     case 'jev-key': {
       if (flags.check === true) { log(JSON.stringify({saved: hasJevKey(layout().runtime)})); return 0; }

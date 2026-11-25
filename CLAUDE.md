@@ -1,25 +1,27 @@
-# Agentic OS V2 starter — instructions for the coding agent
+# Agentic OS V2 — instruções para o agente de código
 
-Help the member set up or improve their system without making them learn its folder layout. First determine their intent. Honor a choice they already made; do not ask it again.
+Ajude a pessoa a configurar ou melhorar o sistema sem exigir que ela conheça a estrutura de pastas. Identifique a intenção primeiro. Se ela já fez uma escolha, siga em frente sem perguntar de novo.
 
-- **Fresh install:** read `setup/PLAYBOOK.md` and follow its phases. A member can use an existing Obsidian vault for their first Agentic OS installation.
-- **Upgrade an existing Agentic OS:** read `setup/UPGRADE.md` first. Run `node aos.mjs upgrade` to discover installations and vaults without changing them. This applies to V1, an older V2 starter, and a customized system.
-- **Unclear setup request:** ask one plain question: "Are we setting up Agentic OS for the first time, or upgrading a version you already use?" These are the two onboarding choices. Choosing particular features happens inside the upgrade conversation.
-- **Repair request** ("it's broken", "run the doctor"): repair the intended installation rather than reinstalling. If its identity is unclear, use upgrade discovery to identify it first. Follow Phase 6 of the playbook for that installation once the member has chosen the repair; explain that `--full` runs a real workflow.
-- **Change one thing later** ("set up Live voice", "update my About me", "add my goals note to Live", "change my buttons", "install a skill", "run Plan Today every morning"): the system is already installed, so do not run setup again. Go straight to that item in Phase 7 of `setup/PLAYBOOK.md` and follow it as written.
+- **Primeira instalação.** Leia `setup/PLAYBOOK.md` e siga as fases. A pessoa pode usar um cofre do Obsidian que já existe para instalar o Agentic OS pela primeira vez.
+- **Atualização do Agentic OS.** Leia `setup/UPGRADE.md` primeiro. Rode `node aos.mjs upgrade` para localizar instalações e cofres sem fazer alterações. Isso vale para V1, versões anteriores do V2 e sistemas personalizados.
+- **Pedido de configuração ambíguo.** Faça uma pergunta direta. “Você quer instalar o Agentic OS pela primeira vez ou atualizar uma versão que já usa?” São as duas opções de configuração inicial. A escolha de recursos específicos vem durante a conversa sobre a atualização.
+- **Pedido de reparo** (“parou de funcionar”, “rode o diagnóstico”). Repare a instalação em questão sem reinstalar. Se houver dúvida sobre qual é, use primeiro a descoberta de instalações do processo de atualização. Depois que a pessoa escolher o reparo, siga a Fase 6 de `setup/PLAYBOOK.md` para a instalação identificada. Explique que `--full` executa um fluxo real.
+- **Alteração pontual após a instalação** (“configure a voz ao vivo”, “atualize minha seção Sobre mim”, “adicione minha nota de metas à voz ao vivo”, “mude meus botões”, “instale uma skill”, “rode Planejar hoje toda manhã”). Pule a instalação e siga o item correspondente da Fase 7 de `setup/PLAYBOOK.md`.
 
-An `obsidian-v2/.runtime/aos-setup.json` marker means setup ran before. It is evidence, not a reason to turn an explicit upgrade request into repair. If a fresh-install request resolves to an already installed system, explain the finding and resolve that choice before running setup again.
+O arquivo `obsidian-v2/.runtime/aos-setup.json` registra uma instalação anterior. Use-o como evidência e siga o processo de atualização se a pessoa o pediu explicitamente. Se um pedido de primeira instalação apontar para um sistema já instalado, explique o que encontrou e confirme o destino antes de rodar a instalação de novo.
 
-Hard rules:
+## Regras obrigatórias
 
-- Never ask for a key or password in chat. Never read, print or copy `jev.json`, `openai.json`, `bridge-auth.json`, `providers.json`, `.credentials.json` or `~/.claude/.env`. The user enters an OpenRouter key through the local page opened by `node aos.mjs jev-key`, and an OpenAI key for Live voice through the one opened by `node aos.mjs openai-key`.
-- Never overwrite existing notes or replace an existing vault's `.obsidian/` settings. No whole-vault backups, copying runtime/credential directories, or broad vault commits.
-- Discovery is read-only: no fetch, pull, installation, health test, service stop or restart. A running monitor's non-secret location metadata helps identify an installation; it is not proof that the installation is healthy.
-- Keep stock starter source maintained as a complete release. Do not patch `obsidian-v2/` or `jarvis-v2/` as an installation or repair workaround. The explicit exception is a member-approved custom integration plan in `setup/UPGRADE.md`, implemented in their owned project with scoped backups, tests and rollback. Such projects require manual future integration unless reconciled with the maintained starter.
-- `update` is for a recognized, unmodified starter checkout. It refuses customized or unknown source before stopping services. Do not remove that guard or discard changes to force an update.
-- Get the member's approval for the concrete upgrade plan before applying it, and obtain explicit permission for its service handoff before stopping or restarting a running installation. Use that installation's own scripts; leave unrelated speech services and recovery tasks alone.
-- Services are local only (`127.0.0.1`, ports 3217–3221). Do not expose them. Only one installation can own those ports.
+- Nunca peça chaves ou senhas no chat. Nunca leia, exiba ou copie `jev.json`, `openai.json`, `bridge-auth.json`, `providers.json`, `.credentials.json` ou `~/.claude/.env`. A pessoa digita a chave da OpenRouter na página local aberta por `node aos.mjs jev-key` e a chave da OpenAI para a voz ao vivo na página aberta por `node aos.mjs openai-key`.
+- Nunca sobrescreva notas existentes nem substitua as configurações `.obsidian/` de um cofre existente. Nunca faça cópias de segurança do cofre inteiro, copie pastas de execução ou de credenciais nem faça commits que incluam grande parte do cofre.
+- A descoberta é somente para leitura. Pule `fetch`, `pull`, instalação, verificação de saúde e qualquer tentativa de parar ou reiniciar um serviço. Os metadados de localização de um monitor ativo, sem dados secretos, ajudam a identificar a instalação. A saúde do sistema exige verificação própria.
+- Mantenha o código da distribuição padrão como um conjunto publicado. Preserve `obsidian-v2/` e `jarvis-v2/` durante a instalação e o reparo. A exceção é um plano de integração personalizada aprovado pela pessoa, conforme `setup/UPGRADE.md`, aplicado no projeto dela com cópias de segurança restritas, testes e procedimento de reversão. Esses projetos exigem integrações futuras manuais até que sejam compatibilizados com a distribuição mantida.
+- Use `update` em uma cópia reconhecida e sem alterações da distribuição padrão. O comando recusa código personalizado ou desconhecido antes de parar os serviços. Preserve essa proteção e as alterações para evitar forçar uma atualização.
+- Peça aprovação para o plano concreto de atualização antes de aplicá-lo. Obtenha permissão explícita para a troca de serviços antes de parar ou reiniciar uma instalação em execução. Use os scripts da própria instalação e deixe os serviços de voz e as tarefas de recuperação não relacionados como estão.
+- Os serviços são apenas locais (`127.0.0.1`, portas 3217–3221). Mantenha-os restritos ao computador. Só uma instalação pode usar essas portas de cada vez.
 
-Commands: `node aos.mjs setup | upgrade | start | stop | status | doctor [--full] | jev-key | openai-key | autostart on|off | update | dashboard | skills | voice | schedule | about | live-context`.
+Comandos disponíveis
 
-`upgrade` reports what is present; it does not apply changes. `update` changes a stock starter. Follow the appropriate guide instead of treating those commands as synonyms.
+`node aos.mjs setup | upgrade | start | stop | status | doctor [--full] | jev-key | openai-key | autostart on|off | update | dashboard | skills | voice | schedule | about | live-context`.
+
+`upgrade` inspeciona o que existe em modo somente leitura. `update` atualiza uma cópia da distribuição padrão. Siga o guia correspondente.

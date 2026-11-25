@@ -7,7 +7,7 @@ import crypto from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {projectRoot} from '../../runner/runtime.mjs';
 import {isWindows, tryJson, sleep, listener, samePath, processesUsing} from './platform.mjs';
-import {layout, start, stop, waitForServices, speechInstalled, speechPlan, bridgeIsOurs, hudIsOurs, otherInstallation, PORTS} from './services.mjs';
+import {layout, start, stop, waitForServices, speechInstalled, speechPlan, serviceLabel, bridgeIsOurs, hudIsOurs, otherInstallation, PORTS} from './services.mjs';
 import {enableAutostart, autostartOwner} from './autostart.mjs';
 import {setupSpeech, setAsideUnsupportedVoice, removeSetAsideVoice, voiceRebuildMarker} from './speech.mjs';
 import {applyProviderChoice} from './provider.mjs';
@@ -23,7 +23,7 @@ const hashOf = file => fs.existsSync(file) ? crypto.createHash('sha256').update(
 function runStep(label, command, args, {cwd, log, timeout = 30 * 60 * 1000, shell = false}) {
   log(`-> ${label}`);
   const result = spawnSync(command, args, {cwd, encoding: 'utf8', timeout, windowsHide: true, shell, maxBuffer: 64 * 1024 * 1024});
-  if (result.status !== 0) throw new Error(`${label} failed:\n${String(result.stderr || result.stdout || result.error?.message || '').trim().split(/\r?\n/).slice(-15).join('\n')}`);
+  if (result.status !== 0) throw new Error(`${label} falhou:\n${String(result.stderr || result.stdout || result.error?.message || '').trim().split(/\r?\n/).slice(-15).join('\n')}`);
   return result.stdout;
 }
 const npm = (label, args, cwd, log) => runStep(label, isWindows ? 'npm.cmd' : 'npm', args, {cwd, log, shell: isWindows});
@@ -42,11 +42,11 @@ export function fixPtyHelper(dir) {
 }
 
 // Installs only when the lockfile changed since the last successful install.
-function installPackages(dir, label, log, stamps) {
+function installPackages(dir, key, label, log, stamps) {
   const lock = hashOf(path.join(dir, 'package-lock.json'));
-  if (fs.existsSync(path.join(dir, 'node_modules')) && stamps[label] === lock) { log(`-> ${label}: packages already installed`); return false; }
-  npm(`${label}: installing packages`, ['ci', '--no-audit', '--no-fund'], dir, log);
-  stamps[label] = lock;
+  if (fs.existsSync(path.join(dir, 'node_modules')) && stamps[key] === lock) { log(`-> ${label}: pacotes já instalados`); return false; }
+  npm(`${label}: instalando pacotes`, ['ci', '--no-audit', '--no-fund'], dir, log);
+  stamps[key] = lock;
   return true;
 }
 
@@ -54,7 +54,7 @@ function buildHud(at, log) {
   const current = path.join(at.jarvis, '.next'), previous = path.join(at.runtime, 'next-previous');
   fs.rmSync(previous, {recursive: true, force: true});
   if (fs.existsSync(current)) fs.renameSync(current, previous);
-  try { npm('Jarvis HUD: building (about a minute)', ['run', 'build'], at.jarvis, log); }
+  try { npm('Jarvis: compilando (cerca de um minuto)', ['run', 'build'], at.jarvis, log); }
   catch (error) {
     // A half-written build cannot serve; the previous one can.
     fs.rmSync(current, {recursive: true, force: true});
@@ -79,7 +79,7 @@ export async function startAtLogin({root = projectRoot, log = console.log} = {})
   const at = layout(root);
   // Refuse BEFORE anything is paused: a login item that belongs to another installation must leave
   // this installation exactly as it was, monitor included.
-  if (autostartOwner(at) === 'other') throw new Error('A different installation owns the start-at-login item; nothing was changed. Turn it off from that installation first (`node aos.mjs autostart off` in its folder).');
+  if (autostartOwner(at) === 'other') throw new Error('Outra instalação controla a inicialização automática. Rode `node aos.mjs autostart off` na pasta dela antes de continuar. Esta instalação não foi alterada.');
   if (!fs.existsSync(at.config)) await start({root, log});
   await pauseMonitor(at);
   log('-> ' + enableAutostart(at));
@@ -90,14 +90,14 @@ export async function startAtLogin({root = projectRoot, log = console.log} = {})
 // system must not own the ports, and the vault must not belong to another installation.
 export async function preflight(at, vault, {adopt = false, get = tryJson, find = listener, post} = {}) {
   const monitor = await get(`http://127.0.0.1:${PORTS.supervisor}/status`);
-  if (monitor && !(monitor.kind === 'agentic-os-service-supervisor' && samePath(monitor.runtimeDir, at.runtime))) throw new Error(`Another installation of this system (or another program) is running on port 3221. Nothing was changed.${otherInstallation(monitor) || ' Open http://127.0.0.1:3221/status in a browser to see what it is.'}`);
-  if (!monitor && find(PORTS.supervisor)) throw new Error('Another program is using port 3221. Nothing was changed.');
+  if (monitor && !(monitor.kind === 'agentic-os-service-supervisor' && samePath(monitor.runtimeDir, at.runtime))) throw new Error(`Outra instalação ou outro programa está rodando na porta 3221. Esta instalação não foi alterada.${otherInstallation(monitor) || ' Abra http://127.0.0.1:3221/status no navegador para identificar o serviço.'}`);
+  if (!monitor && find(PORTS.supervisor)) throw new Error('Outro programa está usando a porta 3221. Esta instalação não foi alterada.');
   // Whatever listens on our ports must prove it is this installation; our own monitor running is no excuse.
-  if (find(PORTS.bridge) && !await bridgeIsOurs(at, post ? {post} : {})) throw new Error('Another program (or another installation of this system) is using port 3219. Stop it first. Nothing was changed.');
-  if (find(PORTS.jarvis) && !await hudIsOurs(at, {get, find})) throw new Error('Another program (or another installation of this system) is using port 3217. Stop it first. Nothing was changed.');
+  if (find(PORTS.bridge) && !await bridgeIsOurs(at, post ? {post} : {})) throw new Error('Outra instalação ou outro programa está usando a porta 3219. Encerre-o antes de continuar. Esta instalação não foi alterada.');
+  if (find(PORTS.jarvis) && !await hudIsOurs(at, {get, find})) throw new Error('Outra instalação ou outro programa está usando a porta 3217. Encerre-o antes de continuar. Esta instalação não foi alterada.');
   const marker = path.join(vault, '.obsidian', 'plugins', 'agentic-os-v2', 'terminal-runtime.json');
   let owner = null; try { owner = JSON.parse(fs.readFileSync(marker, 'utf8')).runtimeDir; } catch { /* not connected yet */ }
-  if (owner && !samePath(owner, at.runtime) && !adopt) throw new Error(`This vault is already connected to another installation (${path.dirname(owner)}). Use that one, or run setup again with --adopt to move the vault to this installation. Nothing was changed.`);
+  if (owner && !samePath(owner, at.runtime) && !adopt) throw new Error(`Este cofre já está conectado a outra instalação (${path.dirname(owner)}). Use essa instalação ou rode setup com --adopt para conectar o cofre a esta cópia. O cofre não foi alterado.`);
 }
 
 // Voice at setup time: 'off', 'present' (already installed), 'repaired', 'shared' (another program's
@@ -128,14 +128,14 @@ export async function prepareVoice(at, {wantVoice, explicit = false, language = 
   if (!wantVoice) return 'off';
   // Before the installed-files shortcut, so an ordinary update repairs a 3.14 environment too.
   const aside = await setAside({log, busy, inUse});
-  if (aside.state === 'no-python' || aside.state === 'deferred') { log(`-> Voice: ${aside.reason}`); return aside.state; }
+  if (aside.state === 'no-python' || aside.state === 'deferred') { log(`-> Voz: ${aside.reason}`); return aside.state; }
   const voice = await plan(at);
   // Only a setting can name a shared service that does not answer; discovery never picks a dead one.
-  if (voice.shared && !voice.healthy) log(`-> Voice: the AOS_V2_SPEECH_URL setting points at ${voice.url}, which is not answering. The services use that address for as long as the setting exists, so voice stays silent until you remove the setting and run \`node aos.mjs stop\`, then \`node aos.mjs start\`.`);
+  if (voice.shared && !voice.healthy) log(`-> Voz: AOS_V2_SPEECH_URL aponta para ${voice.url}, que está sem resposta. Para retomar a voz, remova a configuração e rode \`node aos.mjs stop\` e depois \`node aos.mjs start\`.`);
   // A rebuild that did not finish (the replacement's packages failed) is never mistaken for installed voice.
   const rebuildPending = fs.existsSync(voiceRebuildMarker(at));
   if (rebuildPending) {
-    log('-> Voice: finishing the rebuild of the voice environment');
+    log('-> Voz: concluindo a reconstrução do ambiente de voz');
     await installVoice(at, {log, language});
     stampVoiceRequirements(at);
     fs.rmSync(voiceRebuildMarker(at), {force: true});
@@ -149,21 +149,21 @@ export async function prepareVoice(at, {wantVoice, explicit = false, language = 
     const stale = voiceRequirementsChanged(at);
     if (!explicit && !stale) return 'present';
     if (!explicit) {
-      if (await busy()) { log('-> Voice: its packages changed in this update, but voice may still be running. Run `node aos.mjs stop`, then `node aos.mjs setup --voice yes` to bring it up to date.'); return 'present'; }
-      log('-> Voice: its packages changed in this update; bringing the voice environment up to date');
+      if (await busy()) { log('-> Voz: os pacotes mudaram, e o serviço pode estar em uso. Rode `node aos.mjs stop` e depois `node aos.mjs setup --voice yes` para atualizar.'); return 'present'; }
+      log('-> Voz: atualizando o ambiente de voz para os novos pacotes');
       try { await installVoice(at, {log, language}); stampVoiceRequirements(at); return 'repaired'; }
-      catch (error) { log(`-> Voice: could not update its packages (${String(error.message || error).slice(0, 200)}). Voice keeps the packages it has; run \`node aos.mjs setup --voice yes\` to try again.`); return 'present'; }
+      catch (error) { log(`-> Voz: não foi possível atualizar os pacotes (${String(error.message || error).slice(0, 200)}). Os pacotes anteriores continuam disponíveis. Rode \`node aos.mjs setup --voice yes\` para tentar novamente.`); return 'present'; }
     }
-    log('-> Voice: already installed; checking the files and fetching anything that is missing');
+    log('-> Voz: verificando a instalação e baixando os arquivos que faltam');
     await installVoice(at, {log, language});
     stampVoiceRequirements(at);
     return 'repaired';
   }
   if (voice.shared && voice.healthy) {
-    log(`-> Voice: a speech service is already running on this computer (${voice.url}) and will be shared, so there is nothing to download. If that service ever goes away: \`node aos.mjs stop\`, then \`node aos.mjs setup --voice yes\`, and this installation gets a voice of its own.`);
+    log(`-> Voz: vou compartilhar o serviço de voz em execução neste computador (${voice.url}). Nenhum download é necessário. Se esse serviço for removido, rode \`node aos.mjs stop\` e depois \`node aos.mjs setup --voice yes\` para instalar um serviço de voz próprio.`);
     return 'shared';
   }
-  log('-> Voice: installing (about 1.3 GB the first time: 800 MB of voice models plus the Python packages that run them)');
+  log('-> Voz: instalando (cerca de 1,3 GB no primeiro uso, incluindo 800 MB de modelos de voz e os pacotes Python)');
   await installVoice(at, {log, language});
   stampVoiceRequirements(at);
   // Only now is an environment set aside earlier no longer needed (kept if anything still runs from it).
@@ -188,32 +188,32 @@ export async function startCommand({resetRecovery = false, wait = true, log = co
   await startImpl({resetRecovery, log});
   if (!wait) return 0;
   const wanted = watchedServices(await monitor());
-  log(`-> Waiting for ${wanted.join(', ')} to come up${wanted.includes('speech') ? ' (voice models can take a minute)' : ''}`);
+  log(`-> Aguardando ${wanted.map(serviceLabel).join(', ')}${wanted.includes('speech') ? ' (os modelos de voz podem levar um minuto)' : ''}`);
   const pending = await waitFor(wanted, {timeoutMs});
-  if (!pending.length) { log('Everything is up.'); return 0; }
-  log(`Still starting after ${Math.round(timeoutMs / 60000)} minutes: ${pending.join(', ')}. Run \`node aos.mjs status\` in a minute; if it is still not online, run \`node aos.mjs doctor\` and follow its fix lines.`);
+  if (!pending.length) { log('Todos os serviços estão prontos.'); return 0; }
+  log(`Ainda iniciando após ${Math.round(timeoutMs / 60000)} min: ${pending.map(serviceLabel).join(', ')}. Rode \`node aos.mjs status\` daqui a um minuto. Se algum serviço ainda estiver fora do ar, rode \`node aos.mjs doctor\` e siga as orientações do diagnóstico.`);
   return 1;
 }
 
 export async function setup({root = projectRoot, vault, voice, autostart, provider, rebuild = false, ci = false, adopt = false, log = console.log} = {}) {
   const at = layout(root), state = readState(at);
-  if (Number(process.versions.node.split('.')[0]) < 22) throw new Error(`Node.js 22 or newer is required (this is ${process.versions.node}). Install the LTS from nodejs.org, open a new terminal and run setup again.`);
-  if (!fs.existsSync(path.join(at.jarvis, 'package.json'))) throw new Error(`The Jarvis HUD folder is missing next to this one (${at.jarvis}). Clone the whole starter repository, not one folder.`);
+  if (Number(process.versions.node.split('.')[0]) < 22) throw new Error(`É preciso usar Node.js 22 ou mais recente. A versão atual é ${process.versions.node}. Instale a versão LTS de nodejs.org, abra outro terminal e rode setup de novo.`);
+  if (!fs.existsSync(path.join(at.jarvis, 'package.json'))) throw new Error(`A pasta do Jarvis não foi encontrada em ${at.jarvis}. Clone o repositório completo.`);
   vault = vault ? path.resolve(vault) : state.vault;
-  if (!vault) throw new Error('Tell setup where the vault lives: node aos.mjs setup --vault "<absolute path>"');
+  if (!vault) throw new Error('Informe o caminho do cofre com node aos.mjs setup --vault "<caminho absoluto>".');
   await preflight(at, vault, {adopt});
   state.stamps ||= {};
   const wantVoice = voice === undefined ? state.voice === true : voice;
 
-  const bridgeChanged = installPackages(at.root, 'Bridge and plugin', log, state.stamps);
-  const hudChanged = installPackages(at.jarvis, 'Jarvis HUD', log, state.stamps);
-  if (fixPtyHelper(at.root).length) log('-> Terminal helper: made executable');
+  const bridgeChanged = installPackages(at.root, 'Bridge and plugin', 'Ponte e plugin', log, state.stamps);
+  const hudChanged = installPackages(at.jarvis, 'Jarvis HUD', 'Jarvis', log, state.stamps);
+  if (fixPtyHelper(at.root).length) log('-> Auxiliar do terminal: permissão de execução configurada');
   writeState(at, state);
-  npm('Obsidian plugin: building', ['run', 'build'], at.root, log);
+  npm('Plugin do Obsidian: compilando', ['run', 'build'], at.root, log);
 
   const report = scaffoldVault(path.join(at.root, 'vault-template'), vault);
-  log(`-> Vault ${report.newVault ? 'created' : 'completed'} at ${vault} (${report.created} file(s) added, ${report.kept} existing kept)`);
-  const install = () => runStep('Obsidian plugin: installing into the vault', process.execPath, [path.join(at.root, 'scripts', 'install-live.mjs'), vault], {cwd: at.root, log});
+  log(`-> Cofre ${report.newVault ? 'criado' : 'configurado'} em ${vault} (arquivos adicionados: ${report.created}, preservados: ${report.kept})`);
+  const install = () => runStep('Plugin do Obsidian: instalando no cofre', process.execPath, [path.join(at.root, 'scripts', 'install-live.mjs'), vault], {cwd: at.root, log});
   // Before the plugin install, which otherwise seeds a Codex selection into a fresh vault.
   applyProviderChoice(vault, {explicit: provider, runtimeDir: at.runtime, log});
   install();
@@ -221,7 +221,7 @@ export async function setup({root = projectRoot, vault, voice, autostart, provid
   Object.assign(state, {vault, voice: wantVoice});
   writeState(at, state);
 
-  if (rebuild || hudChanged || bridgeChanged || !fs.existsSync(at.buildId)) buildHud(at, log); else log('-> Jarvis HUD: already built');
+  if (rebuild || hudChanged || bridgeChanged || !fs.existsSync(at.buildId)) buildHud(at, log); else log('-> Jarvis: compilação já disponível');
   // The vault's own setting ("speechLanguage" in system/v2/profile.json); English when it says nothing.
   await prepareVoice(at, {wantVoice, explicit: voice === true, language: speechLanguage(vault).code, log});
 
@@ -229,9 +229,9 @@ export async function setup({root = projectRoot, vault, voice, autostart, provid
   if (autostart === true) await startAtLogin({root, log});
   // Wait for exactly what the monitor was told to run, not for what happens to be installed.
   const wanted = watchedServices(await tryJson(`http://127.0.0.1:${PORTS.supervisor}/status`));
-  log(`-> Waiting for services to come up${wanted.includes('speech') ? ' (voice models can take a minute)' : ''}`);
+  log(`-> Aguardando os serviços ficarem disponíveis${wanted.includes('speech') ? ' (os modelos de voz podem levar um minuto)' : ''}`);
   const pending = await waitForServices(wanted, {timeoutMs: 180000});
-  if (pending.length) log(`  still starting: ${pending.join(', ')}`);
+  if (pending.length) log(`  ainda iniciando: ${pending.map(serviceLabel).join(', ')}`);
   // The bridge mints its access token on first start; the plugin needs a copy.
   install();
   // Every step above finished with these files; the doctor checks for this mark.
@@ -246,18 +246,18 @@ export async function setup({root = projectRoot, vault, voice, autostart, provid
 // a fresh Node process runs `aos.mjs setup`. Its exit status becomes the result the CLI reports.
 export function setupInFreshProcess({root, vault, rebuild, log = console.log, spawnImpl = spawnSync}) {
   const args = [path.join(root, 'scripts', 'aos.mjs'), 'setup', '--vault', vault, ...(rebuild ? ['--rebuild'] : [])];
-  log('-> Running setup from the updated files');
+  log('-> Executando setup com os arquivos atualizados');
   const result = spawnImpl(process.execPath, args, {cwd: root, stdio: 'inherit', windowsHide: true});
-  if (result.error) throw new Error(`Could not run the updated setup (${process.execPath} ${args.join(' ')}): ${result.error.message}`);
+  if (result.error) throw new Error(`Não foi possível executar o setup atualizado (${process.execPath} ${args.join(' ')}): ${result.error.message}`);
   return {ok: result.status === 0, exitCode: result.status};
 }
 
 export async function update({root = projectRoot, log = console.log, check = assessCheckout, get = tryJson, halt = stop, pull, pullRun, install = options => setupInFreshProcess(options)} = {}) {
   const assessment = check(root);
-  if (assessment?.updateAllowed !== true) throw new Error('This checkout is customized or could not be confirmed as a clean stock starter. Nothing was stopped or changed. Run `node aos.mjs upgrade` to review a safe upgrade plan.');
+  if (assessment?.updateAllowed !== true) throw new Error('Esta cópia tem alterações ou não foi reconhecida como uma instalação padrão. Nenhum serviço foi interrompido e nenhum arquivo foi alterado. Rode `node aos.mjs upgrade` para avaliar um plano de atualização.');
   pull ||= prepareStockUpdate(assessment, {log, ...(pullRun ? {run: pullRun} : {})});
   const at = layout(root), state = readState(at);
-  if (!state.vault) throw new Error('Nothing is installed here yet. Run `node aos.mjs setup --vault "<path>"` first.');
+  if (!state.vault) throw new Error('Esta cópia ainda não foi instalada. Rode `node aos.mjs setup --vault "<caminho>"` primeiro.');
   // Stop first: packages and the HUD build are replaced on disk, and stop refuses while any task is open.
   if (await get(`http://127.0.0.1:${PORTS.bridge}/state`)) await halt({root, log});
   else await pauseMonitor(at, get);

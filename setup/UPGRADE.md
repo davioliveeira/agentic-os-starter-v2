@@ -1,164 +1,188 @@
-# Upgrade playbook (for the coding agent)
+<a name="upgrade-playbook-for-the-coding-agent"></a>
 
-Help a member improve the Agentic OS they already use while keeping their notes, skills and customizations. The member chooses **fresh install** or **upgrade existing** at entry. Do not make "selected features" a third onboarding choice: explain feature choices after you have identified their existing system.
+# Atualização do Agentic OS para agentes de código
 
-Honor an explicit upgrade request even when this repository contains `obsidian-v2/.runtime/aos-setup.json`. That marker does not mean the member asked for repair. A repair request can use the same discovery to find the intended installation, then follow the repair instructions in `PLAYBOOK.md`.
+Ajude a pessoa a melhorar o Agentic OS que já usa, preservando suas notas, skills e personalizações. No início, ela escolhe entre **primeira instalação** e **atualizar uma instalação existente**. Discuta a escolha de recursos depois de identificar o sistema atual.
+
+Siga um pedido explícito de atualização mesmo se o repositório contiver `obsidian-v2/.runtime/aos-setup.json`. Esse arquivo registra uma instalação anterior. Em um pedido de reparo, use a mesma descoberta para localizar a instalação e depois siga as instruções de reparo em `PLAYBOOK.md`.
 
 ```text
-Find existing system (read only)
+Localizar o sistema atual (somente leitura)
               |
-Explain what can be added and what must move together
+Explicar o que pode ser adicionado e o que precisa mudar em conjunto
               |
-Member approves a concrete plan
+A pessoa aprova um plano concreto
               |
-Prepare and test changes away from running services
+Preparar e testar as mudanças longe dos serviços em execução
               |
-Member authorizes handoff -> verify -> keep rollback available
+A pessoa autoriza a troca de serviços -> verificar -> manter a reversão disponível
 ```
 
-## 1. Find their installation for them
+<a name="1-find-their-installation-for-them"></a>
 
-From this starter's root, run:
+## 1. Localize a instalação
+
+Rode na raiz desta distribuição.
 
 ```text
 node aos.mjs upgrade
 ```
 
-If this starter is a separate checkout obtained to guide the upgrade, treat it as the reference copy. Do not assume it is the member's running installation, and do not clone over an existing project to obtain these instructions.
+Se você obteve esta cópia separadamente para orientar a atualização, trate-a como referência. Identifique a cópia em execução antes de prosseguir. Ao obter estas instruções, clone em uma pasta separada de qualquer projeto existente.
 
-This command reports candidates from known installation locations, Obsidian's registered vaults, and a running monitor's non-secret location metadata. It is **discovery only**: it does not download a release, install anything, change files, run doctor, stop services or apply an upgrade. Do not add `git fetch`, `git pull`, a health check or a service restart to this phase. There is no `upgrade --apply` command.
+O comando encontra candidatos em locais de instalação conhecidos, nos cofres registrados pelo Obsidian e nos metadados de localização de um monitor ativo que não contêm dados secretos. É **somente descoberta**, sem baixar versões, instalar pacotes, alterar arquivos, rodar o diagnóstico, parar serviços ou aplicar atualizações. Deixe `git fetch`, `git pull`, verificações de saúde e reinícios de serviços fora dessa fase. O comando `upgrade --apply` não existe.
 
-If Node is missing, explain that the discovery command needs Node and use the prerequisite instructions in `PLAYBOOK.md` with the normal installation permissions. Do not turn that prerequisite into permission to change their existing Agentic OS.
+Se o Node estiver ausente, explique que o comando de descoberta precisa dele e siga os pré-requisitos em `PLAYBOOK.md` com as permissões normais de instalação. A permissão para instalar o Node cobre apenas esse pré-requisito.
 
-Read the actual report, including unavailable locations, errors and skipped checks. A candidate is evidence of an installation; it is not proof of a working or compatible system. An absent candidate is not proof that nothing is installed. Show the member a short plain-language account such as:
+Leia o relatório real, incluindo locais indisponíveis, erros e verificações puladas. Um candidato indica que pode haver uma instalação. A saúde e a compatibilidade ainda precisam ser verificadas. A ausência de candidatos pede uma checagem com a pessoa. Mostre um resumo curto em linguagem comum, por exemplo.
 
-> "I found your Client Work vault and an Agentic OS folder associated with it. I will compare its non-secret code and settings before recommending changes. Your running system has not been changed."
+> “Encontrei seu cofre Trabalho com clientes e uma pasta do Agentic OS associada. Vou comparar o código e as configurações que não contêm dados secretos antes de recomendar mudanças. O seu sistema continua rodando como estava.”
 
-If there are several plausible targets, ask which **vault name** they use, listing the names you found. Resolve its installation from the evidence. Use paths only to distinguish genuinely ambiguous candidates, not as the first question. The following options can narrow a known target; do not make the member type them:
+Se houver vários candidatos plausíveis, pergunte pelo **nome do cofre** que a pessoa usa, listando os nomes encontrados. Use as evidências para identificar a instalação correspondente. Recorra aos caminhos somente para distinguir candidatos que continuarem ambíguos. Para confirmar um destino conhecido, use estas opções você mesmo.
 
 ```text
 node aos.mjs upgrade --install "<identified installation folder>" --vault "<identified vault folder>"
 ```
 
-If discovery finds none, guide the member to open Obsidian's vault switcher and identify the vault they use. Help them reveal that vault's folder with Obsidian's folder/open-in-system-explorer action, then use the revealed location. If their app version has no such action, guide them through Finder or File Explorer from the vault they recognize. Do not quiz them on paths or recursively search their whole home directory. If there is genuinely no existing Agentic OS, explain that finding and offer the fresh-install route.
+Se a descoberta não encontrar candidatos, oriente a pessoa a abrir o seletor de cofres do Obsidian e identificar o cofre que usa. Ajude-a a revelar a pasta com a opção do Obsidian que abre o local no explorador do sistema e use o caminho exibido. Se a versão do aplicativo não tiver essa opção, oriente a pessoa pelo Finder ou Explorador de Arquivos a partir do cofre que ela reconhece. Não peça que a pessoa saiba os caminhos de memória nem faça uma busca recursiva na pasta pessoal inteira. Se realmente não houver Agentic OS instalado, explique o resultado e ofereça a primeira instalação.
 
-## 2. Compare the chosen system without disturbing it
+<a name="2-compare-the-chosen-system-without-disturbing-it"></a>
 
-Limit inspection to the selected installation and relevant non-secret files in its vault. Read manifests, package versions, source entry points, launcher scripts, selected skill instructions, and explicit configuration schemas as needed. Git status, file-name-only differences and commit IDs can help identify edits; inspect content only in selected non-secret files. Never dump all environment variables, runtime files, configuration files or repository diffs.
+## 2. Compare o sistema escolhido sem interferir nele
 
-Never read, print or copy `jev.json`, `bridge-auth.json`, `providers.json`, `.credentials.json` or `~/.claude/.env`. Do not obtain keys from the member in chat. The presence of a credential file does not authorize reading it. If a future handoff needs a key configured, the member uses the existing local key-entry flow themselves.
+Limite a inspeção à instalação escolhida e aos arquivos pertinentes do cofre que não contenham dados secretos. Leia manifestos, versões de pacotes, pontos de entrada do código, scripts de inicialização, instruções das skills escolhidas e esquemas explícitos de configuração conforme necessário. O status do Git, as diferenças limitadas aos nomes dos arquivos e os IDs de commits ajudam a identificar mudanças. Abra só os arquivos selecionados que não contenham dados secretos. Nunca despeje todas as variáveis de ambiente, todos os arquivos de execução ou configuração ou todas as diferenças do repositório.
 
-Record evidence for:
+Nunca leia, exiba ou copie `jev.json`, `bridge-auth.json`, `providers.json`, `.credentials.json` ou `~/.claude/.env`. Nunca obtenha chaves pelo chat. A presença de um arquivo de credenciais não autoriza a leitura. Se for preciso configurar uma chave para a troca de serviços, a própria pessoa usa a página local existente para inseri-la.
 
-- Which vault, installation folder and source revision belong together; which installation currently owns the service ports, if known.
-- Whether this is a maintained V2 starter, V1, or a customized/unknown project. A clean Git checkout can still contain committed personal changes; cleanliness alone is not evidence of stock source.
-- The member's custom dashboard, skills, workflows, notes structure and relevant integration changes. Ask what they value and use often; file presence is not usage history.
-- Which proposed changes need matching bridge, plugin, HUD or launcher versions. Read their contracts before claiming compatibility.
+Registre evidências sobre estes pontos.
 
-Do not run doctor or execute an existing workflow during discovery. Those are active validation steps, and `doctor --full` spends provider usage and writes a report. Schedule them in the approved plan. Do not read unrelated notes to make an inventory, and do not edit vault settings to make the inventory easier.
+- Qual cofre, pasta de instalação e revisão de código correspondem entre si e qual instalação usa as portas dos serviços, se for possível identificar.
+- Se é uma versão V2 da distribuição mantida, uma V1 ou um projeto personalizado ou desconhecido. Uma cópia Git sem mudanças pendentes pode conter personalizações em commits. Confirme a origem do código.
+- O painel personalizado, as skills, os fluxos, a estrutura das notas e as alterações de integração relevantes. Pergunte o que a pessoa valoriza e usa com frequência. A presença de um arquivo informa o que está disponível.
+- Quais mudanças propostas exigem versões correspondentes da ponte, do plugin, do Jarvis ou do inicializador. Leia os contratos antes de afirmar que há compatibilidade.
 
-## 3. Explain choices, then recommend a compatible plan
+Reserve o diagnóstico e a execução de fluxos existentes para a validação no plano aprovado. `doctor --full` consome a cota do provedor e grava um relatório. Limite o inventário às notas pertinentes e preserve as configurações do cofre.
 
-Start with: *"What do you want to improve in the version you already use? I can also explain what this starter adds and suggest a starting point."* Preserve their current customizations by default. They do not need to replace everything to express a preference, but some components must be upgraded together.
+<a name="3-explain-choices-then-recommend-a-compatible-plan"></a>
 
-Use this capability list as a guide to discussion, not as an automatic compatibility detector:
+## 3. Explique as opções e recomende um plano compatível
 
-| Capability | What the member gets | Dependencies to check |
+Comece com *“O que você quer melhorar na versão que já usa? Posso também explicar o que esta distribuição oferece e sugerir por onde começar.”* Preserve as personalizações por padrão. A pessoa pode escolher quais recursos quer. Alguns componentes precisam ser atualizados em conjunto.
+
+Use a lista para orientar a conversa e verifique a compatibilidade no código.
+
+| Recurso | O que oferece | Dependências a conferir |
 |---|---|---|
-| Obsidian cockpit | Daily plan, metrics and workflow controls in the vault | Compatible plugin and bridge; existing note/parser conventions; Obsidian. Personal-skill conversations inside Obsidian also require the Terminal community plugin, a stable 3.x release from 3.27.1 on. |
-| Jarvis HUD | Browser dashboard and agent terminals | Compatible HUD, bridge and launcher/monitor configuration; selected Claude Code or Codex CLI. |
-| Local voice | Speech recognition and spoken replies on the computer | Compatible bridge and voice client, Python/model requirements, microphone permission, and either owned speech or an already compatible shared service. |
-| Optional Jev | Routing for spoken requests through OpenRouter | Compatible voice routing; member's OpenRouter account and credit; key entered locally. Voice can work without Jev. |
-| Optional Live voice | A two-way call that answers from their day and hands real work to their agents | Matching bridge, plugin and HUD from 0.4 on; microphone permission; the member's own OpenAI API account with credit (ChatGPT Pro and Business include monthly API credits once claimed; Plus does not); key entered locally. OpenAI bills the calls. Local voice keeps working without it. |
-| About me | A short profile in the vault's `AGENTS.md` that their agents read | Compatible bridge; the member approves the text. With Live voice on, it is sent to OpenAI at the start of each call. |
-| Personal dashboard buttons | Choose and order up to ten bundled or installed skills | Matching dashboard APIs, configuration schema and UI versions; each personal skill's actual provider and dependencies. Obsidian personal skills require Terminal; Jarvis can run them without that plugin. |
-| Bundled workflows | Reports and drafts such as planning, research and content | Compatible runner/bridge and vault conventions, a signed-in coding provider, plus any connectors required by the specific workflow. |
+| Painel do Obsidian | Plano diário, métricas e controles de fluxos no cofre | Plugin e ponte compatíveis, convenções existentes de notas e de interpretação dos arquivos e Obsidian. Conversas de skills pessoais no Obsidian também exigem o plugin da comunidade Terminal, em uma versão 3.x estável a partir da 3.27.1. |
+| Jarvis | Painel no navegador e terminais para agentes | Jarvis, ponte e configuração do inicializador e do monitor compatíveis, mais a CLI do Claude Code ou Codex escolhida. |
+| Voz local | Reconhecimento de fala e respostas faladas no computador | Ponte e cliente de voz compatíveis, requisitos de Python e modelos, permissão de microfone e um serviço de voz próprio ou compartilhado já compatível. |
+| Jev opcional | Encaminhamento de pedidos falados pela OpenRouter | Roteamento de voz compatível, conta e créditos da pessoa na OpenRouter e chave inserida localmente. A voz funciona sem Jev. |
+| Voz ao vivo opcional | Chamada de voz em que o assistente responde com base no dia da pessoa e encaminha tarefas reais aos agentes | Versões correspondentes da ponte, do plugin e do Jarvis a partir da 0.4, permissão de microfone e conta própria da API da OpenAI com créditos. ChatGPT Pro e Business incluem créditos mensais da API após resgate. O Plus não inclui. A pessoa insere a chave localmente e a OpenAI cobra as chamadas. A voz local segue disponível. |
+| Sobre mim | Perfil curto no `AGENTS.md` do cofre, lido pelos agentes | Ponte compatível e texto aprovado pela pessoa. Se a voz ao vivo estiver ativa, a OpenAI recebe o texto no início de cada chamada. |
+| Botões personalizados do painel | Escolha e ordenação de até dez skills incluídas ou instaladas | APIs do painel, esquema de configuração e versões da interface correspondentes. Confira a ferramenta de código e as dependências de cada skill pessoal. No Obsidian, elas exigem o Terminal. O Jarvis pode executá-las sem esse plugin. |
+| Fluxos incluídos | Relatórios e rascunhos de planejamento, pesquisa e conteúdo, entre outros | Executor, ponte e convenções do cofre compatíveis, sessão ativa no provedor de código e conectores exigidos pelo fluxo. |
 
-For example: "You want your own skill buttons and you like your current dashboard design. I recommend keeping the design and integrating the dashboard API, saved selection and matching button controls together. I will check the bridge contracts first; copying just the buttons would not establish compatibility."
+Por exemplo, diga *“Você quer botões para suas skills e gosta do desenho atual do seu painel. Recomendo manter o desenho e integrar juntos a API do painel, o armazenamento da seleção e os controles de botões compatíveis. Vou conferir os contratos da ponte antes de integrar esses componentes.”*
 
-Read the selected existing and new code to substantiate that recommendation. Identify what can stay, what must change together, and what is currently uncertain. If a feature cannot safely fit their version, explain the missing dependency and offer a coherent larger upgrade or defer that feature. Never promise a universal automatic merge.
+Leia os trechos pertinentes do código atual e do novo para fundamentar a recomendação. Identifique o que pode continuar, o que precisa mudar junto e o que ainda exige confirmação. Se um recurso não se encaixar com segurança na versão atual, explique a dependência ausente e ofereça uma atualização mais ampla e coerente ou adie o recurso. Nunca prometa uma mesclagem automática universal.
 
-Present one concrete plan before applying it. Include the chosen vault and project, requested capabilities, exact files/component groups to change, customizations to preserve, conflict choices, scoped backup location, tests, rollback, and any later service interruption. Explain optional costs and account setup only where relevant. Get approval for this plan; do not substitute a generic "may I upgrade?" for a reviewable result.
+Antes de aplicar mudanças, apresente um plano concreto. Inclua o cofre e o projeto escolhidos, os recursos pedidos, os arquivos ou grupos de componentes exatos a alterar, as personalizações a preservar, as decisões sobre conflitos, o local da cópia de segurança restrita, os testes, o procedimento de reversão e qualquer interrupção posterior dos serviços. Explique custos opcionais e configuração de contas quando forem relevantes. Obtenha aprovação para o plano com esses detalhes.
 
-## 4. Use the appropriate execution case
+<a name="4-use-the-appropriate-execution-case"></a>
 
-These are internal implementation cases. Describe their consequences simply instead of making the member diagnose their project.
+## 4. Aplique o procedimento adequado ao projeto
 
-### A. Recognized stock V2 starter: update it as a whole
+Esses casos orientam o trabalho do agente. Explique as consequências de forma simples, sem pedir que a pessoa diagnostique o próprio projeto.
 
-Use the existing installation folder. The bridge, Obsidian plugin, HUD and launchers are maintained as one release; optional features can still be enabled or left unused. Preserve the member's vault, dashboard choices and supported preferences.
+<a name="a-recognized-stock-v2-starter-update-it-as-a-whole"></a>
 
-After the member approves the plan and the specific service handoff, run `node aos.mjs update` from that existing folder. The command changes source and rebuilds, so it is not a discovery command. Its source guard refuses customized or unknown checkouts **before stopping services**. Respect a refusal: identify the custom changes and move to case C. Do not reset files, remove the guard, force a pull, or reclone over the existing folder to get past it.
+### A. Distribuição padrão V2 reconhecida
 
-An older installation may still have an older update launcher without this guard. The 0.3.64 builds from before 22 September 2026 also run their *old* setup after pulling, so the new setup steps (provider choice, voice package updates, login-item repairs) do not happen. After such an update, run `node aos.mjs doctor`: when it reports `FAIL Setup finished for these files`, run `node aos.mjs stop` and then `node aos.mjs setup` once (it keeps the vault, notes and saved choices; stopping first lets it update the voice packages) and run the doctor again. Do not report the update as finished before that line passes. Inspect that non-secret update path before executing it; do not assume the new reference copy changed the installed command. Only use an older updater after the read-only comparison positively establishes stock source and its reviewed behavior is part of the approved plan. If that cannot be established, use case C instead.
+Use a pasta da instalação existente. O atualizador deste fork reconhece o repositório original da Chase AI (`ctskool/agentic-os-starter-v2`) e o fork em português (`davioliveeira/agentic-os-starter-v2`). O remoto `origin` é um dos critérios. O comando também avalia o estado do checkout, e cada distribuição se atualiza a partir do próprio repositório. A ponte, o plugin do Obsidian, o Jarvis e os inicializadores são mantidos em uma mesma versão. A pessoa ainda pode escolher quais recursos opcionais usar. Preserve o cofre, a seleção de botões e as preferências compatíveis.
 
-Do available offline checks before the handoff; follow section 6 for the live verification and rollback decision. A refusal caused by active work is a reason to let the member finish that work, not to terminate their agents.
+Depois que a pessoa aprovar o plano e a troca específica dos serviços, rode `node aos.mjs update` da pasta existente. O comando altera o código e recompila o sistema. A proteção recusa cópias personalizadas ou desconhecidas **antes de parar os serviços**. Se houver recusa, identifique as personalizações e vá para o caso C. Preserve os arquivos e a proteção. Nunca force um pull nem clone por cima da pasta existente para contornar a recusa.
 
-### B. V1 to V2: migrate the whole system while keeping the vault
+Uma instalação antiga pode ter um atualizador sem essa proteção. As versões 0.3.64 anteriores a 22 de setembro de 2026 também executam o instalador *antigo* após o pull. Nesses casos, as etapas novas, como a escolha da ferramenta de código, a atualização dos pacotes de voz e os reparos do início de sessão, ficam pendentes. Depois de uma atualização assim, rode `node aos.mjs doctor`. Se aparecer `FAIL Instalação concluída para esta versão` (no original, `FAIL Setup finished for these files`), rode `node aos.mjs stop` e depois `node aos.mjs setup` uma vez. O comando preserva o cofre, as notas e as escolhas salvas, e parar os serviços primeiro permite atualizar os pacotes de voz. Rode o diagnóstico de novo e só informe que a atualização terminou quando essa linha passar. Antes de usar um atualizador antigo, inspecione seu código sem dados secretos. A cópia de referência é separada do código instalado. Use o atualizador antigo apenas se a comparação somente para leitura confirmar que é a distribuição padrão e se o comportamento revisado fizer parte do plano aprovado. Se faltar essa confirmação, siga o caso C.
 
-Keep the old V1 installation and plugin available. Prepare the V2 starter in its own normal installation folder, outside the vault and cloud-sync directories. Reuse the same vault only after comparing its existing note conventions and the files V2 will add. Preserve every existing note and Obsidian setting; resolve incompatible conventions explicitly with the member instead of rewriting their notes to fit a parser.
+Faça as verificações disponíveis sem mexer nos serviços antes da troca. Siga a seção 6 para verificar o sistema em execução e decidir sobre reversão. Se houver recusa por trabalho ativo, deixe a pessoa concluir as tarefas antes de continuar.
 
-Build and validate V2 in a throwaway vault first, using only non-secret sample data. Review the old runner and startup ownership; do not assume it is harmless, delete it, or disable its login item during preparation. Schedule a consented handoff if anything conflicts with the fixed service ports.
+<a name="b-v1-to-v2-migrate-the-whole-system-while-keeping-the-vault"></a>
 
-For the approved installation into their actual vault, follow the relevant fresh-install phases with the selected existing vault. Do not launch both conflicting service sets. Have the member enable the V2 plugin for verification. Keep the old plugin installed; disable the old cockpit only after V2 is verified and the member accepts the handoff. If V2 fails, restore the prior service ownership through its own scripts and have the member restore the old cockpit. Removing the old installation is a separate later decision.
+### B. Migração de V1 para V2 com o mesmo cofre
 
-### C. Customized or unknown project: integrate the approved scope
+Mantenha a instalação V1 e o plugin antigo disponíveis. Prepare o V2 em uma pasta própria comum, fora do cofre e das pastas sincronizadas na nuvem. Reuse o cofre só depois de comparar as convenções das notas existentes com os arquivos que o V2 adicionará. Preserve cada nota e todas as configurações do Obsidian. Resolva convenções incompatíveis com a pessoa, mantendo as notas existentes.
 
-This is intentional work in the member's own project, not a stock update. Explain that it needs code comparison, implementation and testing, and that future updates may need the same care. Do not run blind `setup`, `update`, cherry-picks or directory replacement against that project.
+Compile e valide o V2 primeiro em um cofre descartável, apenas com dados fictícios ou outros exemplos sem dados secretos. Revise o executor antigo e identifique o que controla a inicialização. Investigue o que o executor faz e preserve tanto o executor quanto seu item de início de sessão durante a preparação. Se houver conflito com as portas fixas dos serviços, combine uma troca com a autorização da pessoa.
 
-After plan approval:
+Para instalar no cofre real após aprovação, siga as fases pertinentes do guia de primeira instalação com o cofre já selecionado. Inicie apenas um dos conjuntos de serviços em conflito. Peça à pessoa que habilite o plugin V2 para verificar. Mantenha o plugin antigo instalado. Só desative o painel antigo depois de verificar o V2 e obter a aceitação da troca. Se o V2 falhar, volte a iniciar os serviços anteriores pelos scripts deles e peça à pessoa que restaure o painel antigo. Remover a instalação antiga é uma decisão separada para depois.
 
-1. **Prepare an isolated working copy or branch.** Keep running source untouched while implementing. Use the member's owned project and an explicit allowlist of non-secret source/test files. Do not copy `.runtime`, credential directories, the whole vault or the entire `.obsidian` folder. Never create a broad vault commit. If Git is used, stage only the reviewed non-secret changes; creating a commit is not required to integrate a feature.
-2. **Record a scoped rollback.** Save exact pre-change versions of the non-secret files that the approved integration will modify, outside the vault. Record newly created paths, source revision, dependency lockfiles, and the installation's own start/stop procedure. Preserve the member's current executable build until the replacement is validated. Do not back up secrets by copying the runtime directory.
-3. **Resolve actual conflicts.** Show what a conflict changes in behavior. Ask whether to keep their version, adopt the starter behavior, or combine specific parts where intent is unclear. Do not choose "theirs" or "ours" for a whole merge merely to make it complete. Keep unrelated custom code, notes and settings out of the diff.
-4. **Implement a compatible set.** Compare bridge endpoints, authentication/app identity, work-task and provider/model handling, event formats, vault schemas, plugin/HUD consumers and launcher paths for each selected capability. Integrate the required supporting pieces together. Preserve existing interfaces or add an explicit adapter when feasible; do not claim compatibility based on matching filenames or copied UI alone.
-5. **Validate away from the member's running system.** Run relevant unit/contract tests and builds with synthetic fixtures. Use a throwaway vault for installation and workflow tests. Stub external actions and use disposable test skill files. Do not read/copy the real vault to seed tests, or test a skill by sending messages, publishing, purchasing or making other account changes. Fixed-port service testing must wait for the agreed handoff if the current installation owns those ports; passing offline tests is not a live-service test.
-6. **Review the resulting change before handoff.** Summarize implemented behavior, exact changed files, passing tests and every failure or skipped check, plus remaining risks and rollback. If implementation reveals a materially larger scope or new conflicts, resolve those with the member before expanding it.
+<a name="c-customized-or-unknown-project-integrate-the-approved-scope"></a>
 
-This is the explicit exception to the normal rule against changing starter source. Approval to add a dashboard skill through the supported configuration is not approval for a source integration. Keep a concise integration record with the project, limited to non-secret information and files the member agreed to create. Mark the project as requiring **manual future integrations** unless its customizations have been reconciled with a recognized maintained release. Never tell the member to use stock `update` blindly afterward.
+### C. Integração aprovada em projeto personalizado ou desconhecido
 
-## 5. Preserve preferences and secrets
+Esse trabalho acontece no projeto da pessoa e exige comparação de código, implementação e testes. Explique que atualizações futuras podem exigir o mesmo cuidado. Aplique `setup`, `update`, cherry-picks ou substituições de pastas nesse projeto somente após revisão.
 
-Leave notes, custom skills, profile choices and dashboard order as they are unless the member explicitly chose a change. Do not replace `.obsidian` settings or enable/disable plugins by rewriting those files; guide the member through the Obsidian UI. If a schema migration is required, show exactly which non-secret configuration changes and back up only that scoped configuration before applying it.
+Depois da aprovação do plano, siga estas etapas.
 
-A compatible shared speech service belongs to its owner. Do not stop, restart or reconfigure it to test the upgrade. Leave unrelated recovery tasks and login items alone. A selected plan can change this installation's own startup ownership only with specific permission and a rollback procedure.
+1. **Prepare uma cópia de trabalho ou branch isolada.** Preserve o código em execução durante a implementação. Trabalhe no projeto da pessoa e delimite explicitamente os arquivos de código e teste sem dados secretos que podem ser usados. Nunca copie `.runtime`, pastas de credenciais, o cofre inteiro ou toda a pasta `.obsidian`. Nunca faça commit de grande parte do cofre. Se usar Git, prepare para commit somente as alterações revisadas sem dados secretos. A integração pode ser feita sem commit.
+2. **Prepare uma reversão restrita.** Salve, fora do cofre, as versões exatas prévias dos arquivos sem dados secretos que a integração aprovada vai alterar. Registre os caminhos novos, a revisão do código, os arquivos de travamento de dependências e o procedimento de início e parada da própria instalação. Preserve a compilação em uso até validar a substituta. Nunca faça cópia de segurança de segredos copiando o diretório de execução.
+3. **Resolva os conflitos reais.** Mostre qual comportamento muda com cada conflito. Se a intenção for ambígua, pergunte se a pessoa prefere manter sua versão, adotar o comportamento da distribuição ou combinar partes específicas. Resolva cada conflito com base no comportamento desejado. Nunca escolha `theirs` ou `ours` para a mesclagem inteira só para concluí-la. Deixe código personalizado, notas e configurações não relacionados fora do diff.
+4. **Implemente um conjunto compatível.** Em cada recurso escolhido, compare os endpoints da ponte, a autenticação e a identidade do aplicativo, o tratamento de tarefas, provedores e modelos, os formatos de eventos, os esquemas do cofre, os consumidores no plugin e no Jarvis e os caminhos dos inicializadores. Integre juntas as dependências necessárias. Preserve as interfaces existentes ou adicione um adaptador explícito quando for viável. Valide a compatibilidade por esses contratos e testes.
+5. **Valide longe do sistema que a pessoa está usando.** Rode os testes unitários e de contrato pertinentes e compile com dados sintéticos. Use um cofre descartável para testes de instalação e fluxos. Simule as ações externas e use arquivos descartáveis de skills. Mantenha o cofre real fora dos dados de teste. Nunca envie mensagens, publique, compre ou faça outras alterações em contas só para testar uma skill. Se a instalação atual ocupar as portas fixas, espere a troca combinada para testar os serviços nessas portas. Depois dos testes offline, valide os serviços em execução.
+6. **Revise o resultado antes da troca.** Resuma o comportamento implementado, os arquivos exatos alterados, os testes que passaram, cada falha ou verificação pulada, os riscos restantes e o procedimento de reversão. Se a implementação revelar conflitos novos ou exigir uma ampliação significativa do escopo, resolva com a pessoa antes de ampliar.
 
-The member supplies a missing Jev key through `node aos.mjs jev-key` when needed, and an OpenAI key for Live voice through `node aos.mjs openai-key`. Do not transfer either by reading the old installation's secret files. Inspecting an existing setup does not establish account access; explain and verify required connectors with the member without reading credentials.
+A integração aprovada é a exceção explícita à regra de preservar o código da distribuição. A aprovação para adicionar uma skill pela configuração do painel cobre apenas a configuração. Mantenha no projeto um registro curto da integração, limitado a informações sem dados secretos e aos arquivos cuja criação a pessoa aprovou. Marque o projeto como dependente de **integrações manuais futuras** até que seja compatibilizado com uma versão reconhecida da distribuição mantida. Antes de orientar o uso de `update`, confira se a instalação atende aos requisitos da distribuição padrão.
 
-## 6. Handoff, verification and rollback
+<a name="5-preserve-preferences-and-secrets"></a>
 
-Before interrupting anything, show which installation will stop, which one will start, what the member should finish first, and how to restore the prior system. Get explicit consent for that handoff; approval to inspect or prepare code does not authorize stopping their working system. Do not ask again if the member has already explicitly approved that exact handoff for this point in the plan.
+## 5. Preserve as preferências e os segredos
 
-Use the current installation's own stop/start scripts. Never kill an unknown listener or stop whichever process happens to occupy a port. Respect active-conversation safeguards. Only one installation may own ports 3217–3221; keep unrelated speech and recovery services running.
+Mantenha as notas, skills personalizadas, preferências do perfil e ordem do painel, salvo mudanças explícitas que a pessoa escolheu. Preserve as configurações `.obsidian` e oriente a pessoa a ativar ou desativar plugins pela interface do Obsidian. Se for necessário migrar um esquema, mostre exatamente quais configurações sem dados secretos mudam e faça cópia de segurança apenas desse conjunto antes de aplicar.
 
-After the approved handoff, run the chosen installation's doctor. Run `doctor --full` only as included in the approved validation plan, explaining that it runs a real workflow on their subscription and writes a report. Test selected features, not just process startup: open the cockpit and HUD, check the saved dashboard order, and test voice if enabled. For a personal skill, ask for a harmless real task or use a disposable fixture; registration alone is not a successful workflow run.
+Um serviço de voz compartilhado compatível pertence a quem o opera. Mantenha-o em execução e com a configuração de origem durante os testes. Preserve tarefas de recuperação e itens de início de sessão não relacionados. Para mudar o que inicia a própria instalação, inclua no plano a permissão específica e o procedimento de reversão.
 
-Report PASS / FAIL / WAIT / SKIP exactly as observed, including error text and the reason for any skipped check. If the replacement cannot meet the agreed acceptance checks, use the scoped rollback and restore the prior installation's services. Preserve failure evidence in the approved non-secret project record; do not leave both service sets fighting over ports.
+Quando for necessário configurar a chave de Jev, a pessoa usa a página de `node aos.mjs jev-key`. Para a chave da OpenAI da voz ao vivo, usa a página de `node aos.mjs openai-key`. Deixe os arquivos secretos da instalação antiga fechados. Explique e verifique os conectores necessários com a pessoa, sem ler credenciais. A inspeção da instalação identifica configurações, e o acesso à conta é verificado à parte.
 
-On macOS, describe automated checks and actual hands-on checks separately. Mac remains beta; successful builds or CI do not prove this member's microphone permissions, Obsidian plugin or HUD interactions work. Never claim those manual checks were performed if they were not.
+<a name="6-handoff-verification-and-rollback"></a>
 
-## 7. Offer what is new, once
+## 6. Troca de serviços, verificação e reversão
 
-An update brings the code. It does not set anything up, and a member who upgraded has never been asked about the features added since their version. After the checks in section 6 pass, find out what they have not used yet and offer each item once. A no is a complete answer; do not ask again in this session, and never turn a sharing setting on for them.
+Antes de interromper qualquer serviço, mostre qual instalação vai parar, qual vai iniciar, o que a pessoa deve concluir antes e como restaurar o sistema anterior. Obtenha consentimento explícito para essa troca. A aprovação para inspecionar ou preparar código cobre apenas essas etapas. Se a pessoa já aprovou expressamente a mesma troca para esse ponto do plano, siga com a autorização existente.
 
-Check first, without reading any secret file:
+Use os scripts de parada e início da instalação correspondente. Identifique cada processo antes de agir e deixe os processos não identificados em execução. Respeite as proteções de conversas ativas. Só uma instalação pode usar as portas 3217–3221 por vez. Deixe como estão os serviços de voz e de recuperação não relacionados.
 
-- `node aos.mjs about show` shows whether they have an **About me**.
-- `node aos.mjs openai-key --check` prints `{"ready":true}` when a key and consent for Live voice are saved. Never open `openai.json`.
-- `node aos.mjs live-context show` lists what a Live call reads when it starts, including any notes of their own.
-- `node aos.mjs dashboard list` shows their saved buttons, and every button now carries a `description` and a `needs` list.
-- `node aos.mjs skills list --provider claude` (or `codex`) shows the skill pack, with an `installed` state and whether it was already `offered` for each skill.
+Depois da troca aprovada, rode o diagnóstico da instalação escolhida. Rode `doctor --full` somente se estiver no plano de validação aprovado e explique que executa um fluxo real na assinatura da pessoa e grava um relatório. Teste os recursos escolhidos além da inicialização. Abra o painel do Obsidian e o Jarvis, confira a ordem salva dos botões e teste a voz se estiver ativa. Para uma skill pessoal, peça uma tarefa real e inofensiva ou use uma amostra descartável. Verifique a execução do fluxo depois do registro.
 
-Show only what is new to them. A pack skill is new to them when its state is `missing` and `offered` is `false`; do not decide by version, because a member whose earlier update nobody walked through never saw skills from that version. After showing pack skills, record them with `node aos.mjs skills offered --skills "<every id you showed>"`, whatever they answered. Do not walk them through choices they already made.
+Relate PASS / FAIL / WAIT / SKIP exatamente como aparecerem, com o texto dos erros e a razão de cada verificação pulada. Se a substituição não atender aos critérios combinados, aplique a reversão restrita e restaure os serviços da instalação anterior. Preserve evidências da falha no registro aprovado do projeto, sem dados secretos. Deixe apenas um conjunto de serviços usando as portas.
 
-Then, in this order:
+No macOS, relate separadamente as verificações automáticas e os testes manuais feitos. O suporte a Mac continua em beta. Use testes manuais para verificar a permissão de microfone, o plugin do Obsidian e as interações do Jarvis no computador da pessoa. Informe apenas testes manuais realmente executados.
 
-1. **About me**, if it is empty: run the short intake in [the fresh-install playbook](PLAYBOOK.md#tell-your-assistant-about-you).
-2. **Dashboard buttons:** their saved selection survives an update, so do not re-run the menu. Point out **Customize dashboard** in either app, where each button now says what it does and needs. If they are still on the starter buttons, offer the menu in [Choose their dashboard buttons](PLAYBOOK.md#choose-their-dashboard-buttons).
-3. **The skill pack**, for the skills that are new to them: follow [Offer the skill pack](PLAYBOOK.md#offer-the-skill-pack). A skill shown as `update` is an older copy they have not changed; installing it again brings it up to date. One shown as `edited` is theirs and stays as it is.
-4. **Live voice**, if it is not set up: follow [Live voice (optional)](PLAYBOOK.md#live-voice-optional) exactly as written, with its cost sentence, the local key page and the three things to try on a first call.
-5. **What Live knows when a call starts**, if Live is already set up and `live-context show` lists none of their own notes: offer step 5 of [Live voice (optional)](PLAYBOOK.md#live-voice-optional), which lets them turn parts off and add their own notes and reports. New in 0.4.6.
+<a name="7-offer-what-is-new-once"></a>
 
-## 8. Final report
+## 7. Ofereça uma vez o que for novo para a pessoa
 
-Finish with what changed, what stayed customized, what was verified, anything still unavailable, which installation is active, where rollback lives, and the appropriate future update route. Name the new features they chose to set up and the ones they passed on, so they know what to ask for later. A discovery-only run ends with a recommendation; do not report it as an applied upgrade.
+A atualização traz o código. As etapas de configuração de recursos novos são feitas depois. Assim que as verificações da seção 6 passarem, identifique o que a pessoa ainda não usou e ofereça cada item uma vez. Aceite um não como resposta e siga em frente sem repetir a oferta na sessão. Deixe as opções de compartilhamento para a própria pessoa ativar.
+
+Comece com estas verificações, sem abrir arquivos secretos.
+
+- `node aos.mjs about show` mostra se há uma seção **Sobre mim**.
+- `node aos.mjs openai-key --check` imprime `{"ready":true}` se a chave e a autorização da voz ao vivo estiverem salvas. Nunca abra `openai.json`.
+- `node aos.mjs live-context show` lista o que uma chamada lê ao começar, incluindo as notas adicionadas pela pessoa.
+- `node aos.mjs dashboard list` mostra os botões salvos. Cada botão tem uma `description` e uma lista `needs`.
+- `node aos.mjs skills list --provider claude` (ou `codex`) mostra o pacote de skills, com o estado em `installed` e a indicação `offered` para cada skill.
+
+Mostre só o que for novo para a pessoa. Uma skill do pacote é nova se o estado for `missing` e `offered` for `false`. Use esses estados porque uma atualização anterior pode ter ocorrido sem apresentar os recursos. Depois de mostrar as skills, registre quais ofereceu com `node aos.mjs skills offered --skills "<every id you showed>"`, em qualquer caso. Pule decisões que a pessoa já tomou.
+
+Siga esta ordem.
+
+1. **Sobre mim.** Se estiver vazia, faça as perguntas do [guia de primeira instalação](PLAYBOOK.md#tell-your-assistant-about-you).
+2. **Botões do painel.** Preserve a seleção salva e pule o menu para quem já personalizou. Mostre **Personalizar painel** em qualquer um dos aplicativos. Agora cada botão informa o que faz e o que exige. Se a pessoa ainda usa a seleção inicial, ofereça as opções em [Escolha os botões do painel](PLAYBOOK.md#choose-their-dashboard-buttons).
+3. **Pacote de skills.** Para as skills novas para a pessoa, siga [Ofereça o pacote de skills](PLAYBOOK.md#offer-the-skill-pack). Uma skill com estado `update` é uma cópia antiga sem mudanças locais. Instalá-la novamente traz a versão atual. Uma com estado `edited` foi personalizada e fica preservada.
+4. **Voz ao vivo.** Se ainda estiver sem configuração, siga [Voz ao vivo (opcional)](PLAYBOOK.md#live-voice-optional) como descrito, incluindo a frase sobre o custo, a página local da chave e os três testes da primeira chamada.
+5. **Contexto no início da chamada.** Se a voz ao vivo já estiver configurada e `live-context show` não listar notas adicionadas pela pessoa, ofereça a etapa 5 de [Voz ao vivo (opcional)](PLAYBOOK.md#live-voice-optional). Ela permite desativar partes do contexto e acrescentar notas e relatórios próprios. Disponível a partir da versão 0.4.6.
+
+<a name="8-final-report"></a>
+
+## 8. Relatório final
+
+Diga o que mudou, quais personalizações foram preservadas, o que foi verificado, o que ainda está indisponível, qual instalação ficou ativa, onde está o material de reversão e como fazer uma atualização futura. Nomeie os recursos novos que a pessoa configurou e os que deixou de fora, para que ela saiba o que pedir mais tarde. Se você só fez a descoberta, encerre com a recomendação e indique que a atualização ainda está por fazer.

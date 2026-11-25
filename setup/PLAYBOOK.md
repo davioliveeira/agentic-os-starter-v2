@@ -1,243 +1,278 @@
-# Fresh-install playbook (for the coding agent)
+<a name="fresh-install-playbook-for-the-coding-agent"></a>
 
-You are the installer, guide and doctor for Agentic OS V2. The person you are helping cloned this repository (or asked you to) and wants the whole system working: an Obsidian cockpit, the Jarvis HUD in the browser, voice, and background workflows that run on their own Claude Code and/or Codex subscription. Get them there with as little typing on their side as possible.
+# Primeira instalação do Agentic OS V2
 
-## Choose the right route first
+Você é o agente responsável por instalar, orientar e diagnosticar o Agentic OS V2. A pessoa clonou este repositório ou pediu que você o fizesse. Ela quer usar o painel do Obsidian, o Jarvis no navegador, a voz e os fluxos em segundo plano, executados na assinatura dela do Claude Code, do Codex ou de ambos. Faça o que for possível para poupar digitação.
 
-Honor an explicit fresh-install or upgrade request. If the member simply says "set this up" and their intent is unclear, ask: *"Are we setting up Agentic OS for the first time, or upgrading a version you already use?"* Do not ask them to find folders before answering this.
+<a name="choose-the-right-route-first"></a>
 
-- **Fresh install:** continue below. An existing Obsidian vault does not by itself mean Agentic OS is already installed.
-- **Upgrade an existing Agentic OS, including V1 or customized versions:** follow [UPGRADE.md](UPGRADE.md). It starts with read-only discovery and a plan that preserves their customizations. Feature choices belong in that conversation.
-- **Repair an identified installation:** use [Phase 6](#phase-6--prove-it-works), explaining that `--full` runs a real workflow. If you do not know which installation they mean, discover it first without starting or stopping anything.
+## Escolha o processo adequado
 
-An `obsidian-v2/.runtime/aos-setup.json` marker records a previous setup. It must never short-circuit an upgrade request into repair. If it conflicts with a fresh-install request, explain that an installation already exists and resolve the intended target before making changes.
+Siga o pedido explícito de primeira instalação ou atualização. Se a pessoa apenas disser “configure isso” e a intenção for ambígua, pergunte *“Você quer instalar o Agentic OS pela primeira vez ou atualizar uma versão que já usa?”* Resolva isso antes de pedir que ela procure pastas.
 
-## Rules
+- **Primeira instalação.** Continue neste guia. Um cofre do Obsidian pode existir sem uma instalação do Agentic OS.
+- **Atualização do Agentic OS, incluindo V1 ou uma versão personalizada.** Siga [UPGRADE.md](UPGRADE.md). O guia começa com uma descoberta somente para leitura e um plano que preserva as personalizações. Converse sobre os recursos nessa etapa.
+- **Reparo de uma instalação identificada.** Siga a [Fase 6](#phase-6--prove-it-works) e explique que `--full` executa um fluxo real. Se houver dúvida sobre qual é a instalação, identifique-a antes de iniciar ou parar qualquer serviço.
 
-- One question at a time. If a fix is safe and reversible, do it and say what you did.
-- **Never ask for a secret in chat and never print one.** Keys are typed by the user into a local page or a file they open themselves. Never read, print or copy `jev.json`, `openai.json`, `bridge-auth.json`, `speech-auth.json`, `providers.json`, `.credentials.json` or `~/.claude/.env`. If the user pastes a key into the chat anyway, tell them to revoke it and make a new one.
-- Never overwrite a note, and never edit the `.obsidian/` settings of a vault that already exists. `aos setup` already guarantees both; keep the guarantee in anything you do by hand.
-- The local services listen on `127.0.0.1` ports 3217–3221. Do not open firewall ports, tunnels or remote access. Live voice (GPT-Live) is offered once, in Phase 7, and only the member can opt in: they review the disclosure and enter their key on a local page. Reference: [Live voice setup](../docs/LIVE-VOICE.md).
-- If the same step fails twice with the same error, stop looping: show the exact error and your best next step.
-- All commands below run from the repository root (the folder with `aos.mjs`).
-- Keep the stock application's source unchanged during installation and repair. Intentional custom integration is a separate, explicitly approved workflow in `setup/UPGRADE.md`, not a workaround for a failed setup.
-- If an existing installation owns the ports, identify it and explain the choices. Do not stop it automatically: a service handoff requires the member's permission and that installation's own scripts.
+O arquivo `obsidian-v2/.runtime/aos-setup.json` registra uma instalação anterior. Se a pessoa pediu atualização, siga esse processo mesmo com o arquivo presente. Se pediu uma primeira instalação, explique que encontrou outra instalação e confirme o destino antes de fazer alterações.
 
-## Phase 0 — Permissions and prerequisites
+<a name="rules"></a>
 
-You will install packages from the internet, write outside this folder (the vault, a login item) and start background services.
+## Regras
 
-- **Codex:** ask the user to allow this for the session (approve the prompts, or switch the session to full access). The default sandbox blocks the network and writes outside the folder, and the install cannot work inside it.
-- **Claude Code:** the user approves commands as they come up.
+- Faça uma pergunta de cada vez. Se uma correção for segura e reversível, faça-a e diga o que mudou.
+- **Nunca peça um segredo no chat nem o exiba.** A pessoa digita as chaves em uma página local ou em um arquivo que ela mesma abre. Nunca leia, exiba ou copie `jev.json`, `openai.json`, `bridge-auth.json`, `speech-auth.json`, `providers.json`, `.credentials.json` ou `~/.claude/.env`. Se a pessoa colar uma chave no chat, oriente-a a revogá-la e criar outra.
+- Nunca sobrescreva uma nota nem edite as configurações `.obsidian/` de um cofre existente. `aos setup` já garante isso. Mantenha a mesma proteção no trabalho manual.
+- Os serviços locais escutam em `127.0.0.1`, nas portas 3217–3221. Não abra essas portas no firewall nem configure túneis ou acesso remoto. Ofereça a voz ao vivo (GPT-Live) uma vez, na Fase 7. A pessoa decide se quer usar, lê o aviso e digita a chave em uma página local. Consulte o [guia da voz ao vivo](../docs/LIVE-VOICE.md).
+- Se a mesma etapa falhar duas vezes com o mesmo erro, pare de tentar. Mostre o erro exato e indique o melhor próximo passo.
+- Rode todos os comandos abaixo na raiz do repositório, a pasta que contém `aos.mjs`.
+- Preserve o código da distribuição padrão durante a instalação e o reparo. Uma integração personalizada intencional exige aprovação explícita e segue o processo de `setup/UPGRADE.md`.
+- Se outra instalação estiver usando as portas, identifique-a e explique as opções. Pare-a somente com a permissão da pessoa para a troca de serviços e use os scripts daquela instalação.
 
-Check each item and fix what you can:
+<a name="phase-0--permissions-and-prerequisites"></a>
 
-| Need | Check | If missing |
+## Fase 0 — Permissões e pré-requisitos
+
+Você vai instalar pacotes da internet, gravar fora desta pasta (no cofre e em um item de início de sessão) e iniciar serviços em segundo plano.
+
+- **Codex.** Peça que a pessoa autorize essas ações na sessão, aprovando os pedidos de acesso ou mudando a sessão para acesso completo. A instalação precisa de acesso à rede e de escrita fora da pasta, que o isolamento padrão bloqueia.
+- **Claude Code.** A pessoa aprova os comandos conforme forem solicitados.
+
+Confira cada item e corrija o que puder.
+
+| Requisito | Como conferir | Se estiver faltando |
 |---|---|---|
-| Git | `git --version` | Windows: `winget install Git.Git`. Mac: `xcode-select --install` (the user confirms a dialog). |
-| Node.js 22+ | `node --version` | Windows: `winget install OpenJS.NodeJS.LTS`. Mac: `brew install node`. Then open a new terminal. |
-| Python 3.12 (voice, and conversations inside Obsidian) | Windows `py -3.12 --version`, Mac `python3.12 --version` | Windows: `winget install Python.Python.3.12`. Mac: `brew install python@3.12`. Voice works with 3.10–3.13 only: python.org and Homebrew now install 3.14 by default, which the voice libraries do not support yet, so install 3.12 alongside it (nothing needs uninstalling). |
-| Mac only: compiler tools | `xcode-select -p` | `xcode-select --install`. Needed once for the terminal component. |
-| Mac only: Homebrew | `brew --version` | Send the user to https://brew.sh — its installer asks for their password, so they run it themselves. |
-| Obsidian | Windows: `%LOCALAPPDATA%\Programs\Obsidian` or `%LOCALAPPDATA%\Obsidian`. Mac: `/Applications/Obsidian.app` | Windows: `winget install Obsidian.Obsidian`. Mac: `brew install --cask obsidian`. Do not block on it. |
-| Claude Code and/or Codex, signed in | `claude --version`, `codex --version` | One is enough, both is best. Claude Code: the native installer from https://claude.com/claude-code (on Windows the npm install is not detected). Codex: `npm install -g @openai/codex`. The user signs in themselves by running `claude` / `codex` once. |
+| Git | `git --version` | No Windows, `winget install Git.Git`. No Mac, `xcode-select --install`. A pessoa confirma na caixa de diálogo. |
+| Node.js 22 ou superior | `node --version` | No Windows, `winget install OpenJS.NodeJS.LTS`. No Mac, `brew install node`. Depois, abra outro terminal. |
+| Python 3.12 para voz e conversas no Obsidian | No Windows, `py -3.12 --version`. No Mac, `python3.12 --version`. | No Windows, `winget install Python.Python.3.12`. No Mac, `brew install python@3.12`. A voz funciona com as versões 3.10 a 3.13. python.org e Homebrew instalam por padrão o 3.14, que as bibliotecas de voz ainda não aceitam. Instale o 3.12 em paralelo. |
+| Ferramentas de compilação, só no Mac | `xcode-select -p` | `xcode-select --install`. Basta instalar uma vez para o componente de terminal. |
+| Homebrew, só no Mac | `brew --version` | Encaminhe a pessoa para https://brew.sh. O instalador pede senha, então ela mesma deve executá-lo. |
+| Obsidian | No Windows, `%LOCALAPPDATA%\Programs\Obsidian` ou `%LOCALAPPDATA%\Obsidian`. No Mac, `/Applications/Obsidian.app`. | No Windows, `winget install Obsidian.Obsidian`. No Mac, `brew install --cask obsidian`. Prossiga mesmo se ele ainda não estiver disponível. |
+| Claude Code ou Codex com sessão ativa | `claude --version`, `codex --version` | Uma ferramenta basta, mas ter as duas é preferível. Para Claude Code, use o instalador nativo de https://claude.com/claude-code. No Windows, a instalação via npm não é detectada. Para Codex, use `npm install -g @openai/codex`. A pessoa entra na própria conta rodando `claude` ou `codex` uma vez. |
 
-**Mac voice setup:** ensure Homebrew is available before using the `brew` commands above. Its [Python 3.12 formula](https://formulae.brew.sh/formula/python@3.12) installs `python3.12`; `python3` can still resolve to Apple's older Python because the generic aliases live in a separate `libexec/bin` directory. After installation, check `python3.12 --version`. Setup looks for the versioned names first (3.12, then 3.13, 3.11, 3.10; on Windows `py -3.12` and so on) before the generic `python3` / `py -3`, so a newer default Python never wins; there is no need to replace the system Python or change global aliases.
+**Voz no Mac.** Verifique se o Homebrew está disponível antes de usar os comandos `brew`. A [fórmula do Python 3.12](https://formulae.brew.sh/formula/python@3.12) instala `python3.12`. O comando `python3` ainda pode apontar para o Python mais antigo da Apple, pois os nomes genéricos ficam em outro diretório, `libexec/bin`. Após a instalação, confira `python3.12 --version`. O instalador procura primeiro pelos nomes com versão, na ordem 3.12, 3.13, 3.11, 3.10 (no Windows, `py -3.12` e assim por diante), e só depois tenta `python3` ou `py -3`. Assim, uma versão padrão mais recente fica em segundo plano. Você pode manter o Python do sistema e os aliases globais.
 
-If the interpreter is installed but unavailable on setup's `PATH`, prefix the same setup command with `AOS_V2_PYTHON="$(brew --prefix python@3.12)/bin/python3.12"`. Keep the vault, voice and autostart arguments already chosen. For Python installed another way, set `AOS_V2_PYTHON` to its absolute executable path instead. The chosen interpreter creates the private voice environment; an existing voice environment is reused when its Python is 3.10–3.13. One made with an unsupported Python (for example 3.14) is rebuilt automatically, but only while the services are stopped: if setup says so, run `node aos.mjs stop`, then the setup command again with `--voice yes`. Setup also prepares a small separate Python environment for the Terminal plugin (conversations inside Obsidian); on Windows it holds `psutil` and `pywinctl`, which Terminal needs to size its window. Without Python, conversations still run in Jarvis.
+Se o interpretador estiver instalado, mas fora do `PATH` usado pelo instalador, prefixe o comando de instalação com `AOS_V2_PYTHON="$(brew --prefix python@3.12)/bin/python3.12"`. Mantenha os argumentos de cofre, voz e início automático já escolhidos. Se o Python veio de outra fonte, defina `AOS_V2_PYTHON` com o caminho absoluto do executável. O interpretador cria um ambiente dedicado à voz. O ambiente existente é reutilizado se usar Python 3.10 a 3.13. Ambientes com versões incompatíveis, como 3.14, são recriados automaticamente, mas apenas com os serviços parados. Se o instalador indicar isso, rode `node aos.mjs stop` e repita a instalação com `--voice yes`. O instalador também prepara um ambiente Python pequeno e separado para o plugin Terminal, usado para conversar dentro do Obsidian. No Windows, ele contém `psutil` e `pywinctl`, que o Terminal usa para dimensionar a janela. Sem Python, as conversas continuam disponíveis no Jarvis.
 
-Location: the repository should live in a normal folder such as `~/agentic-os`. **Not** inside the vault, and **not** inside OneDrive, iCloud Drive or Dropbox (package folders and local sockets misbehave there). If it was cloned into one of those, move it before going on.
+Mantenha o repositório em uma pasta comum, como `~/agentic-os`, fora do cofre e de pastas sincronizadas pelo OneDrive, iCloud Drive ou Dropbox. Essas pastas interferem no funcionamento dos pacotes e dos sockets locais. Se o repositório estiver em uma delas, mova-o antes de continuar.
 
-## Phase 1 — One question: where is the vault?
+<a name="phase-1--one-question-where-is-the-vault"></a>
 
-Ask: *"Where should your vault live? I can create a new one at `~/agentic-vault`, or use an Obsidian vault you already have — nothing in it gets overwritten."*
+## Fase 1 — Escolha o cofre
 
-- An existing vault keeps every note and all of its Obsidian settings. Missing template folders are added.
-- **Members coming from the first starter kit:** take the upgrade route in `setup/UPGRADE.md` before running setup. Keep their vault and the old plugin; disable the old cockpit only after V2 is verified and the member approves the handoff. Do not assume an old runner or login item is harmless or remove it automatically.
+Pergunte *“Onde você quer guardar seu cofre? Posso criar um novo em `~/agentic-vault` ou usar um cofre do Obsidian que você já tem, preservando o conteúdo.”*
 
-Then two yes/no questions, one at a time:
+- Em um cofre existente, preserve todas as notas e configurações do Obsidian e adicione as pastas do modelo que estiverem faltando.
+- **Se a pessoa usa o primeiro kit de instalação**, siga `setup/UPGRADE.md` antes de rodar a instalação. Mantenha o cofre e o plugin antigo. Desative o painel antigo depois de verificar o V2 e obter aprovação para a troca dos serviços. Investigue o executor ou o item de início de sessão antigo antes de concluir que ele é inofensivo e preserve-o até haver uma decisão.
 
-1. *"Do you want voice? It is free and runs on your computer, but downloads about 1.3 GB once."*
-2. *"Should everything start by itself when you log in?"* (recommended)
+Faça duas perguntas de sim ou não, uma por vez.
 
-## Phase 2 — Install
+1. *“Você quer usar voz? É gratuita e roda no seu computador. No primeiro uso, baixa cerca de 1,3 GB.”*
+2. *“Você quer que o sistema inicie automaticamente quando você entrar na sua sessão do computador?”* (recomendado)
+
+<a name="phase-2--install"></a>
+
+## Fase 2 — Instale o sistema
 
 ```
 node aos.mjs setup --vault "<absolute path>" --provider claude|codex --voice yes|no --autostart yes|no
 ```
 
-`--provider` is the coding tool the buttons and voice use: pass the one you are running in (Claude Code → `claude`, Codex → `codex`). Without it, a new vault gets whichever of the two is installed. An existing choice is kept on later runs and updates; pass `--provider` again only to switch.
+`--provider` escolhe a ferramenta de código que os botões e a voz usam. Passe a ferramenta em que você está rodando (Claude Code → `claude`, Codex → `codex`). Ao omitir a opção para um cofre novo, a instalação usa uma das ferramentas instaladas. Reexecuções e atualizações preservam a escolha anterior. Passe `--provider` novamente apenas para trocar a ferramenta.
 
-This takes 5–15 minutes the first time (packages, the HUD build, voice models). It installs packages, builds the plugin and the HUD, creates or completes the vault, installs the plugin into it, installs voice, starts the services and ends with a checklist. It is safe to run again: finished steps are skipped.
+Cofres novos deste fork já usam português brasileiro na voz. Se a pessoa escolheu voz em português para um cofre existente, defina `"speechLanguage": "pt"` em `system/v2/profile.json` antes de instalar a voz.
 
-Read the output. Typical fixes:
+A primeira execução leva de 5 a 15 minutos entre pacotes, compilação do Jarvis e modelos de voz. O instalador instala pacotes, compila o plugin e o Jarvis, cria ou completa o cofre, instala o plugin no cofre, instala a voz, inicia os serviços e exibe uma lista de verificações. Pode rodar de novo com segurança, pois as etapas concluídas são puladas.
 
-- `npm ci` fails on Mac with compiler errors → `xcode-select --install`, then run setup again.
-- Python not found, too old or too new (`Found Python 3.14…, but voice needs Python 3.10-3.13`) → install 3.12 (table above), open a new terminal, run setup again. On Mac, verify `python3.12 --version` or use the explicit interpreter path described in Phase 0; `python3` may still be Apple's older version.
-- `Your buttons and voice use Codex, which is not installed here` (or the other way round) → `node aos.mjs setup --provider claude` (or `codex`) switches them.
-- `Another installation of this system ... is running on port 3221` → another copy is running from a different folder, and the message names that folder (`It runs from "..."`). Keep using that copy or follow `setup/UPGRADE.md` to plan a handoff; get permission before stopping it with its own scripts. If the message names no folder, `node aos.mjs upgrade` can use the monitor's non-secret location metadata to help identify it.
-- `Voice: a speech service is already running on this computer ... and will be shared` → not an error. Another program already provides a compatible voice, so nothing is downloaded and the checklist shows voice as a *shared service*.
-- A voice download fails half way → run the same setup command again, with `--voice yes` in it: that flag makes setup check the voice files, keep the finished ones and fetch what is missing.
+Leia o resultado. Use estas correções para os problemas mais comuns.
 
-The checklist at the end shows `WAIT  Plugin switched on in Obsidian` — that is expected until Phase 5 (a new vault has the plugin ready, but Obsidian has not opened it yet). A vault where the plugin was already working shows PASS.
+- Se `npm ci` falhar no Mac com erros de compilação, rode `xcode-select --install` e repita a instalação.
+- Se o Python estiver ausente, for antigo demais ou recente demais (como na mensagem original `Found Python 3.14…, but voice needs Python 3.10-3.13`), instale a versão 3.12 pela tabela acima, abra um terminal novo e repita a instalação. No Mac, confira `python3.12 --version` ou informe o caminho do interpretador como na Fase 0. O comando `python3` ainda pode apontar para a versão antiga da Apple.
+- Se os botões e a voz estiverem usando Codex sem que esteja instalado (no original, `Your buttons and voice use Codex, which is not installed here`), rode `node aos.mjs setup --provider claude`. Se a ferramenta ausente for Claude Code, use `codex`.
+- Se outra instalação estiver ocupando a porta 3221 (no original, `Another installation of this system ... is running on port 3221`), outra cópia está rodando a partir de outra pasta. A mensagem indica qual (no original, `It runs from "..."`). Continue usando essa cópia ou consulte `setup/UPGRADE.md` para planejar a troca. Obtenha permissão antes de pará-la com os scripts dela. Se a mensagem vier sem a pasta, `node aos.mjs upgrade` pode ajudar a identificá-la pelos metadados de localização do monitor que não contêm dados secretos.
+- Se o instalador indicar que vai compartilhar um serviço de voz (no original, `Voice: a speech service is already running on this computer ... and will be shared`), outro programa já fornece voz compatível. Os downloads são pulados e a lista de verificações indica um *serviço compartilhado*.
+- Se um download da voz falhar no meio, rode o mesmo comando de instalação com `--voice yes`. A opção faz o instalador verificar os arquivos de voz, manter os completos e baixar o que falta.
 
-**How to read the result.** Every check prints a line: PASS, FAIL, WAIT (a click only the user can make) or SKIP (could not run, with the reason). The command exits with code 1 when there is at least one FAIL, and the last line says which kind: *core parts* failed (fix these before going on), or only *optional parts* such as voice or Jev (the system is usable; carry on with the phases and come back to them).
+A lista final pode mostrar `WAIT  Plugin ativo no Obsidian` (no original, `WAIT  Plugin switched on in Obsidian`). Isso é esperado até a Fase 5. Em um cofre novo, o plugin está pronto, mas o Obsidian ainda precisa abrir o cofre. Um cofre em que o plugin já funciona mostra PASS.
 
-**If the services are not running a minute after setup** (some agent sandboxes end background processes when a command finishes): ask the user to run `node aos.mjs start` in their own terminal, or use `--autostart yes`, which hands the services to the operating system.
+**Como ler o resultado.** Cada verificação imprime PASS, FAIL, WAIT (só a pessoa pode concluir a etapa pela interface) ou SKIP (não foi possível executar, com a razão). O comando retorna código 1 se houver pelo menos um FAIL. A última linha indica se falharam *itens essenciais*, que precisam ser corrigidos antes de continuar, ou apenas *itens opcionais*, como voz ou Jev. Nesse caso, o sistema pode ser usado e você pode concluir as demais fases antes de voltar a esses itens.
 
-## Phase 3 — Jev, the fast voice router (optional, recommended)
+**Se os serviços não estiverem rodando um minuto após a instalação**, o ambiente isolado do agente pode ter encerrado os processos em segundo plano ao concluir o comando. Peça que a pessoa rode `node aos.mjs start` no próprio terminal ou use `--autostart yes`, que entrega os serviços ao sistema operacional.
 
-Explain in three sentences: *Jev is an optional model on OpenRouter that can reduce routing delay for eligible voice requests; it does not generate the answer or perform the work, and voice works without it. It receives what you said, brief excerpts from the last two voice exchanges, the selected conversation's title and latest reply excerpt, and report names; it does not receive full note files, though quoted note content can appear in those excerpts. OpenRouter usage is billed separately, and routing speed and cost vary.*
+<a name="phase-3--jev-the-fast-voice-router-optional-recommended"></a>
 
-1. The user creates an account at https://openrouter.ai, adds a few dollars of credit, and creates a key at https://openrouter.ai/keys.
-2. You run `node aos.mjs jev-key`. A page opens in **their** browser and they paste the key there; tell them that is all they have to do. The command prints only `{"saved":true}` or `{"saved":false}`.
-3. You check with `node aos.mjs jev-key --check`.
+## Fase 3 — Jev, roteamento de voz mais rápido (opcional, recomendado)
 
-*For you, not for the user:* step 2 keeps running for up to five minutes while it waits for the page. If your tool cannot keep a command running that long, do not retry it in a loop. Ask the user to run `node aos.mjs jev-key` in their own terminal and to tell you when the page said it was saved, then do step 3.
+Explique em três frases. *Jev é um modelo opcional da OpenRouter que pode reduzir a demora para encaminhar pedidos de voz compatíveis, enquanto a resposta e o trabalho ficam com o agente e a voz pode ser usada sem Jev. O modelo recebe o que você falou, trechos curtos das duas últimas interações por voz, o título e um trecho da última resposta da conversa selecionada e os nomes dos relatórios, sem receber os arquivos completos das notas, embora os trechos possam citar conteúdo delas. A OpenRouter cobra o uso à parte, e a velocidade e o custo do roteamento variam.*
 
-## Phase 4 — Calendar and mail (optional)
+1. A pessoa cria uma conta em https://openrouter.ai, adiciona alguns dólares de crédito e cria uma chave em https://openrouter.ai/keys.
+2. Rode `node aos.mjs jev-key`. Uma página abre no navegador **da pessoa**, onde ela só precisa colar a chave. O comando imprime apenas `{"saved":true}` ou `{"saved":false}`.
+3. Confira com `node aos.mjs jev-key --check`.
 
-Plan Today, Inbox Brief and Morning Intel read the calendar and mail through the connectors of the coding tool, not through keys.
+A etapa 2 espera até cinco minutos pela página. Se sua ferramenta for incapaz de manter o comando aberto pelo tempo necessário, peça que a pessoa rode `node aos.mjs jev-key` no próprio terminal e avise quando a página confirmar que a chave foi salva. Então siga a etapa 3.
 
-- Claude Code: the user runs `/mcp` (or opens claude.ai → Settings → Connectors) and connects Google Calendar, Gmail and Google Drive.
-- Codex: the user connects the same in Codex's connector settings.
+<a name="phase-4--calendar-and-mail-optional"></a>
 
-You cannot do the sign-in for them. Everything else works without it; those workflows will say the calendar was unavailable.
+## Fase 4 — Agenda e e-mail (opcional)
 
-## Phase 5 — The clicks only the user can do
+Planejar hoje, Resumo da caixa de entrada e Boletim de IA usam os conectores da ferramenta de código para ler a agenda e os e-mails, sem chaves de API.
 
-1. Open Obsidian → *Open folder as vault* → the vault path.
-2. New vault: Obsidian asks whether to trust the author and enable plugins → **Trust**. Existing vault: *Settings → Community plugins → Turn on community plugins → enable "Agentic OS V2"*. The cockpit opens by itself the first time; if it is closed or not showing, click the pulse icon in the strip of icons on Obsidian's left edge (*Open Agentic OS V2*), or press Cmd/Ctrl+P and run *Open Agentic OS V2*.
-3. For conversations and personal-skill buttons inside Obsidian: *Community plugins → Browse → "Terminal"* (by polyipseity) → install and enable. Any stable 3.x release from 3.27.1 on works (3.27.1 and 3.27.2 are tested; a newer one shows a one-time notice); pre-releases are not supported. The doctor's "Terminal plugin" line reports the installed version. They can skip this and use the Jarvis HUD for personal skills and conversations; bundled background workflows still work inside Obsidian. Before wiring personal skills, explain this choice.
-4. Open the HUD: http://127.0.0.1:3217
-5. First use of the microphone: the browser (and on Mac, *System Settings → Privacy & Security → Microphone*) asks for permission → allow.
-6. With this installation's own voice service on Mac, **Control–Option–J** is registered automatically. Keep Obsidian running with the Agentic OS orb enabled, or keep the HUD visible. Explain: press once, speak, then pause to send; do not hold the keys. A shared speech service keeps its owner's shortcut behavior. Follow [Mac voice setup](../docs/MAC-VOICE.md): the selected cockpit records, so verify Obsidian or browser microphone permission. Build/reload the plugin and HUD together with the speech service when upgrading this feature.
+- No Claude Code, a pessoa roda `/mcp` ou abre claude.ai → Configurações → Conectores e conecta Google Agenda, Gmail e Google Drive.
+- No Codex, a pessoa conecta os mesmos serviços nas configurações de conectores.
 
-Ask them to tell you when the cockpit is visible in Obsidian.
+A pessoa entra na própria conta. O restante funciona sem isso e os fluxos que precisam da agenda avisam quando ela está indisponível.
 
-## Phase 6 — Prove it works
+<a name="phase-5--the-clicks-only-the-user-can-do"></a>
+
+## Fase 5 — Etapas que a pessoa faz pela interface
+
+1. Abra o Obsidian → *Abrir pasta como cofre* → selecione a pasta do cofre.
+2. Em um cofre novo, o Obsidian pede para confiar no autor e habilitar os plugins. Escolha **Confiar**. Em um cofre existente, vá em *Configurações → Plugins da comunidade → Ativar plugins da comunidade* e ative **Agentic OS V2**. O painel abre sozinho na primeira vez. Se estiver fechado ou não aparecer, clique no ícone de pulso na barra lateral esquerda do Obsidian (*Abrir Agentic OS V2*) ou pressione Cmd/Ctrl+P e execute *Abrir Agentic OS V2*.
+3. Para conversar e usar botões de skills pessoais no Obsidian, vá em *Plugins da comunidade → Explorar → Terminal* (de polyipseity), instale e ative o plugin. Use uma versão 3.x estável a partir da 3.27.1. A 3.27.1 e a 3.27.2 foram testadas e versões mais novas mostram um aviso uma vez. Versões de pré-lançamento são incompatíveis. A linha **Plugin Terminal (conversas no Obsidian)** do diagnóstico informa a versão instalada. A pessoa pode pular essa etapa e usar o Jarvis para skills pessoais e conversas. Os fluxos de segundo plano incluídos continuam funcionando no Obsidian. Explique a escolha antes de configurar atalhos para skills pessoais.
+4. Abra o Jarvis em http://127.0.0.1:3217.
+5. No primeiro uso, autorize o microfone no navegador. No Mac, confira também *Ajustes do Sistema → Privacidade e Segurança → Microfone*.
+6. No Mac, o serviço de voz próprio da instalação registra **Control–Option–J** automaticamente. Mantenha o Obsidian aberto com o orbe do Agentic OS habilitado ou deixe o Jarvis visível. Pressione uma vez e solte as teclas, fale e faça uma pausa para enviar. Um serviço de voz compartilhado mantém os atalhos definidos pelo programa que o executa. Siga o [guia do atalho de voz no Mac](../docs/MAC-VOICE.md). O painel selecionado grava o áudio, então confira a permissão de microfone do Obsidian ou do navegador. Ao atualizar esse recurso, compile e recarregue o plugin e o Jarvis junto com o serviço de voz.
+
+Peça que a pessoa avise quando o painel estiver visível no Obsidian.
+
+<a name="phase-6--prove-it-works"></a>
+
+## Fase 6 — Confirme que funciona
 
 ```
 node aos.mjs doctor --full
 ```
 
-Every line is PASS, FAIL, WAIT or SKIP, and every FAIL names its fix; a check that could not run is printed as SKIP with the reason, never left out. `--full` also runs one real workflow (Vault Summary) on their subscription and checks that the report landed in the vault. Apply the fix and run it again. When the same check fails the same way twice in a row the doctor says so and changes its advice: stop re-running it at that point and do what that line says. More help: `docs/TROUBLESHOOTING.md`.
+Cada linha mostra PASS, FAIL, WAIT ou SKIP. Todo FAIL indica uma correção, e verificações que não puderam rodar aparecem como SKIP com o motivo. `--full` também roda um fluxo real (Resumir cofre) na assinatura da pessoa e verifica se o relatório foi salvo no cofre. Aplique a correção e rode novamente. Se a mesma verificação falhar do mesmo jeito duas vezes seguidas, o diagnóstico informa isso e muda a orientação. Nesse ponto, pare de repetir o comando e siga o que a linha indicar. Consulte `docs/TROUBLESHOOTING.md` se precisar de ajuda.
 
-Then have the user try three things themselves:
+Peça à pessoa que faça três testes.
 
-1. Click a button that will work with what they have connected. If they connected Google Calendar in Phase 4: **Plan Today**. If they skipped it: **Intel Brief**, which needs nothing connected. Say so plainly: *"Plan Today needs your calendar, so it will stop and tell you that until you connect it. Let's try Intel Brief first."* A button that stops for a missing account is not a failed install.
-2. Hold the microphone button in the HUD and say *"What is on my schedule today?"* (after Plan Today has written today's note; skip it if they have no calendar connected).
-3. Say *"Open the morning intel"* (after they have run the Intel Brief once).
+1. Clique em um botão que funcione com os serviços conectados. Se ela conectou o Google Agenda na Fase 4, use **Planejar hoje**. Caso contrário, use **Boletim de IA**, que roda sem conectores. Diga *“Planejar hoje precisa da sua agenda e avisa quando ela está indisponível. Vamos testar primeiro o Boletim de IA.”* Se um botão parar por falta de uma conta, registre a dependência ausente.
+2. No cartão Voz do Jarvis, selecione **Clique para falar**, pergunte *“Quais são meus compromissos de hoje?”* e faça uma pausa para enviar. Teste depois que Planejar hoje tiver escrito a nota do dia. Pule essa etapa se a agenda estiver desconectada. Se estiver testando em inglês, diga *“What is on my schedule today?”*.
+3. Diga *“Abra o boletim de IA”* depois de rodar o Boletim de IA uma vez. Se estiver testando em inglês, diga *“Open the morning intel”*.
 
-On Mac with its own voice service, also put another app in front, press **Control–Option–J**, say a harmless request and pause. Verify recording ends, exactly one request is sent, and a reply is heard. The doctor's shortcut PASS proves registration only; do not claim the microphone or background interaction works until this hands-on test succeeds. If the user chose autostart, have them repeat at their next normal login.
+No Mac com serviço de voz próprio, coloque outro aplicativo em primeiro plano, pressione **Control–Option–J**, faça um pedido simples e inofensivo e aguarde em silêncio. Confira se a gravação termina, se um único pedido é enviado e se a resposta é audível. O PASS na linha do atalho confirma o registro. O teste manual confirma o microfone e o uso com outro aplicativo em primeiro plano. Se a pessoa escolheu o início automático, peça que repita no próximo início de sessão normal.
 
-## Phase 7 — Make it theirs (each item optional)
+<a name="phase-7--make-it-theirs-each-item-optional"></a>
 
-### Tell your assistant about you
+## Fase 7 — Personalize o sistema (tudo opcional)
 
-“This goes in your vault's AGENTS.md. Your Claude/Codex agents read it, and if you use Live voice it's sent to OpenAI at the start of every call.”
+<a name="tell-your-assistant-about-you"></a>
 
-Ask these one at a time. The member can skip any question or the whole intake.
+### Apresente-se ao assistente
 
-1. What’s your name and what do you do, in a sentence or two?
-2. What are you focused on right now, such as projects or goals this month?
-3. Who comes up in your work or life that you’d like the assistant to know about, and what are their roles?
-4. How do you like answers, including length, tone, and anything the assistant should always keep in mind?
-5. Is there anything the assistant should never say or do?
+“Essas informações ficam no arquivo AGENTS.md do seu cofre. Claude e Codex leem a seção. Se você usar a voz ao vivo, a OpenAI recebe o texto no início de cada chamada.”
 
-Draft an **About me** section from what the member shares. Show it and get their OK. Save the approved body to a temporary file, run `node aos.mjs about write --from <tmp file>`, then run `node aos.mjs about show` to confirm what Live will see. The member can repeat this intake later by asking “update my About me”.
+Faça uma pergunta por vez. A pessoa pode pular qualquer pergunta ou a seção inteira.
 
-### Choose their dashboard buttons
+1. Qual é seu nome e o que você faz, em uma ou duas frases?
+2. Em que você está focando agora, como projetos ou metas deste mês?
+3. Quem aparece no seu trabalho ou na sua vida que você gostaria que o assistente conhecesse? Qual o papel de cada pessoa?
+4. Como você prefere as respostas, incluindo tamanho, tom e o que o assistente deve ter sempre em mente?
+5. Existe algo que o assistente nunca deve dizer ou fazer?
 
-This is a menu, not an open question. The member picks from a list.
+Escreva a seção **Sobre mim** (`## About me`) com o que a pessoa contou. Mostre o texto e peça aprovação. Salve o corpo aprovado em um arquivo temporário, rode `node aos.mjs about write --from <tmp file>` e depois `node aos.mjs about show` para confirmar o texto que a voz ao vivo vai receber. A pessoa pode repetir esse processo quando pedir “atualize minha seção Sobre mim”.
 
-1. Ask one thing first: *"What do you mainly use AI for: running your day, client work, research, content, or something else?"* Their answer decides what you suggest.
-2. Run `node aos.mjs dashboard list`. Every entry in `catalog` is a button they can have. The built-in ones (`"kind": "builtin"`) work with nothing installed: their instructions ship inside the app. Each has a `description` and a `needs` list.
-3. With their agreement, also run `node aos.mjs dashboard discover --provider claude` (or `codex`) to find skills already on their computer, and name what you found: *"I found these skills of yours: A, B and C."* Do not claim to know which ones they use.
-4. Say what is on their dashboard right now. In the `dashboard list` output, `"selected": null` means the starter buttons, and a list means buttons they already chose. For a new install: *"Right now your dashboard has the starter buttons: Plan Today, Inbox Brief, Deep Research and Content Cascade on the HUD, and ten in Obsidian."*
-5. Show them **one list**, grouped by job. Each line has its name, what it produces, what it needs, and whether they have that need today. They told you in Phase 4 whether they connected calendar and mail; do not guess.
+<a name="choose-their-dashboard-buttons"></a>
+
+### Escolha os botões do painel
+
+Apresente opções para a pessoa escolher de uma lista.
+
+1. Pergunte *“Para que você mais usa IA? Para organizar o dia, trabalhar com clientes, pesquisar, produzir conteúdo ou outra coisa?”* Use a resposta para escolher o que sugerir.
+2. Rode `node aos.mjs dashboard list`. Cada entrada de `catalog` corresponde a um botão possível. Os fluxos incluídos (`"kind": "builtin"`) trazem instruções no aplicativo e dispensam a instalação de uma skill. Cada entrada tem uma `description` e uma lista `needs`.
+3. Com a concordância da pessoa, rode também `node aos.mjs dashboard discover --provider claude` (ou `codex`) para localizar skills já instaladas. Diga *“Encontrei estas skills no seu computador: A, B e C.”* Evite presumir quais ela usa.
+4. Diga o que está no painel agora. Na saída de `dashboard list`, `"selected": null` indica os botões padrão, e uma lista indica que a pessoa já escolheu os botões. Em uma instalação nova, diga *“O Jarvis começa com Planejar hoje, Resumo da caixa de entrada, Pesquisa aprofundada e Reaproveitar conteúdo. O painel do Obsidian tem dez botões iniciais.”*
+5. Mostre **uma lista** agrupada pelo tipo de trabalho. Em cada linha, informe o nome, o resultado, os requisitos e se eles estão disponíveis hoje. Use o que a pessoa disse na Fase 4 sobre agenda e e-mail.
 
    ```text
-   Run your day
-     [x] Plan Today        today's note: top three, schedule, carry-overs        needs Google Calendar (connected)
-     [ ] Inbox Brief       triage of the last 24 hours of email                  needs Gmail (not connected yet)
-     [ ] Weekly Review     a review of your last seven daily notes               needs a few days of notes
-   Research
-     [x] Deep Research     a cited synthesis on any topic                        needs nothing
-   Your own skills (found on this computer)
-     [ ] <their skill>     <its description>
+   Organizar o dia
+     [x] Planejar hoje                Nota de hoje com três prioridades, agenda e pendências.     Precisa do Google Agenda (conectado).
+     [ ] Resumo da caixa de entrada   Triagem das últimas 24 horas de e-mail.                     Precisa do Gmail (ainda desconectado).
+     [ ] Revisão semanal              Revisão das últimas sete notas diárias.                     Precisa de alguns dias de notas.
+   Pesquisa
+     [x] Pesquisa aprofundada        Síntese com fontes sobre qualquer tema.                     Pode rodar agora.
+   Suas skills encontradas neste computador
+     [ ] <skill da pessoa>           <descrição da skill>
    ```
 
-   Tick three to five that fit what they told you, and say why in a few words. Put the ones that need nothing first. Do not tick a workflow whose need they cannot meet today (for example Inbox Brief without Gmail, or Lead Research without a leads database). For a need they could meet in a minute, offer it: *"Want to connect Gmail now, or leave Inbox Brief off for the moment?"*
-6. Ask the swap question in plain words: *"Which of these do you want as your buttons? Your picks replace the starter set, so you can swap any starter button for one of your own skills, keep some of each, or leave the starters as they are. Up to ten, in any order, and you can change them later with Customize dashboard."* Keeping the starter buttons is a complete answer: leave their selection unchanged and continue.
-7. Read their choice back before saving it: *"So your dashboard will be: A, B, C. These starter buttons come off: X, Y."*
+   Marque de três a cinco opções que combinem com o que a pessoa contou e explique por quê em poucas palavras. Ponha primeiro os fluxos que já podem rodar sem configuração. Marque apenas os fluxos cujos requisitos a pessoa consegue atender hoje. Por exemplo, pule Resumo da caixa de entrada sem Gmail ou Pesquisar leads sem uma base de leads. Se bastar um minuto para resolver a dependência, ofereça a opção. *“Quer conectar o Gmail agora ou prefere deixar o Resumo da caixa de entrada de fora por enquanto?”*
+6. Pergunte *“Quais destes você quer como botões? Sua escolha substitui o conjunto inicial. Você pode trocar qualquer botão por uma skill sua, usar alguns de cada ou manter os botões iniciais. São até dez, em qualquer ordem. Você pode mudar depois em Personalizar painel.”* Se ela escolher manter os botões, preserve a seleção e continue.
+7. Confirme a escolha antes de salvar. *“Seu painel vai ter A, B e C. Os botões X e Y vão sair.”*
 
-A skill file being present does not prove its tools or accounts are available. Read an installed skill's instructions before recommending it, explain missing requirements, and do not install new skills or connect accounts without the member choosing that step.
+Confira a disponibilidade das ferramentas e contas de uma skill instalada. Leia suas instruções antes de recomendá-la e explique quais ferramentas ou contas faltam. Instale skills e conecte contas somente se a pessoa escolher essa etapa.
 
-If they want a new skill that does not exist yet, help define its job, required inputs and expected result. After they choose to create it, use the coding tool's normal skill-creation workflow and an appropriate user or vault skill folder. Check the resulting SKILL.md, its provider compatibility and its dependencies before wiring the button. Do not modify this application's source or promise an unavailable integration works. If a skill needs more setup, say what remains and leave that button unwired until the member is ready. Never run a publishing, messaging, purchasing or other external action merely to test a new button.
+Se ela quiser uma skill que ainda não existe, ajude a definir o que ela faz, os dados de entrada e o resultado esperado. Depois que ela decidir criá-la, siga o processo normal de criação de skills da ferramenta de código e use uma pasta de skills adequada, pessoal ou no cofre. Confira o `SKILL.md` criado, a compatibilidade com a ferramenta e as dependências antes de configurar o botão. Preserve o código do aplicativo e confirme que as integrações estão disponíveis antes de afirmar que funcionam. Se a skill ainda exigir configuração, diga o que falta e aguarde a pessoa antes de configurar o botão. Nunca publique, envie mensagens, faça compras ou execute outras ações externas só para testar um botão.
 
-For an existing personal skill, register its exact installed `SKILL.md` path with `node aos.mjs dashboard add --path "<absolute SKILL.md path>" --provider claude|codex|both --revision "<revision from list>"`. Only use `both` after verifying the instructions work in both tools. Registration returns `registeredId` and a new revision; it does not launch the skill or pin a button by itself. Skills absent from the standard discovery folders can be registered by their exact path.
+Para uma skill pessoal existente, registre o caminho exato do `SKILL.md` instalado com `node aos.mjs dashboard add --path "<absolute SKILL.md path>" --provider claude|codex|both --revision "<revision from list>"`. Use `both` somente após verificar que as instruções funcionam nas duas ferramentas. O registro retorna `registeredId` e uma nova revisão. Iniciar a skill e fixar o botão são ações separadas. Skills fora das pastas padrão de descoberta podem ser registradas pelo caminho exato.
 
-Once they approve the selection, run `node aos.mjs dashboard select --skills "<comma-separated IDs in their chosen order>" --revision "<latest revision>"`. Use `--skills none` only if they explicitly want no quick buttons. A revision conflict means another window changed the dashboard: reload the saved selection and reconcile it with the member's choices before retrying.
+Depois da aprovação, rode `node aos.mjs dashboard select --skills "<comma-separated IDs in their chosen order>" --revision "<latest revision>"`. Use `--skills none` apenas se a pessoa pedir explicitamente para ficar sem atalhos. Um conflito de revisão indica que outra janela alterou o painel. Recarregue a seleção salva e concilie com as escolhas da pessoa antes de tentar de novo.
 
-Read `node aos.mjs dashboard list` again to confirm the saved order. Both the Obsidian cockpit and the HUD pick it up within a few seconds. Point out **Customize dashboard** in either app: they can add, remove or reorder buttons, find installed skills, and restore defaults later. Bundled workflows produce reports in the background; personal skills open an ordinary conversation in their selected coding tool, where questions and approvals remain visible. Never run an installed skill merely to test registration: ask for the actual task first.
+Rode `node aos.mjs dashboard list` novamente para confirmar a ordem salva. O Obsidian e o Jarvis atualizam em alguns segundos. Mostre **Personalizar painel** em qualquer um dos aplicativos, onde a pessoa pode adicionar, retirar e reordenar botões, encontrar skills instaladas e restaurar o padrão. Os fluxos incluídos produzem relatórios em segundo plano. As skills pessoais abrem uma conversa comum na ferramenta escolhida, com perguntas e aprovações visíveis. Para rodar uma skill instalada, peça primeiro a tarefa real, sem executá-la só para testar o registro.
 
-Full commands and limits: `docs/DASHBOARD.md`. Dashboard choices live in `system/v2/dashboard.json` inside their vault and survive updates; do not change application source code to customize them.
+Consulte `docs/DASHBOARD.md` para ver todos os comandos e limites. As escolhas do painel ficam em `system/v2/dashboard.json` no cofre, persistem nas atualizações e podem ser feitas com os comandos acima, sem editar o código do aplicativo.
 
-### Offer the skill pack
+<a name="offer-the-skill-pack"></a>
 
-The starter also ships a small pack of skills the member can own. Unlike the built-in buttons, these are copied into their coding tool's own skills folder, where they can read, edit and use them in any conversation.
+### Ofereça o pacote de skills
 
-1. Run `node aos.mjs skills list --provider claude` (or `codex`, the tool they use). It prints each skill's `description`, what it `needs`, and whether it is already `installed`.
-2. Show the list the same way as the buttons, one line each, and ask: *"Want any of these installed as your own skills?"* A no is a complete answer. Either way, record what you showed with `node aos.mjs skills offered --skills "<every id you showed>"`, so a later update does not offer them again.
-3. Install only what they chose: `node aos.mjs skills install --skills "<id>,<id>" --provider claude`. A skill that leans on another brings it along and says so. A status of `kept-yours` means a different copy was already there and was left alone.
-4. Ask whether any of them should also be a dashboard button. For each yes, use the `path` the install printed with `dashboard add`, then `dashboard select`, as above.
+A distribuição inclui um pequeno pacote de skills pessoais. A instalação copia essas skills para a pasta da ferramenta de código, onde a pessoa pode ler, editar e usar em qualquer conversa.
 
-Installing never runs a skill. A copy the member edits is theirs: a later install or update does not overwrite it.
+1. Rode `node aos.mjs skills list --provider claude` (ou `codex`, conforme a ferramenta que a pessoa usa). O comando mostra a `description`, o que a skill requer em `needs` e se já está `installed`.
+2. Mostre uma lista como a dos botões, uma linha por skill. Pergunte *“Quer instalar alguma destas como skill pessoal?”* Se ela disser não, aceite a decisão. Registre as skills mostradas com `node aos.mjs skills offered --skills "<every id you showed>"` em qualquer caso, para evitar que sejam oferecidas de novo após uma atualização.
+3. Instale somente o que ela escolheu com `node aos.mjs skills install --skills "<id>,<id>" --provider claude`. Se uma skill depender de outra, o comando também a instala e avisa. O estado `kept-yours` indica que já existia uma cópia diferente e ela foi preservada.
+4. Pergunte se a pessoa quer alguma dessas skills como botão. Para cada sim, use o `path` exibido pela instalação com `dashboard add` e depois `dashboard select`, como acima.
 
-### Live voice (optional)
+A instalação apenas disponibiliza a skill. A pessoa pode editar a cópia, que é preservada em instalações ou atualizações futuras.
 
-Ask: *"Would you like to be able to talk to your assistant on a live call? It answers from your day's plan and hands real work to your agents. It needs your own OpenAI API key and OpenAI bills it, roughly five cents a minute while you're talking."* A no is a complete answer: Local voice keeps working and costs nothing.
+<a name="live-voice-optional"></a>
 
-Only with a clear yes:
+### Voz ao vivo (opcional)
 
-1. Ask whether they already have an OpenAI **API** key. If not, walk them through it: sign in at platform.openai.com (a separate account from ChatGPT), add credit under Billing, then create a key on the API keys page. On ChatGPT Pro or Business, tell them their plan includes monthly API credits that can pay for Live: they claim them once in ChatGPT's billing settings, and the key must come from the API account linked there. ChatGPT Plus does not include them. Details: `docs/LIVE-VOICE.md`. They keep the key to themselves.
-2. Run `node aos.mjs openai-key` and give them the local page it prints. They read the disclosure, paste the key and save their consent on that page. Never ask for the key in chat, and never read `openai.json`. The page checks the key with OpenAI before saving, and the command then prints the outcome in one line. Read that line and act on it:
-   - *Saved. OpenAI accepted the key.* Continue.
-   - *Saved, but OpenAI did not show this key the Live model.* Tell them the key's project may not have access to it yet, and that the first call will show whether it works.
-   - *Saved. OpenAI could not be reached.* Continue; the first call is the test.
-   - *No key was saved.* The page timed out, or OpenAI refused the key and they closed the page. Run the command again when they are ready.
-3. Have them open **···** on the HUD Voice card or beside the Obsidian orb, choose **Live**, start a call and allow the microphone.
-   If the call does not start, the message on screen says why in plain words: a key OpenAI does not accept, no credit on the API account, or no access to the Live model. Fix that one thing with them; `docs/TROUBLESHOOTING.md` has a row for each.
-4. Have them try three things: a general question, *"What's on my plan today?"* (Live answers from what it has), and *"Run Inbox Brief"* (Live hands it to V2; they can say "stop" within about 2.5 seconds). Then **End call**.
-5. **Choose what Live knows when a call starts.** Say: *"Every call starts with a short snapshot: your About me, today's plan, and a few reports. You can turn parts off, and add your own notes or reports, like a goals note or a report one of your skills saves. Everything in it goes to OpenAI at the start of each call."* Then, one question at a time:
-   1. Run `node aos.mjs live-context show` and tell them in plain words what a call reads now.
-   2. *"Which of these do you want on every call?"* A part fed by a workflow they do not run is empty anyway (Numbers needs Metrics Pull, News needs Morning Intel, Radar needs Outlier Radar or GitHub Trending). Turn off what they do not want with `node aos.mjs live-context section <name> off`.
-   3. *"Is there anything you'd want it to know on every call: a goals or projects note, a client list, a report one of your skills saves?"* Find the note or folder in their vault with them; search for it, never guess a path, and confirm it before adding. Add it with `node aos.mjs live-context add "<path>" --label "<short name>"`. A folder means its newest note is read, which suits a report a skill saves every day. Up to six; each is read up to about 6,000 characters, so a short summary note works better than a long one. Add only what they name, and never a note with passwords, keys, account numbers or health details.
-   4. Facts that rarely change (who they are, the people in their work, how they like answers) belong in **About me** instead. Offer the About me intake if it is thin.
-   5. Run `node aos.mjs live-context show` again so they see the result, and tell them they can change it any time by asking, for example *"add my goals note to Live"* or *"stop sending the radar to Live"*.
-6. Mention **Share morning brief** in the Live settings and leave the choice to them. It is off by default. Turned on, their whole morning brief, including its email section, goes to OpenAI at the start of each call so Live can answer from it. It is only useful if they run Morning Intel, so offer it together with the scheduled Intel Brief below.
+Pergunte *“Quer conversar com seu assistente em uma chamada ao vivo? Ele responde com base no seu plano do dia e encaminha tarefas reais aos seus agentes. Você precisa da sua própria chave da API da OpenAI, que cobra cerca de cinco centavos de dólar por minuto enquanto você fala.”* Se a pessoa disser não, aceite a decisão. A voz local continua funcionando sem custo de API.
 
-Later, `node aos.mjs openai-key --check` says whether a key and consent are saved, and `node aos.mjs doctor` checks the saved key with OpenAI. Neither shows the key.
+Prossiga apenas com um sim claro.
 
-Details, settings and costs: `docs/LIVE-VOICE.md`. Do not turn on Live, Share morning brief or any other sharing setting for them.
+1. Pergunte se a pessoa já tem uma chave da **API** da OpenAI. Se não tiver, guie-a para entrar em platform.openai.com (a plataforma da API é separada do ChatGPT), adicionar créditos em Billing e criar uma chave na página de chaves da API. O ChatGPT Pro e o Business incluem créditos mensais da API. Oriente a pessoa a resgatar o benefício uma vez nas configurações de cobrança do ChatGPT e a usar uma chave da conta da API vinculada ali. O Plus não inclui esses créditos. Consulte `docs/LIVE-VOICE.md`. A chave fica com a pessoa.
+2. Rode `node aos.mjs openai-key` e passe a página local que o comando exibe. A pessoa lê o aviso, cola a chave e salva a autorização na página. Nunca peça a chave no chat nem leia `openai.json`. A página consulta a OpenAI para verificar a chave antes de salvar, e o comando imprime o resultado em uma linha. Leia e siga a orientação correspondente.
+   - *Chave salva. A OpenAI aceitou a chave.* Continue.
+   - *Chave salva com um aviso. O modelo de voz ao vivo não apareceu entre os modelos disponíveis para esta chave.* Informe que o projeto da chave talvez ainda não tenha acesso e que a primeira chamada vai testar isso.
+   - *Chave salva. Não foi possível conectar à OpenAI para verificar a chave.* Continue e use a primeira chamada como teste.
+   - *A chave não foi salva.* A página expirou, ou a OpenAI recusou a chave e a pessoa fechou a página. Rode o comando novamente quando ela estiver pronta.
+3. Peça à pessoa que abra **···** no cartão **Voz** do Jarvis ou ao lado do orbe no Obsidian, escolha **Ao vivo**, inicie uma chamada e autorize o microfone. Se a chamada não iniciar, a tela indica a causa, como chave recusada pela OpenAI, falta de crédito na conta da API ou falta de acesso ao modelo. Corrija com a pessoa o problema indicado. `docs/TROUBLESHOOTING.md` tem uma orientação para cada caso.
+4. Peça que teste três coisas: uma pergunta comum, *“Qual é meu plano de hoje?”* (a voz ao vivo responde com o contexto que recebe) e *“Rode a skill Inbox Brief”* (a voz ao vivo encaminha o pedido ao V2, e a pessoa pode dizer “pare” em cerca de 2,5 segundos). Depois, selecione **Encerrar chamada**.
+5. **Escolha o que a voz ao vivo recebe no início da chamada.** Diga *“Cada chamada começa com um resumo curto da sua seção Sobre mim, do plano de hoje e de alguns relatórios. Você pode desativar partes e acrescentar notas ou relatórios seus, como uma nota de metas ou um relatório salvo por uma skill. A OpenAI recebe tudo o que estiver nesse contexto no começo de cada chamada.”* Faça uma pergunta por vez.
+   1. Rode `node aos.mjs live-context show` e diga em linguagem comum o que a chamada lê hoje.
+   2. Pergunte *“Quais desses itens você quer em toda chamada?”* Se uma seção depende de um fluxo que a pessoa não roda, ela fica vazia. A seção de métricas (`numbers`) depende de Atualizar métricas. A de notícias (`news`) depende de Boletim de IA. A de radar (`radar`) depende de Radar de vídeos em destaque ou Em alta no GitHub. Desative as seções indesejadas com `node aos.mjs live-context section <name> off`.
+   3. Pergunte *“Tem algo que você quer que a voz ao vivo saiba em toda chamada, como uma nota de metas ou projetos, uma lista de clientes ou um relatório salvo por uma skill?”* Procure a nota ou pasta no cofre com a pessoa e confirme o caminho antes de adicionar. Rode `node aos.mjs live-context add "<path>" --label "<short name>"`. Para uma pasta, a chamada lê a nota mais recente, o que serve para relatórios salvos diariamente por uma skill. São até seis entradas, lidas até cerca de 6.000 caracteres cada. Uma nota curta de resumo cabe melhor. Adicione apenas o que a pessoa indicar. Nunca inclua notas que contenham senhas, chaves, números de conta ou dados de saúde.
+   4. Coloque informações que mudam pouco, como quem é a pessoa, com quem ela trabalha e como prefere as respostas, em **Sobre mim**. Ofereça as perguntas dessa seção se o texto estiver incompleto.
+   5. Rode `node aos.mjs live-context show` de novo para mostrar o resultado. Diga que a pessoa pode alterar isso a qualquer momento com pedidos como *“adicione minha nota de metas à voz ao vivo”* ou *“pare de enviar o radar à voz ao vivo”*.
+6. Mostre **Compartilhar boletim da manhã** nas configurações da voz ao vivo e deixe a pessoa escolher. A opção vem desativada. Se for ativada, a OpenAI recebe o boletim inteiro no início de cada chamada, incluindo a seção de e-mails, e a voz ao vivo pode responder com base nele. Ofereça a opção ao falar do agendamento do Boletim de IA abaixo, pois ela só serve para quem roda o fluxo.
 
-### Other preferences
+Mais tarde, `node aos.mjs openai-key --check` indica se a chave e a autorização foram salvas, e `node aos.mjs doctor` verifica a chave salva com a OpenAI. Ambos preservam o segredo da chave.
 
-- **Daily Drivers:** ask for the three or four things they want on every day's checklist, and write them to `<vault>/system/v2/profile.json` as `{"dailyDrivers": ["…", "…"]}` (1–8 short labels). Optional `"cta"`: the closing paragraph Content Cascade should use for their community or newsletter.
-- **Metrics cards** (YouTube, Instagram, TikTok, GitHub): the settings live in `~/.claude/.env`. That is only a file this system reads; it does not need Claude Code. If the `~/.claude` folder does not exist (a Codex-only computer), create the folder first, then create the file from `docs/env.example`. Open it in their editor (`notepad` / `open -e`), tell them which lines to fill, and wait. Handles are not secret; the YouTube key is, so they type it, not you.
-- **Scheduled workflows:** ask whether they want anything to run by itself, most often Plan Today in the morning or the Intel Brief before they start. Only with a clear yes: `node aos.mjs schedule add plan-today 07:00 --days weekdays` (`node aos.mjs schedule skills` lists what can be scheduled). Say plainly that it runs only while the services are running and uses their plan the same as pressing the button. Never schedule anything they did not ask for.
-- **Voice sound and words:** if they use voice, ask whether they want replies spoken (`node aos.mjs voice mute` turns that off), offer a different voice or speed (`node aos.mjs voice use <name>`, `node aos.mjs voice speed 1.1`), and teach it the two or three names it must not mishear: their own name, their company, their main product (`node aos.mjs voice teach "<word>" "<word>"`). `node aos.mjs voice` shows the result. They can change all of it later from the voice menu on either screen.
-- **Voice language:** voice hears and speaks English. If they will speak Spanish, French, Italian or Brazilian Portuguese to it, add `"speechLanguage": "es"` (`fr`, `it`, `pt`) to the same `profile.json`, then run `node aos.mjs stop` and `node aos.mjs setup --voice yes` (it downloads that language's speech model, about 460 MB) and `node aos.mjs doctor`. Tell them plainly: the instant spoken commands stay English, so in another language each request takes a few seconds longer. Any other language is not supported; leave the setting out.
-- **Time zone:** dates follow the computer's clock. After changing the computer's time zone: `node aos.mjs stop`, then `node aos.mjs start`.
+Consulte `docs/LIVE-VOICE.md` para ver detalhes, configurações e custos. Deixe a pessoa ativar a voz ao vivo, **Compartilhar boletim da manhã** e outras opções de compartilhamento.
 
-## Phase 8 — Hand over
+<a name="other-preferences"></a>
 
-A short, personal wrap-up:
+### Outras preferências
 
-- What now runs by itself: the bridge, the HUD and voice (and at login, if they chose that). Explain the requests to their Claude / Codex account, optional Jev routing through OpenRouter, and any web searches or connected services. Review the data access and external actions required by their selected personal skills.
-- Costs: their Claude and/or Codex provider plan, optional OpenRouter usage for Jev, optional OpenAI usage for Live voice calls, and any paid tools or services used by their personal skills. Local speech has no API charge.
-- Day-to-day: `node aos.mjs status | stop | start | doctor | update`. Explain that `update` maintains a stock starter as a whole; `upgrade` is read-only discovery and planning for an existing or customized system.
-- Where things land: reports in `inbox/reports/` and `inbox/research/`, daily notes in `daily-notes/`, conventions in the vault's `CLAUDE.md` / `AGENTS.md`.
-- Voice shortcut: **Control–Option–J** on Mac, **Ctrl–Alt–J** on Windows, with this installation's own voice service. Press once, speak, pause to send. Keep Obsidian with its orb enabled or the HUD visible. On Mac the Claude weekly-usage meter may read "unavailable". Mac support is new — if something is off, `node aos.mjs doctor` first.
-- If anything breaks later: open this folder in Claude Code or Codex and say *"run the doctor"*.
+- **Rotinas diárias (Daily Drivers).** Pergunte quais três ou quatro itens a pessoa quer na lista de todos os dias. Grave em `<vault>/system/v2/profile.json` como `{"dailyDrivers": ["…", "…"]}`, com um a oito rótulos curtos. O campo opcional `"cta"` guarda o parágrafo final que Reaproveitar conteúdo deve usar para divulgar a comunidade ou a newsletter da pessoa.
+- **Cartões de métricas** do YouTube, Instagram, TikTok e GitHub. As configurações ficam em `~/.claude/.env`. O sistema lê o arquivo mesmo em um computador que só usa Codex. Se a pasta `~/.claude` não existir, crie-a e crie o arquivo a partir de `docs/env.example`. Abra no editor da pessoa (`notepad` ou `open -e`), indique quais linhas preencher e aguarde. Nomes de usuário podem ser informados, mas a chave do YouTube é secreta e deve ser digitada pela própria pessoa.
+- **Fluxos agendados.** Pergunte se a pessoa quer automatizar algum fluxo, como Planejar hoje de manhã ou Boletim de IA antes de começar a trabalhar. Só com um sim claro, rode `node aos.mjs schedule add plan-today 07:00 --days weekdays` para o exemplo de Planejar hoje às 7h nos dias úteis. `node aos.mjs schedule skills` lista os fluxos que podem ser agendados. Explique que o fluxo só roda enquanto os serviços estiverem ativos e usa a assinatura da mesma forma que clicar no botão. Agende exclusivamente o que ela pedir.
+- **Som e vocabulário da voz.** Se a pessoa usa voz, pergunte se quer ouvir as respostas (`node aos.mjs voice mute` desativa a fala). Ofereça outra voz ou velocidade (`node aos.mjs voice use <name>`, `node aos.mjs voice speed 1.1`) e ensine dois ou três nomes que ela quer que o sistema entenda, como o próprio nome, a empresa ou o produto principal (`node aos.mjs voice teach "<word>" "<word>"`). `node aos.mjs voice` mostra o resultado. Ela pode mudar essas opções no menu de voz de qualquer um dos painéis.
+- **Idioma da voz.** Os cofres novos deste fork já vêm com português brasileiro. Um cofre existente sem preferência usa inglês na escuta e na fala. Para usar espanhol, francês, italiano ou português brasileiro, adicione `"speechLanguage": "es"` (ou `fr`, `it`, `pt`, respectivamente) ao mesmo `profile.json`. Rode `node aos.mjs stop`, depois `node aos.mjs setup --voice yes` para baixar o modelo de voz do idioma (cerca de 460 MB) e `node aos.mjs doctor`. Explique que muitos comandos instantâneos continuam em inglês. Este fork também reconhece algumas frases em português, como “planejar hoje”. Pedidos fora dessas regras vão ao modelo e podem demorar alguns segundos a mais. Para outros idiomas, deixe a opção de fora.
+- **Fuso horário.** As datas seguem o relógio do computador. Se o fuso mudar, rode `node aos.mjs stop` e depois `node aos.mjs start`.
+
+<a name="phase-8--hand-over"></a>
+
+## Fase 8 — Entregue o sistema
+
+Faça um resumo curto e voltado à pessoa.
+
+- Diga que a ponte, o Jarvis e a voz rodam sozinhos, inclusive ao entrar na sessão se a pessoa escolheu o início automático. Explique as solicitações à conta do Claude ou do Codex, o roteamento opcional de Jev pela OpenRouter e eventuais buscas na web ou serviços conectados. Revise o acesso a dados e as ações externas que as skills pessoais escolhidas exigem.
+- Explique os custos da assinatura do Claude ou Codex, do uso opcional da OpenRouter para Jev e da OpenAI para chamadas ao vivo, e das ferramentas ou serviços pagos exigidos pelas skills pessoais. A voz local funciona sem cobrança de API.
+- Passe os comandos de dia a dia `node aos.mjs status | stop | start | doctor | update`. Explique que `update` mantém uma cópia padrão como um conjunto e que `upgrade` faz descoberta somente para leitura e orienta o planejamento em um sistema existente ou personalizado.
+- Mostre onde encontrar os resultados. Relatórios ficam em `inbox/reports/` e `inbox/research/`, notas diárias em `daily-notes/` e convenções em `CLAUDE.md` e `AGENTS.md` do cofre.
+- Lembre que o serviço de voz próprio usa **Control–Option–J** no Mac e **Ctrl–Alt–J** no Windows. Pressione uma vez, fale e pause para enviar. Mantenha o Obsidian aberto com o orbe habilitado ou o Jarvis visível. No Mac, o medidor de uso semanal do Claude pode aparecer como indisponível. O suporte ao Mac é recente. Se algo falhar, comece com `node aos.mjs doctor`.
+- Para resolver problemas mais tarde, abra esta pasta no Claude Code ou Codex e peça *“rode o diagnóstico”*.

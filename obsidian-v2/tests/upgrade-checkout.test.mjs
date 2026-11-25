@@ -59,11 +59,32 @@ test('clean official main tracking origin/main is eligible from the repository r
   }
 });
 
+test('the PT-BR edition accepts canonical origin forms and pins the pull to its HTTPS URL', t => {
+  const {root} = fixture(t);
+  const https = 'https://github.com/davioliveeira/agentic-os-starter-v2.git';
+  const ssh = ['git', 'github.com:davioliveeira/agentic-os-starter-v2.git'].join('@');
+  for (const origin of [https, https.slice(0, -4), ssh]) {
+    git(root, ['remote', 'set-url', 'origin', origin]);
+    const assessment = assessCheckout(root);
+    assert.equal(assessment.kind, 'stock-starter', JSON.stringify(assessment.issues));
+    assert.equal(assessment.updateAllowed, true);
+    assert.doesNotMatch(JSON.stringify(assessment), /github\.com/);
+    const pulls = [];
+    const pull = prepareStockUpdate(assessment, {log: () => {}, run: (_command, args) => {
+      pulls.push(args.slice(-7));
+      return {status: 0};
+    }});
+    assert.deepEqual(pulls, []);
+    pull();
+    assert.deepEqual(pulls, [['pull', '--ff-only', '--no-rebase', '--no-autostash', '--no-recurse-submodules', https, 'refs/heads/main:refs/remotes/origin/main']]);
+  }
+});
+
 test('clean behind is allowed against the saved remote ref without fetching; ahead or divergent commits are refused', t => {
   const {root, head} = fixture(t);
   fs.writeFileSync(path.join(root, 'release.txt'), 'new release\n'); git(root, ['add', '--', 'release.txt']); git(root, ['commit', '-m', 'Next synthetic release']);
   const later = git(root, ['rev-parse', 'HEAD']);
-  blocked(assessCheckout(root)); assert.match(assessCheckout(root).issues.join(' '), /Local commits/);
+  blocked(assessCheckout(root)); assert.match(assessCheckout(root).issues.join(' '), /commits locais/);
   git(root, ['update-ref', 'refs/remotes/origin/main', later]); git(root, ['reset', '--hard', head]);
   assert.equal(assessCheckout(root).updateAllowed, true);
   fs.writeFileSync(path.join(root, 'custom.txt'), 'member customization\n'); git(root, ['add', '--', 'custom.txt']); git(root, ['commit', '-m', 'Member customization']);
@@ -81,16 +102,16 @@ test('modified, staged and untracked member files block updates; ordinary ignore
   git(root, ['add', '--', 'member-notes.md']); blocked(assessCheckout(root));
 });
 
-test('forks, missing upstream, non-main branches and detached checkouts fail closed without leaking origin values', t => {
+test('unrecognized origins, missing upstream, non-main branches and detached checkouts fail closed without leaking origin values', t => {
   const {root} = fixture(t);
   git(root, ['remote', 'set-url', 'origin', 'https://fixture-private-value@example.invalid/member/fork.git']);
   const fork = assessCheckout(root); blocked(fork); assert.equal(fork.kind, 'customized');
   assert.doesNotMatch(JSON.stringify(fork), /fixture-private-value|example\.invalid/);
   git(root, ['remote', 'set-url', 'origin', official]); git(root, ['branch', '--unset-upstream']);
-  blocked(assessCheckout(root)); assert.match(assessCheckout(root).issues.join(' '), /tracking/);
+  blocked(assessCheckout(root)); assert.match(assessCheckout(root).issues.join(' '), /acompanha origin\/main/);
   git(root, ['branch', '--set-upstream-to=origin/main', 'main']); git(root, ['checkout', '-b', 'member-custom']);
   blocked(assessCheckout(root)); assert.equal(assessCheckout(root).branch, 'member-custom');
-  git(root, ['checkout', '--detach', 'HEAD']); blocked(assessCheckout(root)); assert.match(assessCheckout(root).issues.join(' '), /detached/);
+  git(root, ['checkout', '--detach', 'HEAD']); blocked(assessCheckout(root)); assert.match(assessCheckout(root).issues.join(' '), /HEAD destacado/);
 });
 
 test('missing Git, truncated output, malformed status and wrong Git roots never qualify', t => {
@@ -101,7 +122,7 @@ test('missing Git, truncated output, malformed status and wrong Git roots never 
   const malformed = assessCheckout(root, {run: (command, args, options) => args.includes('status') ? {status: 0, stdout: 'invalid'} : spawnSync(command, args, options)});
   blocked(malformed);
   const wrongRoot = assessCheckout(root, {run: (command, args, options) => args.includes('--show-toplevel') ? {status: 0, stdout: path.dirname(root) + '\n'} : spawnSync(command, args, options)});
-  blocked(wrongRoot); assert.match(wrongRoot.issues.join(' '), /root does not match/);
+  blocked(wrongRoot); assert.match(wrongRoot.issues.join(' '), /raiz do repositório Git não corresponde/);
 });
 
 test('assessment Git commands are bounded and read-only, do not inherit redirect settings, and disable external monitors', t => {
@@ -141,7 +162,7 @@ test('partial and promisor clones are rejected before object inspection with laz
     const {root} = fixture(t); git(root, ['config', key, value]);
     const calls = [];
     const assessment = assessCheckout(root, {run: (command, args, options) => {calls.push(args); assert.equal(options.env.GIT_NO_LAZY_FETCH, '1'); return spawnSync(command, args, options);}});
-    blocked(assessment); assert.match(assessment.issues.join(' '), /partial\/promisor/);
+    blocked(assessment); assert.match(assessment.issues.join(' '), /clones parciais/);
     assert.ok(!calls.some(args => args.includes('--verify') || args.includes('rev-list') || args.includes('status') || args.includes('fetch')));
   }
 });
@@ -154,7 +175,7 @@ test('configured clean filters are refused before status can execute member code
   fs.writeFileSync(path.join(root, 'obsidian-v2', 'example.txt'), 'two\n');
   let ranStatus = false;
   const value = assessCheckout(root, {run: (command, args, options) => {if (args.includes('status')) ranStatus = true; return spawnSync(command, args, options);}});
-  blocked(value); assert.match(value.issues.join(' '), /filters/); assert.equal(ranStatus, false); assert.equal(fs.existsSync(sentinel), false);
+  blocked(value); assert.match(value.issues.join(' '), /Filtros/); assert.equal(ranStatus, false); assert.equal(fs.existsSync(sentinel), false);
 });
 
 test('include redirects, local excludes, hidden tracked changes and protected tracked names are refused before status', t => {
@@ -171,7 +192,7 @@ test('include redirects, local excludes, hidden tracked changes and protected tr
   git(root, ['update-index', '--add', '--cacheinfo', '100644,' + blob + ',providers.json']);
   let ranStatus = false;
   const value = assessCheckout(root, {run: (command, args, options) => {if (args.includes('status')) ranStatus = true; return spawnSync(command, args, options);}});
-  blocked(value); assert.match(value.issues.join(' '), /Protected configuration/); assert.equal(ranStatus, false); assert.deepEqual(value.changes, []);
+  blocked(value); assert.match(value.issues.join(' '), /Arquivos de configuração protegidos/); assert.equal(ranStatus, false); assert.deepEqual(value.changes, []);
 });
 
 test('linked installation paths are refused without starting Git', t => {
@@ -192,7 +213,7 @@ test('hardlinked metadata is refused before reads and tracked env entries are re
     git(root, ['update-index', '--add', '--cacheinfo', '100644,' + blob + ',' + relative]);
     let ranStatus = false;
     const value = assessCheckout(root, {run: (command, args, options) => {if (args.includes('status')) ranStatus = true; return spawnSync(command, args, options);}});
-    blocked(value); assert.match(value.issues.join(' '), /Protected configuration/); assert.equal(ranStatus, false);
+    blocked(value); assert.match(value.issues.join(' '), /Arquivos de configuração protegidos/); assert.equal(ranStatus, false);
   }
 });
 
@@ -207,7 +228,7 @@ test('update refuses unknown or customized checkouts before service checks, stop
   const root = scratch(t), calls = [];
   const options = {root, log: () => {}, get: async () => {calls.push('get'); return {};}, halt: async () => calls.push('halt'), pull: () => calls.push('pull'), install: async () => {calls.push('install'); return {ok: true};}};
   for (const assessment of [{kind: 'customized', updateAllowed: false}, {kind: 'unknown'}, undefined]) {
-    await assert.rejects(update({...options, check: () => {calls.push('check'); return assessment;}}), /Nothing was stopped or changed.*node aos\.mjs upgrade/);
+    await assert.rejects(update({...options, check: () => {calls.push('check'); return assessment;}}), /Nenhum serviço foi interrompido e nenhum arquivo foi alterado.*node aos\.mjs upgrade/);
   }
   assert.deepEqual(calls, ['check', 'check', 'check']); assert.equal(fs.existsSync(path.join(root, '.runtime')), false);
   calls.length = 0; await assert.rejects(update(options), /node aos\.mjs upgrade/); assert.deepEqual(calls, []);
@@ -240,15 +261,15 @@ test('the default update pull reuses its assessment executable and sanitized con
   for (const expected of ['core.fsmonitor=false', 'core.hooksPath=' + gitNull, 'credential.helper=', 'protocol.allow=never', 'protocol.https.allow=always', 'pull', '--ff-only', '--no-rebase', '--no-autostash', '--no-recurse-submodules', official, 'refs/heads/main:refs/remotes/origin/main']) assert.ok(args.includes(expected), expected);
   assert.equal(options.timeout, 300000); assert.equal(options.maxBuffer, 2 * 1024 * 1024);
   assert.doesNotMatch(JSON.stringify(assessment), /GIT_CONFIG|executable|must-not-run/);
-  assert.throws(() => prepareStockUpdate({...assessment}), /fresh trusted checkout assessment/);
+  assert.throws(() => prepareStockUpdate({...assessment}), /avaliação recente e confiável/);
   let serviceRead = false;
-  await assert.rejects(update({root: child, check: () => ({updateAllowed: true}), get: async () => {serviceRead = true; return {};}}), /fresh trusted checkout assessment/);
+  await assert.rejects(update({root: child, check: () => ({updateAllowed: true}), get: async () => {serviceRead = true; return {};}}), /avaliação recente e confiável/);
   assert.equal(serviceRead, false);
 });
 
 test('failed sanitized pull does not print Git output or private implementation errors', t => {
   const {root} = fixture(t), assessment = assessCheckout(root), log = [];
   const pull = prepareStockUpdate(assessment, {log: line => log.push(line), run: () => ({status: 1, stderr: 'private-output-marker'})});
-  assert.throws(pull, error => /Services remain stopped/.test(error.message) && !error.message.includes('private-output-marker'));
+  assert.throws(pull, error => /Os serviços continuam parados/.test(error.message) && !error.message.includes('private-output-marker'));
   assert.doesNotMatch(log.join('\n'), /private-output-marker/);
 });
