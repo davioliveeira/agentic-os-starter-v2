@@ -47,22 +47,22 @@ export function terminalPythonCheck(runtime, {terminal, recorded = recordedTermi
 // The optional Terminal community plugin, from the vault's own files. Never throws: whatever
 // is wrong here, Jarvis still runs every conversation, so it can never be a core failure.
 export function terminalPluginCheck(vault) {
-  const reinstall = `Reinstall "Terminal" by polyipseity from Settings > Community plugins, or use the same buttons in Jarvis at ${JARVIS_URL}.`;
-  if (!vault || !fs.existsSync(vault)) return {status: 'SKIP', detail: 'no vault configured'};
+  const reinstall = `Reinstale o plugin Terminal, de polyipseity, em Configurações > Plugins da comunidade ou use os mesmos botões no Jarvis em ${JARVIS_URL}.`;
+  if (!vault || !fs.existsSync(vault)) return {status: 'SKIP', detail: 'nenhum cofre configurado'};
   const manifestFile = path.join(vault, '.obsidian', 'plugins', 'terminal', 'manifest.json');
-  if (!fs.existsSync(manifestFile)) return {status: 'SKIP', detail: 'not installed (optional: conversations and personal-skill buttons run in Jarvis; to have them inside Obsidian, install "Terminal" by polyipseity from Settings > Community plugins)'};
+  if (!fs.existsSync(manifestFile)) return {status: 'SKIP', detail: 'instalação opcional. As conversas e as skills pessoais já funcionam no Jarvis. Para usá-las dentro do Obsidian, instale o Terminal, de polyipseity, em Configurações > Plugins da comunidade.'};
   let manifest;
-  try { manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8')); } catch { return {status: 'FAIL', detail: 'its manifest.json could not be read', fix: reinstall}; }
-  if (manifest?.id !== 'terminal') return {status: 'SKIP', detail: 'a different plugin occupies the .obsidian/plugins/terminal folder'};
+  try { manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8')); } catch { return {status: 'FAIL', detail: 'falha ao ler o arquivo manifest.json', fix: reinstall}; }
+  if (manifest?.id !== 'terminal') return {status: 'SKIP', detail: 'outro plugin ocupa a pasta .obsidian/plugins/terminal'};
   let enabled = false;
   try { const list = JSON.parse(fs.readFileSync(path.join(vault, '.obsidian', 'community-plugins.json'), 'utf8')); enabled = Array.isArray(list) && list.includes('terminal'); }
-  catch (error) { if (error.code !== 'ENOENT') return {status: 'SKIP', detail: 'could not read the enabled-plugins list (.obsidian/community-plugins.json)'}; }
+  catch (error) { if (error.code !== 'ENOENT') return {status: 'SKIP', detail: 'falha ao ler a lista de plugins ativos (.obsidian/community-plugins.json)'}; }
   const support = terminalSupport(manifest.version);
-  if (!enabled) return {status: 'SKIP', detail: `${support.version || 'installed'}, but switched off (optional: turn it on in Settings > Community plugins for conversations inside Obsidian)`};
+  if (!enabled) return {status: 'SKIP', detail: `${support.version || 'instalado'} e desativado. Para conversar dentro do Obsidian, ative o plugin em Configurações > Plugins da comunidade.`};
   if (support.status === 'verified') return {status: 'PASS', detail: support.version};
-  if (support.status === 'untested') return {status: 'PASS', detail: `${support.version}, newer than the tested ${VERIFIED_TERMINAL_VERSIONS.join(' and ')}; it should work`};
-  if (support.status === 'missing') return {status: 'FAIL', detail: 'its manifest has no version', fix: reinstall};
-  return {status: 'FAIL', detail: `version ${support.version}`, fix: support.message};
+  if (support.status === 'untested') return {status: 'PASS', detail: `${support.version}, mais recente que as versões testadas (${VERIFIED_TERMINAL_VERSIONS.join(' e ')}). Deve funcionar`};
+  if (support.status === 'missing') return {status: 'FAIL', detail: 'a versão está ausente no manifesto', fix: reinstall};
+  return {status: 'FAIL', detail: `versão ${support.version}`, fix: support.message};
 }
 
 // Why the voice line failed, from what the bridge, the monitor and the disk say. Pure.

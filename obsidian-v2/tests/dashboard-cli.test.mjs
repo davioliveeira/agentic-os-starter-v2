@@ -27,7 +27,7 @@ test('onboarding CLI saves the approved ordered selection and resets without ins
   const chosen = command('select', {revision: original.revision, skills: 'weekly-review,plan-today'});
   assert.deepEqual(chosen.selected, ['weekly-review', 'plan-today']);
   assert.deepEqual(command('list').selected, chosen.selected);
-  assert.throws(() => command('select', {revision: original.revision, skills: 'inbox-brief'}), /changed|revision|conflict/i);
+  assert.throws(() => command('select', {revision: original.revision, skills: 'inbox-brief'}), /mudaram em outra janela/i);
   const empty = command('select', {revision: chosen.revision, skills: 'none'});
   assert.deepEqual(empty.selected, []);
   assert.equal(command('reset', {revision: empty.revision}).selected, null);
@@ -36,8 +36,8 @@ test('onboarding CLI saves the approved ordered selection and resets without ins
 test('onboarding CLI requires explicit revisions, known IDs and an installed vault', t => {
   const {root, command, options} = fixture(t);
   assert.throws(() => command('select', {skills: 'plan-today'}), /revision/);
-  assert.throws(() => command('select', {revision: command('list').revision, skills: 'made-up-skill'}), /unknown|registered|catalog/i);
-  assert.throws(() => command('select', {revision: command('list').revision, skills: 'plan-today,plan-today'}), /different|duplicate/i);
+  assert.throws(() => command('select', {revision: command('list').revision, skills: 'made-up-skill'}), /precisa ser registrada/i);
+  assert.throws(() => command('select', {revision: command('list').revision, skills: 'plan-today,plan-today'}), /skills distintas/i);
   assert.throws(() => command('list', {unexpected: true}), /Unknown dashboard flag/);
   assert.throws(() => dashboardCommand({words: ['list'], flags: {vault: 'relative'}, options}), /absolute/);
   assert.throws(() => dashboardCommand({words: ['list'], flags: {vault: path.join(root, 'missing')}, options}), /ENOENT/);

@@ -1,35 +1,35 @@
-# CONTEXT.md — Project Glossary Format
+# Formato do glossário do projeto
 
-`CONTEXT.md` is a glossary and nothing else: the project's chosen words, one definition each. No implementation details, no specs, no scratch notes.
+`CONTEXT.md` é o glossário do projeto. Registre os termos escolhidos, com uma definição por termo. Mantenha detalhes de implementação, especificações e anotações de trabalho nos respectivos documentos.
 
-## Shape
+## Estrutura
 
 ```md
-# {Project or Context Name}
+# {Nome do projeto ou contexto}
 
-{One sentence: what this context covers.}
+{Uma frase que delimite este contexto.}
 
-## Terms
+## Termos
 
-**Deal**
-One negotiated agreement with one sponsor, containing its deliverables.
-Not: "campaign", "contract", "engagement"
+**Acordo**
+Compromisso negociado com um patrocinador que inclui suas entregas.
+Evite: "campanha", "contrato", "ação"
 
-**Milestone**
-A payment checkpoint on a deal with an amount and a due date.
-Not: "invoice", "installment"
+**Marco**
+Etapa de pagamento de um acordo, definida por valor e vencimento.
+Evite: "fatura", "parcela"
 ```
 
-## Rules
+## Regras
 
-- One canonical term per concept; competing synonyms go on the `Not:` line so the ban is explicit.
-- A definition is one or two sentences stating what the thing *is*. If you're describing behavior, it belongs in code or the plan, not here.
-- Admit only domain terms. Anything a programmer would recognize from any other project (retry, handler, cache) stays out no matter how often it appears in this one.
-- Flat list until clusters genuinely emerge; then subheadings.
-- Create the file only when the first term is actually settled — never speculatively.
+- Adote um termo oficial por conceito e liste os sinônimos descartados na linha `Evite:`.
+- Escreva uma ou duas frases para definir o conceito. Registre descrições de comportamento no código ou no plano.
+- Inclua apenas termos do domínio. Termos de programação reconhecíveis em qualquer projeto, como retry, handler e cache, ficam fora do glossário.
+- Mantenha uma lista simples. Use subtítulos quando surgirem grupos que façam sentido.
+- Crie o arquivo quando o primeiro termo estiver definido.
 
-## Repos with more than one domain
+## Repositórios com mais de um domínio
 
-Large repos sometimes hold several bounded vocabularies (e.g. `ordering` vs `billing`). Signal this with a root `CONTEXT-MAP.md` that lists each context, its folder, and how they talk to each other (events consumed, shared identifiers). Each context then keeps its own `CONTEXT.md` in its folder.
+Quando um repositório reúne vocabulários de contextos distintos, como pedidos e faturamento, crie `CONTEXT-MAP.md` na raiz. Liste cada contexto, sua pasta e como ele se comunica com os demais, incluindo os eventos que consome e os identificadores compartilhados. Cada contexto mantém seu próprio `CONTEXT.md` em sua pasta.
 
-Resolution order when the skill runs: `CONTEXT-MAP.md` present → find the context matching the current work (ask if ambiguous); root `CONTEXT.md` only → single context; neither → create a root `CONTEXT.md` lazily.
+Ao executar a skill, procure primeiro `CONTEXT-MAP.md` para identificar o contexto do trabalho. Pergunte se houver ambiguidade. Se houver apenas `CONTEXT.md` na raiz, use-o como contexto único. Se ambos estiverem ausentes, crie `CONTEXT.md` na raiz quando surgir o primeiro termo.

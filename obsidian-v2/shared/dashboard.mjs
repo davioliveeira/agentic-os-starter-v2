@@ -7,10 +7,10 @@ export const isInstalledSkill = id => typeof id === 'string' && /^installed:[a-f
 
 export function validateDashboardSelection(selected, knownIds) {
   if (selected === null) return null;
-  if (!Array.isArray(selected) || selected.length > MAX_DASHBOARD_SKILLS || selected.some(id => typeof id !== 'string' || !id || id.length > 100) || new Set(selected).size !== selected.length) throw new Error(`Choose up to ${MAX_DASHBOARD_SKILLS} different dashboard skills.`);
+  if (!Array.isArray(selected) || selected.length > MAX_DASHBOARD_SKILLS || selected.some(id => typeof id !== 'string' || !id || id.length > 100) || new Set(selected).size !== selected.length) throw new Error(`Escolha até ${MAX_DASHBOARD_SKILLS} skills distintas para o painel.`);
   if (knownIds) {
     const known = new Set(knownIds);
-    if (selected.some(id => !known.has(id))) throw new Error('A selected dashboard skill is not registered. Refresh the list and try again.');
+    if (selected.some(id => !known.has(id))) throw new Error('Uma das skills selecionadas ainda precisa ser registrada. Atualize a lista e tente novamente.');
   }
   return [...selected];
 }

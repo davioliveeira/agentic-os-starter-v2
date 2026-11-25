@@ -47,13 +47,13 @@ test('selection validates IDs, order, uniqueness and the limit',t => {
     assert.throws(() => saveDashboard(root,{revision:saved.revision,selected:invalid},online));
     assert.deepEqual(view(root).selected,selected);
   }
-  assert.throws(() => validateDashboardSelection(['a','a']),/different/);
+  assert.throws(() => validateDashboardSelection(['a','a']),/distintas/);
 });
 
 test('optimistic concurrency preserves the newer order',t => {
   const {root} = fixture(t),old = view(root);
   const current = saveDashboard(root,{revision:old.revision,selected:['plan-today']},online);
-  assert.throws(() => saveDashboard(root,{revision:old.revision,selected:['weekly-review']},online),/another window/);
+  assert.throws(() => saveDashboard(root,{revision:old.revision,selected:['weekly-review']},online),/outra janela/);
   assert.equal(view(root).revision,current.revision);assert.deepEqual(view(root).selected,['plan-today']);
 });
 
@@ -61,9 +61,9 @@ test('malformed config is visible and cannot be silently replaced',t => {
   const {root,config,folder} = fixture(t);
   fs.mkdirSync(path.dirname(config),{recursive:true});fs.writeFileSync(config,'{"selected":');
   const before = fs.readFileSync(config,'utf8'),state = view(root);
-  assert.match(state.error,/not valid JSON/);assert.equal(state.revision,'invalid');
-  assert.throws(() => saveDashboard(root,{revision:state.revision,selected:[]},online),/not valid JSON/);
-  assert.throws(() => registerDashboardSkill(root,{revision:'invalid',path:skillAt(path.join(folder,'skill')),providers:['codex']},online),/not valid JSON/);
+  assert.match(state.error,/JSON válido/);assert.equal(state.revision,'invalid');
+  assert.throws(() => saveDashboard(root,{revision:state.revision,selected:[]},online),/JSON válido/);
+  assert.throws(() => registerDashboardSkill(root,{revision:'invalid',path:skillAt(path.join(folder,'skill')),providers:['codex']},online),/JSON válido/);
   assert.equal(fs.readFileSync(config,'utf8'),before);assert.equal(fs.existsSync(config+'.lock'),false);
 });
 
@@ -100,12 +100,12 @@ test('changed or missing skill is disabled until re-registration; ID and selecti
   const result = register(root,file),id = result.registeredId;
   saveDashboard(root,{revision:result.revision,selected:[id]},online);
   fs.appendFileSync(file,'New instructions.\n');
-  assert.match(view(root).catalog.find(item => item.id === id).reason,/changed/);
-  assert.throws(() => prepareDashboardSkill(root,{skill:id,request:'Go',selection},online),/changed/);
+  assert.match(view(root).catalog.find(item => item.id === id).reason,/mudou/);
+  assert.throws(() => prepareDashboardSkill(root,{skill:id,request:'Go',selection},online),/mudou/);
   const refreshed = register(root,file);
   assert.equal(refreshed.registeredId,id);assert.deepEqual(refreshed.selected,[id]);assert.equal(refreshed.catalog.find(item => item.id === id).available,true);
   fs.unlinkSync(file);
-  assert.match(view(root).catalog.find(item => item.id === id).reason,/missing/);
+  assert.match(view(root).catalog.find(item => item.id === id).reason,/ausente/);
   assert.throws(() => prepareDashboardSkill(root,{skill:id,request:'Go',selection},online));
 });
 
@@ -113,21 +113,21 @@ test('registration checks revision and validates metadata and provider declarati
   const {root,folder} = fixture(t),file = skillAt(path.join(folder,'skill'));
   const old = view(root).revision;
   saveDashboard(root,{revision:old,selected:[]},online);
-  assert.throws(() => registerDashboardSkill(root,{revision:old,path:file,providers:['codex']},online),/another window/);
-  for (const invalid of [[],['other'],['codex','codex'],null]) assert.throws(() => register(root,file,invalid),/supported providers/);
-  fs.writeFileSync(file,'# Not a skill\n');assert.throws(() => register(root,file),/frontmatter/);
-  fs.writeFileSync(file,'---\nname: A\nname: B\ndescription: valid\n---\n');assert.throws(() => register(root,file),/invalid or duplicate/);
-  fs.writeFileSync(file,'---\nname: A\n---\n');assert.throws(() => register(root,file),/description/);
+  assert.throws(() => registerDashboardSkill(root,{revision:old,path:file,providers:['codex']},online),/outra janela/);
+  for (const invalid of [[],['other'],['codex','codex'],null]) assert.throws(() => register(root,file,invalid),/Claude, Codex ou ambos/);
+  fs.writeFileSync(file,'# Not a skill\n');assert.throws(() => register(root,file),/cabeçalho YAML/);
+  fs.writeFileSync(file,'---\nname: A\nname: B\ndescription: valid\n---\n');assert.throws(() => register(root,file),/inválidos ou duplicados/);
+  fs.writeFileSync(file,'---\nname: A\n---\n');assert.throws(() => register(root,file),/descrição/);
   assert.throws(() => register(root,path.join(folder,'README.md')),/SKILL.md/);
-  assert.throws(() => register(root,'relative/SKILL.md'),/absolute/);
+  assert.throws(() => register(root,'relative/SKILL.md'),/absoluto/);
 });
 
 test('provider compatibility and CLI installation are checked again at launch',t => {
   const {root,folder} = fixture(t),result = register(root,skillAt(path.join(folder,'skill')),['claude']);
   const input = {skill:result.registeredId,request:'Go',selection};
-  assert.throws(() => prepareDashboardSkill(root,input,online),/not registered for codex/);
+  assert.throws(() => prepareDashboardSkill(root,input,online),/não está registrada para codex/);
   const claudeInput = {...input,selection:{provider:'claude',model:'sonnet'}};
-  assert.throws(() => prepareDashboardSkill(root,claudeInput,offline),/CLI is not installed/);
+  assert.throws(() => prepareDashboardSkill(root,claudeInput,offline),/CLI de claude não está instalada/);
   assert.equal(readDashboard(root,offline).catalog.find(item => item.id === result.registeredId).available,false);
   assert.equal(readDashboard(root,offline).catalog.find(item => item.id === 'metrics-pull').available,true);
   assert.equal(readDashboard(root,offline).catalog.find(item => item.id === 'plan-today').available,false);
@@ -140,9 +140,9 @@ test('requests stay text and reject control sequences, unknown IDs and unsupport
   const {root,folder} = fixture(t),result = register(root,skillAt(path.join(folder,'skill')));
   const input = {skill:result.registeredId,request:'',selection};
   assert.match(prepareDashboardSkill(root,input,online).prompt,/Ask me what you need/);
-  assert.throws(() => prepareDashboardSkill(root,{...input,skill:'plan-today'},online),/registered installed/);
-  assert.throws(() => prepareDashboardSkill(root,{...input,request:'x'.repeat(6001)},online),/6000/);
-  assert.throws(() => prepareDashboardSkill(root,{...input,request:'escape\x1b[1m'},online),/6000/);
+  assert.throws(() => prepareDashboardSkill(root,{...input,skill:'plan-today'},online),/instalada e registrada/);
+  assert.throws(() => prepareDashboardSkill(root,{...input,request:'x'.repeat(6001)},online),/6\.000/);
+  assert.throws(() => prepareDashboardSkill(root,{...input,request:'escape\x1b[1m'},online),/6\.000/);
   assert.throws(() => prepareDashboardSkill(root,{...input,selection:{provider:'codex',model:'fake'}},online),/Unsupported/);
   const text = 'Literal `command` and $(command); never shell-interpolate this';
   assert.ok(prepareDashboardSkill(root,{...input,request:text},online).prompt.includes(text));
@@ -159,7 +159,7 @@ test('discovery reads only SKILL.md in the requested provider conventional roots
   const codex = discoverDashboardSkills(root,{provider:'codex',home});
   assert.deepEqual(codex.skills.map(skill => skill.label),['Codex helper','Local helper']);
   assert.ok(codex.skills.every(skill => skill.providers.join(',') === 'codex'));
-  assert.equal(view(root).revision,'missing');assert.throws(() => discoverDashboardSkills(root,{provider:'fake',home}),/supported providers/);
+  assert.equal(view(root).revision,'missing');assert.throws(() => discoverDashboardSkills(root,{provider:'fake',home}),/Claude, Codex ou ambos/);
 });
 
 test('discovery stops at a skill root and reports invalid files and bounded traversal',t => {
@@ -174,8 +174,8 @@ test('discovery stops at a skill root and reports invalid files and bounded trav
 test('symlinked configuration directories cannot redirect writes outside the vault',t => {
   const {root,folder} = fixture(t),outside = path.join(folder,'outside');fs.mkdirSync(outside);
   try {fs.symlinkSync(outside,path.join(root,'system'),process.platform === 'win32' ? 'junction' : 'dir');} catch (error) {if (['EPERM','EACCES'].includes(error.code)) {t.skip('This environment cannot create directory links.');return;}throw error;}
-  assert.match(view(root).error,/Linked/);
-  assert.throws(() => saveDashboard(root,{revision:'missing',selected:[]},online),/Linked/);
+  assert.match(view(root).error,/links simbólicos/);
+  assert.throws(() => saveDashboard(root,{revision:'missing',selected:[]},online),/links simbólicos/);
   assert.deepEqual(fs.readdirSync(outside),[]);
 });
 
@@ -184,22 +184,22 @@ test('linked skill folders are never registered or traversed',t => {
   const base = path.join(folder,'skills');fs.mkdirSync(base);
   const link = path.join(base,'linked');
   try {fs.symlinkSync(target,link,process.platform === 'win32' ? 'junction' : 'dir');} catch (error) {if (['EPERM','EACCES'].includes(error.code)) {t.skip('This environment cannot create directory links.');return;}throw error;}
-  assert.throws(() => register(root,path.join(link,'SKILL.md')),/Linked/);
+  assert.throws(() => register(root,path.join(link,'SKILL.md')),/links simbólicos/);
   const result = discoverDashboardSkills(root,{provider:'codex',skillRoots:[base]});
   assert.equal(result.skills.length,0);assert.equal(result.skipped,1);
 });
 
 test('oversize files and hardlinks cannot enter the registry',t => {
   const {root,folder} = fixture(t),file = skillAt(path.join(folder,'skill'));
-  fs.appendFileSync(file,'x'.repeat(129*1024));assert.throws(() => register(root,file),/size/);
+  fs.appendFileSync(file,'x'.repeat(129*1024));assert.throws(() => register(root,file),/limite de tamanho/);
   const original = skillAt(path.join(folder,'original')),linkedFolder = path.join(folder,'hardlinked');fs.mkdirSync(linkedFolder);
   fs.linkSync(original,path.join(linkedFolder,'SKILL.md'));
-  assert.throws(() => register(root,path.join(linkedFolder,'SKILL.md')),/regular file/);
+  assert.throws(() => register(root,path.join(linkedFolder,'SKILL.md')),/arquivo regular/);
 });
 
 test('save lock refuses concurrent writers without deleting their lock',t => {
   const {root,config} = fixture(t);fs.mkdirSync(path.dirname(config),{recursive:true});fs.writeFileSync(config+'.lock','another writer');
-  assert.throws(() => saveDashboard(root,{revision:'missing',selected:[]},online),/being saved/);
+  assert.throws(() => saveDashboard(root,{revision:'missing',selected:[]},online),/estão sendo salvas/);
   assert.equal(fs.readFileSync(config+'.lock','utf8'),'another writer');assert.equal(fs.existsSync(config),false);
 });
 
@@ -207,12 +207,12 @@ test('installed-skill retries require the same model, provider, prompt and app s
   const prepared = {prompt:'Use the registered skill.',selection},existing = {provider:selection.provider,model:selection.model,prompt:prepared.prompt};
   assert.doesNotThrow(() => assertDashboardReplay(undefined,prepared,'web'));
   assert.doesNotThrow(() => assertDashboardReplay(existing,prepared,'web'));
-  assert.throws(() => assertDashboardReplay(existing,{...prepared,selection:{...selection,model:'luna'}},'web'),/different model/);
-  assert.throws(() => assertDashboardReplay({...existing,provider:'claude'},prepared,'web'),/different request/);
-  assert.throws(() => assertDashboardReplay(existing,{...prepared,prompt:'Different task'},'web'),/different request/);
-  assert.throws(() => assertDashboardReplay(existing,prepared,'native'),/different request or app/);
+  assert.throws(() => assertDashboardReplay(existing,{...prepared,selection:{...selection,model:'luna'}},'web'),/outro modelo/);
+  assert.throws(() => assertDashboardReplay({...existing,provider:'claude'},prepared,'web'),/outro pedido/);
+  assert.throws(() => assertDashboardReplay(existing,{...prepared,prompt:'Different task'},'web'),/outro pedido/);
+  assert.throws(() => assertDashboardReplay(existing,prepared,'native'),/outro pedido ou aplicativo/);
   const native = {...existing,execution:'native'};
   assert.doesNotThrow(() => assertDashboardReplay(native,prepared,'native'));
-  assert.throws(() => assertDashboardReplay(native,prepared,'web'),/different request or app/);
-  for (const execution of ['headless','script']) assert.throws(() => assertDashboardReplay({...existing,execution},prepared,'web'),/different request/);
+  assert.throws(() => assertDashboardReplay(native,prepared,'web'),/outro pedido ou aplicativo/);
+  for (const execution of ['headless','script']) assert.throws(() => assertDashboardReplay({...existing,execution},prepared,'web'),/outro pedido/);
 });

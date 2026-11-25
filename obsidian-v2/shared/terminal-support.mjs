@@ -23,21 +23,21 @@ const tested = VERIFIED_TERMINAL_VERSIONS.join(', ');
  * 3.x newer than every verified version) always comes with its message. */
 export function terminalSupport(version) {
   if (version === undefined || version === null || (typeof version === 'string' && !version.trim())) return {status: 'missing', version: null,
-    message: `Conversations inside Obsidian need the Terminal community plugin (by polyipseity). Install it from Settings → Community plugins, or use the same button in Jarvis at ${JARVIS_URL}.`};
+    message: `Conversas no Obsidian exigem o plugin da comunidade Terminal, de polyipseity. Instale-o em Configurações → Plugins da comunidade ou use o mesmo botão no Jarvis em ${JARVIS_URL}.`};
   const text = String(version), parsed = typeof version === 'string' ? parse(version) : null;
   const notVerified = {status: 'unsupported', version: text,
-    message: `Terminal ${text} has not been verified with Agentic OS. Use Jarvis at ${JARVIS_URL} until Agentic OS is updated (node aos.mjs update).`};
+    message: `Terminal ${text} ainda precisa ser verificado com o Agentic OS. Use o Jarvis em ${JARVIS_URL} até atualizar o Agentic OS (node aos.mjs update).`};
   if (!parsed) return notVerified;
   if (verified.some(entry => !compare(entry.core, parsed.core) && entry.prerelease === parsed.prerelease)) return {status: 'verified', version: text, message: ''};
   if (parsed.prerelease) return {status: 'unsupported', version: text,
-    message: `Pre-release Terminal versions (${text}) are not supported by Agentic OS. Install the regular release from Settings → Community plugins, or use Jarvis at ${JARVIS_URL}.`};
+    message: `A versão preliminar do Terminal (${text}) é incompatível com o Agentic OS. Instale a versão estável em Configurações → Plugins da comunidade ou use o Jarvis em ${JARVIS_URL}.`};
   if (parsed.core[0] === highest[0] && compare(parsed.core, highest) > 0) return {status: 'untested', version: text,
-    message: `Terminal ${text} is newer than the versions tested with Agentic OS (${tested}). Conversations should still work; if one misbehaves, use the same button in Jarvis at ${JARVIS_URL} and run the doctor.`};
+    message: `Terminal ${text} é mais recente que as versões testadas com o Agentic OS (${tested}). As conversas devem funcionar. Se houver problema, use o mesmo botão no Jarvis em ${JARVIS_URL} e execute node aos.mjs doctor.`};
   if (compare(parsed.core, lowest) < 0) return {status: 'unsupported', version: text,
-    message: `Terminal ${text} is too old for Agentic OS. Update it in Settings → Community plugins, or use Jarvis at ${JARVIS_URL}.`};
+    message: `Terminal ${text} é antigo demais para o Agentic OS. Atualize em Configurações → Plugins da comunidade ou use o Jarvis em ${JARVIS_URL}.`};
   return notVerified;
 }
 
 /** The message when an untested Terminal opened a conversation's tab but its
  * process could not be followed. It may be running, so nothing is relaunched. */
-export const untrackedLaunchMessage = version => `Terminal ${version} opened this conversation, but Agentic OS cannot follow it in this Terminal version. It may still be running: check that tab and close it before trying again. For tracked conversations and voice follow-ups use Jarvis at ${JARVIS_URL}, and run the doctor.`;
+export const untrackedLaunchMessage = version => `Terminal ${version} abriu esta conversa. Esta versão do Terminal impede que o Agentic OS acompanhe a sessão. Ela ainda pode estar em execução. Confira a aba e feche-a antes de tentar novamente. Para acompanhar a sessão e continuar por voz, use o Jarvis em ${JARVIS_URL} e execute node aos.mjs doctor.`;

@@ -173,9 +173,9 @@ export default function AgentWorkDrawer({tasks,activityTasks,tasksLoaded,target,
   useEffect(()=>{const read=()=>setLiveMode(voicePrefs.getSnapshot().prefs.voiceMode==='live');read();return voicePrefs.subscribe(read)},[]);
   return <section className={`agent-drawer ${open?'is-open':''}`} aria-label="Terminais">
     <header className="agent-drawer-bar">
-      <button className="agent-drawer-toggle" aria-expanded={open} aria-controls="agent-work-content" onClick={()=>setOpen(!open)}><span aria-hidden="true">⌘</span> Terminais <small>{connectionError?'Bridge offline':`${active} open`}</small><span aria-hidden="true">{open?'⌄':'⌃'}</span></button>
+      <button className="agent-drawer-toggle" aria-expanded={open} aria-controls="agent-work-content" onClick={()=>setOpen(!open)}><span aria-hidden="true">⌘</span> Terminais <small>{connectionError?'Ponte desconectada':`${active} em aberto`}</small><span aria-hidden="true">{open?'⌄':'⌃'}</span></button>
       <TaskActivityBar tasks={activityTasks} ready={tasksLoaded} viewing={open?target:null}/>
-      <button onClick={()=>void voice.toggle()} title={voiceTask?`Conversation: ${shortConversationTitle(voiceTask)}`:voiceTarget?'Selected conversation unavailable':'New voice conversation'}>{liveMode&&call?liveToggleLabel(call):voiceMode==='listening'?'Send recording':voiceMode==='working'?'Cancel voice':voiceMode==='speaking'?'Interrupt & talk':'Clique para falar'}</button>
+      <button onClick={()=>void voice.toggle()} title={voiceTask?`Conversa: ${shortConversationTitle(voiceTask)}`:voiceTarget?'Conversa selecionada indisponível':'Nova conversa por voz'}>{liveMode&&call?liveToggleLabel(call):voiceMode==='listening'?'Enviar gravação':voiceMode==='working'?'Cancelar voz':voiceMode==='speaking'?'Interromper e falar':'Clique para falar'}</button>
       <button onClick={()=>{void select(null);setHistoryOpen(false);setOpen(true)}}>+ Novo terminal</button>
     </header>
     {voiceMessage&&<p className="agent-voice-status" role="status">{voiceMessage}</p>}
@@ -185,11 +185,11 @@ export default function AgentWorkDrawer({tasks,activityTasks,tasksLoaded,target,
       {current&&<div className="agent-work-meta">
         <span title={current.execution==='script'?'Atualização direta da fonte, sem IA':current.model}>{current.execution==='script'?'Atualização da fonte':current.provider==='codex'?'Codex':'Claude Code'} · {taskStatus(current)}</span>
         <div>
-          {!receipt&&<button aria-expanded={showComposer} aria-controls="terminal-message-box" disabled={sending} onClick={()=>setMessageTarget(showComposer?null:current.id)}>Caixa de mensagem{prompt.trim()?' · draft':''}</button>}
+          {!receipt&&<button aria-expanded={showComposer} aria-controls="terminal-message-box" disabled={sending} onClick={()=>setMessageTarget(showComposer?null:current.id)}>Caixa de mensagem{prompt.trim()?' · rascunho':''}</button>}
           {current.turns.length>0&&<button aria-expanded={answerTarget===current.id} aria-controls="terminal-saved-answer" onClick={()=>setAnswerTarget(answerTarget===current.id?null:current.id)}>Resposta salva</button>}
-          <button className="agent-keep" aria-pressed={!!current.keep} disabled={sending||!!connectionError} title={current.keep?'Allow this task to clear after 7 stopped days':'Keep this task in history'} onClick={()=>void toggleKeep()}>{current.keep?'✓ Kept':'Manter'}</button>
+          <button className="agent-keep" aria-pressed={!!current.keep} disabled={sending||!!connectionError} title={current.keep?'Permitir a limpeza após sete dias com a tarefa parada':'Manter a tarefa no histórico'} onClick={()=>void toggleKeep()}>{current.keep?'✓ Mantida':'Manter'}</button>
           {!terminalLive&&!receipt&&current.sessionId&&<button disabled={sending} onClick={()=>void action('resume')}>Retomar</button>}
-          {!terminalLive&&current.recoveryAvailable&&!receipt&&<button disabled={sending||!vaultRoot} onClick={()=>void recover()}>{current.workflow?'Review retry':'Recover request'}</button>}
+          {!terminalLive&&current.recoveryAvailable&&!receipt&&<button disabled={sending||!vaultRoot} onClick={()=>void recover()}>{current.workflow?'Revisar tentativa':'Recuperar solicitação'}</button>}
           {(terminalLive||scriptActive)&&<button disabled={sending||current.state==='stopping'} onClick={()=>void action('stop')}>{current.state==='stopping'?'Parando…':'Parar'}</button>}
         </div>
       </div>}

@@ -35,7 +35,7 @@ EOF
     run_codex "$P" "-s workspace-write" probe-image-report.txt
     rm -f "$P"
     # Verify: file exists, is a PNG, is exactly 64x64.
-    [ -f probe-image.png ] || { echo "FAIL: no probe-image.png"; exit 1; }
+    [ -f probe-image.png ] || { echo "FALHA: probe-image.png ausente"; exit 1; }
     node -e '
       const b = require("fs").readFileSync("probe-image.png");
       if (b.readUInt32BE(16) !== 64 || b.readUInt32BE(20) !== 64) { console.error("FAIL: dims"); process.exit(1); }
@@ -53,7 +53,7 @@ No external assets, no imports. Do nothing else.
 EOF
     run_codex "$P" "-s workspace-write" probe-model-report.txt
     rm -f "$P"
-    [ -f probe-model.js ] || { echo "FAIL: no probe-model.js"; exit 1; }
+    [ -f probe-model.js ] || { echo "FALHA: probe-model.js ausente"; exit 1; }
     # Execute against a stub THREE namespace — no real three.js needed for the probe.
     node -e '
       const vec = () => ({ x:0, y:0, z:0, set(x,y,z){ this.x=x; this.y=y; this.z=z; return this; } });
@@ -69,12 +69,12 @@ EOF
     ;;
 
   self-visual-verify)
-    echo "SKIP: self-visual-verify probe is opt-in (Chromium download). Run manually if needed:"
-    echo "  network-enabled workspace-write session; see CODEX-CAPABILITIES.md entry."
+    echo "IGNORADO: self-visual-verify é opcional e baixa o Chromium. Execute manualmente se necessário:"
+    echo "  consulte CODEX-CAPABILITIES.md para os requisitos de rede e escrita."
     exit 0
     ;;
 
   *)
-    echo "Unknown probe id: $PROBE_ID"; exit 2
+    echo "Identificador de verificação desconhecido: $PROBE_ID"; exit 2
     ;;
 esac

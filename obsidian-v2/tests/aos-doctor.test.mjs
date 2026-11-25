@@ -401,7 +401,7 @@ test('every run prints every line, even with the bridge down or no vault configu
     TERMINAL, 'Python helper for conversations inside Obsidian', 'Recovery monitor running', `Bridge answering on ${services.ports.bridge}`, `Jarvis HUD answering on ${services.ports.jarvis}`, 'claude CLI', 'codex CLI', PROVIDER, 'Claude connectors in background work', VOICE[0], HOTKEY, ...VOICE.slice(1), 'Jev fast voice routing', 'Live voice (OpenAI key)', 'A real workflow end to end'];
   assert.deepEqual(found.results.map(item => item.name), expected);
   for (const name of ['Vault has the daily-note schema', 'claude CLI', ...VOICE, HOTKEY, 'A real workflow end to end']) { assert.equal(found.line(name).status, 'SKIP', name); assert.match(found.line(name).detail, /not (run|checked)/); }
-  assert.equal(found.line(TERMINAL).status, 'SKIP'); assert.match(found.line(TERMINAL).detail, /no vault configured/);
+  assert.equal(found.line(TERMINAL).status, 'SKIP'); assert.match(found.line(TERMINAL).detail, /nenhum cofre configurado/);
   const usual = await examine(await fakeServices({speech: 'shared'}), installation());
   assert.match(usual.line('A real workflow end to end').detail, /doctor --full/);
   const ci = await examine(await fakeServices({speech: 'shared', providers: {claude: {installed: true, version: '1', command: 'x'}}}), installation(), {ci: true, full: true});
@@ -476,21 +476,21 @@ test('the Terminal plugin line reports every state from the vault files and neve
     return terminalPluginCheck(vault);
   };
   const cases = [
-    [{}, 'SKIP', /not installed \(optional: .*Jarvis/],
+    [{}, 'SKIP', /instalação opcional.*Jarvis/],
     [{manifest: {id: 'terminal', version: '3.27.2'}}, 'PASS', /^3\.27\.2$/],
     [{manifest: {id: 'terminal', version: '3.27.1'}}, 'PASS', /^3\.27\.1$/],
-    [{manifest: {id: 'terminal', version: '3.28.0'}}, 'PASS', /3\.28\.0, newer than the tested 3\.27\.1 and 3\.27\.2; it should work/],
-    [{manifest: {id: 'terminal', version: '3.27.2'}, enabled: '["agentic-os-v2"]'}, 'SKIP', /switched off/],
-    [{manifest: {id: 'terminal', version: '3.27.2'}, enabled: null}, 'SKIP', /switched off/],
-    [{manifest: {id: 'terminal', version: '4.0.0'}}, 'FAIL', /version 4\.0\.0/],
-    [{manifest: {id: 'terminal', version: '3.26.0'}}, 'FAIL', /version 3\.26\.0/],
-    [{manifest: {id: 'terminal'}}, 'FAIL', /no version/],
-    [{manifest: '{not json'}, 'FAIL', /could not be read/],
-    [{manifest: {id: 'someone-else', version: '1.0.0'}}, 'SKIP', /different plugin/],
-    [{manifest: {id: 'terminal', version: '3.27.2'}, enabled: '{not json'}, 'SKIP', /could not read the enabled-plugins list/],
+    [{manifest: {id: 'terminal', version: '3.28.0'}}, 'PASS', /3\.28\.0, mais recente que as versões testadas \(3\.27\.1 e 3\.27\.2\)/],
+    [{manifest: {id: 'terminal', version: '3.27.2'}, enabled: '["agentic-os-v2"]'}, 'SKIP', /desativado/],
+    [{manifest: {id: 'terminal', version: '3.27.2'}, enabled: null}, 'SKIP', /desativado/],
+    [{manifest: {id: 'terminal', version: '4.0.0'}}, 'FAIL', /versão 4\.0\.0/],
+    [{manifest: {id: 'terminal', version: '3.26.0'}}, 'FAIL', /versão 3\.26\.0/],
+    [{manifest: {id: 'terminal'}}, 'FAIL', /versão está ausente/],
+    [{manifest: '{not json'}, 'FAIL', /falha ao ler/],
+    [{manifest: {id: 'someone-else', version: '1.0.0'}}, 'SKIP', /outro plugin/],
+    [{manifest: {id: 'terminal', version: '3.27.2'}, enabled: '{not json'}, 'SKIP', /falha ao ler a lista de plugins ativos/],
   ];
-  for (const [state, status, detail] of cases) { const check = set(state); assert.equal(check.status, status, JSON.stringify(state)); assert.match(check.detail, detail, JSON.stringify(state)); if (status === 'FAIL') assert.match(check.fix, /Jarvis at http:\/\/127\.0\.0\.1:3217/); }
-  assert.match(set({manifest: {id: 'terminal', version: '3.26.0'}}).fix, /too old/);
+  for (const [state, status, detail] of cases) { const check = set(state); assert.equal(check.status, status, JSON.stringify(state)); assert.match(check.detail, detail, JSON.stringify(state)); if (status === 'FAIL') assert.match(check.fix, /Jarvis em http:\/\/127\.0\.0\.1:3217/); }
+  assert.match(set({manifest: {id: 'terminal', version: '3.26.0'}}).fix, /antigo demais/);
   assert.equal(terminalPluginCheck(path.join(vault, 'missing')).status, 'SKIP');
   assert.equal(terminalPluginCheck(undefined).status, 'SKIP');
 });

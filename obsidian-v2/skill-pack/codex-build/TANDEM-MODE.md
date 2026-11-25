@@ -1,37 +1,30 @@
-# Tandem Mode — Codex Paints, Claude Codes, Each Checks the Other
+# Modo de implementação em paralelo
 
-Extension of codex-build, offered at the claudex-loop Resolution gate ONLY when the Phase 0 capability scan confirmed a matching Codex capability (see `../claudex-loop/CODEX-CAPABILITIES.md`). Two tracks run in parallel: **Codex generates contracted assets in isolated staging** (raster PNGs and/or procedural three.js model modules) while **Claude builds the code in the repo**. Neither track can write into the other's zone. Cross-inspection at merge: whoever made the thing never checks the thing.
+Use quando a investigação de `claudex-loop` encontrar uma capacidade em [CODEX-CAPABILITIES.md](../claudex-loop/CODEX-CAPABILITIES.md) e a pessoa escolher esse modo. O Codex produz os recursos em uma área isolada. O Claude implementa o aplicativo no repositório e verifica os recursos. Uma sessão nova do Codex, somente de leitura, revisa o código. A revisão visual independente recebe a composição e os critérios sem o histórico dos produtores.
 
-This is the lean v1 of the reviewed design (`../claudex-loop/TANDEM-DESIGN.md`, 8 Codex review rounds, APPROVED 2026-08-16). Deferred to a future headless mode: import journal recovery tables, exclusive run leases, launcher attestation. Everything below is the interactive path.
+Este é o fluxo interativo da primeira versão de [TANDEM-DESIGN.md](../claudex-loop/TANDEM-DESIGN.md), aprovado em 16/08/2026 após oito rodadas de revisão. O modo futuro sem interface incluirá recuperação pelo diário de importação, execução exclusiva e verificação de quem iniciou o processo.
 
-## The cross-check matrix (the one rule)
-
-| Work | Made by | Checked by |
+| Entrega | Produz | Confere |
 |---|---|---|
-| Assets (textures/sprites/models) | Codex | Claude (mechanical + visual QA) |
-| Code | Claude | fresh read-only Codex (PR-style) |
-| Asset taste (bar pass) | Codex | fresh clean-context Claude subagent |
-| Screen taste (bar pass) | Claude | fresh Codex judge, repo-blind |
+| Texturas, sprites e modelos | Codex | Claude, com validação automática e visual |
+| Código | Claude | Nova sessão do Codex em modo somente leitura |
+| Qualidade visual dos recursos | Codex | Nova sessão de revisão do Claude, com contexto limpo |
+| Qualidade visual da interface | Claude | Nova sessão de revisão do Codex, sem acesso ao repositório |
 
-## Tunables
+## Controles
 
-| Var | Default | Meaning |
-|-----|---------|---------|
-| `MAX_FIX_ROUNDS` | `2` | Asset fix iterations via resume, then fallbacks activate. |
-| `MAX_BAR_ROUNDS` | `2` | Total blind judgments per bar, INCLUDING the initial one → at most one revision. |
-| `MAX_INSPECTION_ROUNDS` | `2` | Initial code inspection + one reinspection after accepted fixes. |
-| `LOG_FILE` | `PLAN-REVIEW-LOG.md` | Gets `## Act 3 — Tandem Build`. Claude is the SOLE writer — reviewer output recorded verbatim after each process finishes. |
+| Opção | Padrão | Uso |
+|---|---|---|
+| `MAX_FIX_ROUNDS` | 2 | Rodadas de correção de recursos antes das alternativas previstas |
+| `MAX_BAR_ROUNDS` | 2 | Julgamento visual inicial e uma nova avaliação |
+| `MAX_INSPECTION_ROUNDS` | 2 | Revisão de código inicial e uma nova inspeção |
+| `LOG_FILE` | `PLAN-REVIEW-LOG.md` | Só o Claude escreve em `## Act 3 — Tandem Build`. Registre a saída completa de cada revisor após a execução |
 
-## Terminal outcomes (report exactly one)
+Informe exatamente um estado final. Use `SUCCESS` se todas as verificações e comparações aplicáveis aprovarem, `DEGRADED_READY` se as verificações de correção passarem com alguma alternativa acionada ou comparação visual pendente ou esgotada, `NEEDS_REPLAN` se uma correção necessária sair do plano, ou `HARD_FAILED` se a verificação de capacidade, o isolamento ou a importação falhar sem recuperação. Preserve o estado e devolva à pessoa decisões de produto, segurança ou esquema.
 
-- `SUCCESS` — all gates green, all applicable bars passed.
-- `DEGRADED_READY` — correctness green, but a bar capped/UNJUDGED or fallbacks activated. Never report a capped bar as a win.
-- `NEEDS_REPLAN` — a needed fix exceeds the plan's scope (product/security/schema decisions are never auto-arbitrated). Preserve state, hand to human.
-- `HARD_FAILED` — probe dead, sandbox verification failed, or unrecoverable import.
+## Contrato
 
-## The contract — `assets.contract.json`
-
-Authored in claudex-loop Phase 1, locked with the plan, immutable afterward. Top level declares one `asset_root` (all paths beneath it) and optional `bar` entries (reference path + sha256 + locked rubric + normalization rules). Per asset:
+Congele `assets.contract.json` junto ao plano. Use um único `asset_root` e caminhos relativos dentro dele. Cada item tem ID, tipo, caminho, ação, especificação, hash da base para substituições e alternativa. Exemplo:
 
 ```json
 {
@@ -43,94 +36,50 @@ Authored in claudex-loop Phase 1, locked with the plan, immutable afterward. Top
   "format": "png-rgba",
   "dims": [64, 64],
   "tileable": true,
-  "style": "cool-gray concrete, uniform light, no text",
+  "style": "concreto cinza frio, iluminação uniforme, sem texto",
   "fallback": "procedural-placeholder"
 }
 ```
 
-Raster extras as needed: `anchor`, `frames: {count, layout}`, `scaling`, `alpha`. Model-module entries use `"type": "model-module"` with `export` (factory signature), `mesh_count: [min, max]`, `bounds` (dims), `three_version`, optional `render_check: true`. `action` ∈ `create|replace` (`replace` requires `baseline_sha256`). `fallback` ∈ `procedural-placeholder | stock:<path> | omit | user-provided:<path>` — stock/user-provided validated + hashed at plan-lock; every fallback must execute unattended or tandem is refused.
+Para raster, use `anchor`, `frames: {count, layout}`, `scaling` e `alpha` quando necessários. Para `model-module`, registre a assinatura em `export`, a faixa em `mesh_count: [min, max]`, as dimensões em `bounds`, a versão em `three_version` e, se aplicável, `render_check: true`. `action` permite `create` e `replace`. As alternativas permitidas são `procedural-placeholder`, `stock:<path>`, `omit` e `user-provided:<path>`. Confira a existência e o hash das fontes fornecidas ou prontas no momento de aprovar o plano. Use este modo apenas quando toda alternativa prevista puder ser aplicada sem nova decisão.
 
-**Bar comparability gate (at bar-lock, learned 2026-08-16):** a bar entry is valid ONLY if the reference is the same medium and fidelity class as the deliverable — a stylized low-poly web build is judged against a best-in-class *low-poly web* reference, never against AAA-game footage; pixel art against pixel art at comparable resolution; a web UI against a web UI at the same viewport class. A class-mismatched reference forces one of two outcomes: reject it and pick a comparable bar, or keep it explicitly tagged `"aspirational": true` — shown to the human at the final gate for context but NEVER PASS/FAIL judged (it is unpassable by construction, and judging it produces either a dishonest PASS or a meaningless FAIL). Each bar entry records `medium` + `fidelity_class` so the gate is checkable, not vibes.
+Se houver referência visual, registre caminho, hash SHA-256, critérios e normalização em `bar`. Registre `medium` e `fidelity_class` para verificar se referência e entrega têm meio e fidelidade comparáveis. Compare um jogo web low-poly com outro da mesma categoria, pixel art com pixel art de resolução comparável e interfaces web com interfaces da mesma classe de viewport. Troque referências incompatíveis por opções comparáveis ou marque-as como `"aspirational": true`. Referências aspiracionais aparecem na entrega sem veredito `PASS` ou `FAIL`.
 
-## Step 0 — Gates
+## 1. Iniciar
 
-1. Standard codex-build gates: spec exists (`PLAN.md` + `assets.contract.json`), clean tree, **user-approved baseline commit exists** (greenfield without one → tandem unavailable; user commits a scaffold first).
-2. Record base commit hash + path ownership: Codex's import zone = the contract's single `asset_root` (every contract path must resolve beneath it — reject `..`, absolute paths, symlinks/reparse points, Windows reserved names, case-collisions); Claude's zone = everything else. Claude writes NOTHING into `asset_root` during the build (in-memory placeholders only).
-3. **Kickoff probe:** if the capability was "matched, unverified," run `bash ../claudex-loop/probes.sh <probe-id> <staging>` now. Failure → execute the probe-failure policy declared at Resolution (default: Claude-builds with declared fallbacks). No mid-flight questions.
+Confirme `PLAN.md`, contrato, árvore limpa e commit base aprovado pela pessoa. Em projeto novo, a pessoa precisa registrar primeiro o commit da estrutura inicial. Registre o hash do commit base e as áreas de escrita. A zona de importação do Codex corresponde ao `asset_root` do contrato, e a zona do Claude é o restante do repositório. O Claude usa substitutos em memória até a importação. Confirme que todos os caminhos contratados ficam dentro de `asset_root`. Rejeite caminhos absolutos, `..`, links simbólicos, pontos de nova análise, nomes reservados do Windows e colisões sem distinção de maiúsculas.
 
-## Step 1 — Launch the asset track (background)
+Crie a área de preparação fora do repositório, com cópias do plano e contrato e uma pasta `out-r1/`. Se a capacidade estiver como `matched, unverified`, execute `bash ../claudex-loop/probes.sh <probe-id> <staging>` na preparação. Em caso de falha, aplique a política definida na resolução, normalmente a implementação pelo Claude com as alternativas declaradas.
 
-Create fresh staging OUTSIDE the repo (scratchpad): copy in `PLAN.md` + `assets.contract.json`, create `out-r1/`.
+## 2. Produzir
 
-```bash
-P=$(mktemp)
-cat >"$P" <<'EOF'
-ASSET TRACK. Read assets.contract.json in this directory — it is the locked contract.
-The project repo at <REPO_PATH> is READABLE — consult it for integration context
-(loader code, three.js version, style of neighboring code). You cannot write there.
-For each contract entry: generate the asset to out-r1/<path>.
-  - Raster entries: exact dims, format, alpha semantics, style descriptor. Tileable
-    means 0 opposing-edge pixel mismatches — verify your own output.
-  - Model-module entries: self-contained JS exporting the contracted factory signature,
-    returning a THREE.Group within the contracted mesh-count range and bounding dims.
-    Execute your module in Node to verify before reporting. If network is enabled and
-    the contract flags render-check, you may npm-install locally (redirect caches:
-    npm_config_cache=./.npm-cache) and screenshot-verify your own render.
-Do NOT modify assets.contract.json. Write out-r1/results.json: per asset id — produced
-path, sha256, status, provenance notes. Write out-r1/READY-<RUN_ID> LAST.
-EOF
-codex exec -s workspace-write -c approval_policy="never" \
-  ${NETWORK:+-c sandbox_workspace_write.network_access=true} \
-  --json -o "$STAGING/asset-track-report.txt" - <"$P" 2>/dev/null | grep '"type":"thread.started"'
-```
+Execute `codex exec` a partir da área isolada, com `workspace-write` restrito a essa área, conforme as permissões do ambiente. Passe o prompt por stdin e registre o relatório e os eventos da própria execução. Obtenha `THREAD_ID` do evento correspondente `thread.started`. Se o evento faltar, declare falha. Use `run_in_background: true` e `timeout: 600000` por chamada. Habilite rede apenas se o contrato incluir módulos com verificação de renderização e o ambiente autorizar instalações locais. Redirecione o cache com `npm_config_cache=./.npm-cache`. O Codex pode consultar o código para integração. A escrita no repositório pertence à outra etapa.
 
-- Run from the staging dir. Capture `THREAD_ID` from the correlated `thread.started` event — missing event = hard failure, never infer from sessions-dir recency.
-- Launch with `run_in_background: true`; completion notifies. `timeout: 600000` ceiling per invocation; on timeout kill the process tree — no `READY-<RUN_ID>` = rejected round, no partial acceptance.
-- Network flag: only when the contract includes model modules with render-check (per `self-visual-verify` card entry) — it permits npm installs in staging, nothing more.
+Peça os arquivos sob `out-r1/<caminho>`, um `results.json` com ID, caminho, hash, estado e origem de cada recurso, e `READY-<RUN_ID>` criado por último. Peça dimensões exatas, formato, alfa e estilo para imagens raster. Para imagens repetíveis, exija zero diferenças entre pixels de bordas opostas. Para módulos, exija JavaScript autossuficiente com a assinatura combinada, que retorne um `THREE.Group` dentro da faixa de malhas e dimensões e possa ser executado em Node. Use captura de tela se a verificação da renderização estiver prevista. Mantenha `assets.contract.json` intacto. Uma rodada válida termina com código zero, manifesto completo e seu próprio marcador. Se expirar, encerre a árvore do processo e rejeite a rodada inteira.
 
-## Step 2 — Code track (Claude, simultaneously)
+Em paralelo, o Claude implementa o código sem gravar na área de recursos. Use caminhos previstos no contrato e substitutos em memória, com testes possíveis antes da importação.
 
-Build the engine/app in the repo as usual. Load assets from contracted paths; render in-memory placeholders at contract dims for anything not yet imported. Keep it headless-testable throughout. Don't wait on the asset track — the tracks can't observe each other until import.
+## 3. Conferir recursos
 
-## Step 3 — Asset QA in staging (ALL acceptance before import)
+1. Valide arquivos, hashes, formato, dimensões, alfa e caminhos. Para modelos, execute em Node e confira exportação, número de malhas e dimensões. Para texturas que se repetem, verifique as bordas.
+2. Preencha [asset-lab-template.html](./asset-lab-template.html) com o contrato e os resultados e abra no painel do navegador. Confira escala real, âncoras, silhuetas, tiras de quadros e emendas.
+3. Para correções, use `codex exec resume "$THREAD_ID"` com as mesmas permissões. Especifique achados por ID e grave uma nova pasta `out-r<N>/` com seu próprio marcador. Se algum hash já aprovado mudar sem explicação, registre como achado. Ao atingir `MAX_FIX_ROUNDS`, aplique na preparação as alternativas previstas para itens pendentes.
+4. Se houver comparação visual contratada, compare os recursos na preparação, antes de importar. Normalize a apresentação, confira o hash da referência e sorteie A/B, registrando a semente. Abra uma sessão nova do Claude com acesso somente à composição anônima e aos critérios. Exija que o revisor responda primeiro qual imagem é melhor e persista o veredito antes de revelar a ordem. Se a referência tiver vantagem significativa, marque `FAIL` e use os critérios para explicar em que o candidato ficou aquém. Registre a justificativa integral. Aceite `PASS`, `FAIL` com os pontos a melhorar, ou `INVALID_COMPARISON`. Uma comparação inválida permite uma nova tentativa. A segunda invalidação exige `NEEDS_REPLAN`. Sem revisor, marque `UNJUDGED` e mostre a comparação na entrega. Após `FAIL`, revise uma vez com nova geração ou a alternativa declarada e julgue de novo. Se continuar reprovado após atingir o limite, use `DEGRADED_READY`.
+5. Congele o conjunto validado e seus hashes.
 
-When the background task completes:
+## 4. Importar e verificar
 
-1. **Mechanical pass (scripted):** round valid only if exit clean + `READY-<RUN_ID>` present + `results.json` complete. Then per asset: file exists, sha256 matches results.json, dims/format/alpha per contract; model modules execute in Node (export signature, mesh count, bounding box). Path canonicalization against `asset_root`.
-2. **Visual pass:** populate `asset-lab-template.html` (this folder) from contract + results → open in the Browser pane → check anchors, silhouettes, frame strips, tiling seams at actual size.
-3. **Fix rounds:** violations → resume the SAME session, findings cited per asset id, output to fresh `out-r<N>/` with its own `READY-<RUN_ID>`:
+Imediatamente antes de copiar, confira se a área de recursos do repositório mantém a base registrada e interrompa em caso de alteração externa não declarada. Copie só os caminhos contratados. Criações devem ter destino livre. Substituições exigem o `baseline_sha256` previsto. Registre hashes e origem da rodada ou alternativa. Mantenha dependências, arquivos temporários e repositórios auxiliares na área de preparação.
 
-```bash
-codex exec resume "$THREAD_ID" -c sandbox_mode="workspace-write" -c approval_policy="never" \
-  --json -o "$STAGING/asset-track-report.txt" - <"$P2" 2>/dev/null >/dev/null
-```
+O Claude roda os testes, a verificação de desempenho e a captura de tela previstos no plano com os recursos reais. Trate os relatos do Codex como subsídios para a conferência. Para a comparação visual da interface, quando declarada, renderize o aplicativo com viewport, tema e estado fixos e use uma sessão nova do Codex, somente de leitura, em diretório neutro com as imagens anônimas e os critérios. Aplique as mesmas regras da comparação de recursos, incluindo escolha cega primeiro e justificativa integral. Reexecute as verificações afetadas por revisões. Por último, faça a inspeção de código em uma nova sessão somente de leitura (`codex exec -s read-only`) com plano, commit base, mapa de áreas e diff somente do código. O Claude aceita os achados e corrige, ou registra a justificativa de rejeição. Refaça as verificações afetadas até `MAX_INSPECTION_ROUNDS`. Mudança fora do escopo exige `NEEDS_REPLAN`.
 
-   Hash-compare each round against previously accepted assets — an approved asset silently changing hash is itself a finding. After `MAX_FIX_ROUNDS`: each still-failing asset's declared fallback activates in staging.
-4. **Asset bar pass (if contract declares a bar):** runs NOW, in staging, before import. Anonymized side-by-side (candidate vs hashed reference, randomized A/B, seed recorded) + the locked rubric → a **fresh clean-context Claude subagent** (Agent tool; it gets ONLY the composite + rubric, no build history). Verdict persists before mapping is revealed.
-   - **Binary first, rubric second (anti-curve rule, learned 2026-08-16):** the judge's FIRST required answer is "blind: which is better, A or B?" If the reference wins **materially**, the candidate CANNOT pass — no threshold wiggle room, no "fine for what it is." The rubric's job is then the gap list (*why* it lost), not an escape hatch to PASS anyway. A verdict that contradicts the human eye is worse than a loss.
-   - **Judge reasoning is recorded verbatim in the log** — a two-line verdict can hide grading-on-a-curve; the reasoning cannot.
-   - Verdicts: `PASS` / `FAIL`+gaps / `INVALID_COMPARISON` (setup failure: one free retry, second → `NEEDS_REPLAN`). Judge unavailable → bar `UNJUDGED`, outcome `DEGRADED_READY`, show the human the comparison at the final gate. FAIL → the one revision (regeneration or the declared fallback as candidate), re-judge. Capped loss → `DEGRADED_READY`.
-5. Freeze the final accepted set with hashes.
+Apresente resultado, diff, folha de contato dos recursos gerada no laboratório, manifesto com hashes e origem por item, comparações pendentes ou esgotadas, resumo de inspeção, evidências das verificações e rodadas utilizadas. Pergunte se a pessoa quer registrar o commit. Só o Claude pode fazer o commit depois da autorização.
 
-## Step 4 — Import (validate-then-copy)
+## Regras do modo
 
-Immediately before copying: re-verify the live `asset_root` still matches the kickoff baseline (abort on undeclared external change). Then copy the accepted set into the repo — only contracted paths, `create` entries must not collide, `replace` entries must match their declared `baseline_sha256`. Log imported hashes + provenance (generated round N / fallback-activated). Nothing else crosses — not node_modules, not scratch files, not the staging repo Codex may have inited.
-
-## Step 5 — Integrated proof + UI bar + cross-inspection
-
-1. Claude runs the plan's proof gates with real assets (tests, perf, screenshot). Codex's claims are advisory — same as base codex-build.
-2. **UI bar pass (if declared):** normalized render of the running app (fixed viewport/state/theme) vs the reference — judged by a **fresh read-only Codex session launched from a neutral dir** containing only the anonymized renders + rubric (never from the repo — filenames deanonymize). Same verdict rules as Step 3.4, including binary-first (reference materially better = no PASS) and verbatim reasoning in the log. A bar-driven UI revision invalidates and reruns affected proof gates.
-3. **Code cross-inspection (last):** fresh read-only Codex session (`codex exec -s read-only`, NEW thread) gets the plan, base commit, ownership map, and the code-only diff. PR-style findings → Claude arbitrates (accept with fix / reject with logged reason). Accepted fixes rerun affected gates; cap `MAX_INSPECTION_ROUNDS`. Out-of-scope findings → `NEEDS_REPLAN`.
-
-## Step 6 — Human gate
-
-Present: terminal outcome, code diff, **asset contact sheet** (from the QA lab), results manifest with hashes + per-asset provenance, bar verdicts (with the anonymized comparison if UNJUDGED/capped), inspection summary, proof output, rounds used. Ask: commit? Claude commits on yes — never Codex, never automatic.
-
-## Hard rules
-
-- Codex never writes to the repo — staging only, until Claude's validated import. (Reads are allowed and encouraged.)
-- `assets.contract.json` is immutable once locked. Codex emits `results.json`; the producer never attests against a spec it can edit.
-- Whoever made the thing never checks the thing — no exceptions, including judges (clean-context, repo-blind).
-- Every loop is capped; a capped bar loss reports as `DEGRADED_READY`, never success.
-- Inside Act 3, regardless of anything: no commits, pushes, releases, deployments, migrations, or outbound communications.
-- Suppress questions (every branch has a pre-declared answer), never suppress telemetry — background-completion banners and brief state lines stay.
+- O Codex escreve na área de preparação. O Claude importa o conjunto validado.
+- O contrato aprovado é imutável. O produtor registra sua entrega em `results.json`.
+- A inspeção pertence sempre a quem não produziu o trabalho, com revisores de contexto limpo e sem acesso ao repositório quando a comparação for cega.
+- Limite todas as rodadas. Se a comparação continuar reprovada ao atingir o limite, use `DEGRADED_READY`.
+- Durante o Ato 3, mantenha commits, pushes, releases, implantações, migrações e comunicações externas suspensos.
+- Aplique as decisões já previstas para cada desvio. Mantenha notificações de conclusão e atualizações curtas de estado.

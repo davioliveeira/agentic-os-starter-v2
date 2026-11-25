@@ -84,7 +84,7 @@ export function HackerNewsCard({ limit = 6, refreshMs = 5 * 60 * 1000 }: Props) 
 								key={s.id}
 								className="aos-v2-cc-feed-item aos-v2-cc-feed-item-clickable"
 								onClick={() => openThread(s)}
-								title={`abrir discussão no Hacker News · ${s.score}↑ · ${s.descendants} comments · ${relTime(s.time)} ago`}
+								title={`abrir discussão no Hacker News · ${s.score}↑ · ${s.descendants} comentários · há ${relTime(s.time)}`}
 							>
 								<span className="aos-v2-cc-feed-rank">{i + 1}</span>
 								<span className="aos-v2-cc-feed-main">

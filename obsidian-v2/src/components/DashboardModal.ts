@@ -114,9 +114,9 @@ class DashboardModal extends Modal {
   const ids = this.ids();
   const controls = root.createDiv();
   Object.assign(controls.style, { display: 'flex', gap: '8px', flexWrap: 'wrap' });
-  this.button(controls, 'Use defaults', () => { this.draft = null; this.render(); }, !editable);
-  this.button(controls, 'Clear buttons', () => this.mutate([]), !editable);
-  this.button(controls, 'Reload saved selection', () => void this.reload());
+  this.button(controls, 'Usar padrões', () => { this.draft = null; this.render(); }, !editable);
+  this.button(controls, 'Limpar atalhos', () => this.mutate([]), !editable);
+  this.button(controls, 'Recarregar seleção salva', () => void this.reload());
   root.createEl('h3', { text: `Botões selecionados (${ids.length}/${MAX_DASHBOARD_SKILLS})` });
   if (this.draft === null) root.createEl('p', { text: 'Atalhos padrão ativos. O Obsidian exibe os botões iniciais e o Jarvis exibe a lista compacta.' });
   const selected = root.createEl('ol'); selected.setAttribute('aria-label', 'Botões selecionados para o painel');
@@ -128,24 +128,24 @@ class DashboardModal extends Modal {
    row.createEl('span', { text: label + ' ' });
    const up = this.button(row, '↑', () => {
     const next = [...ids]; [next[index - 1], next[index]] = [next[index]!, next[index - 1]!];
-    this.mutate(next, `Move ${label} ${index === 1 ? 'down' : 'up'}`);
+    this.mutate(next, `Mover ${label} para ${index === 1 ? 'baixo' : 'cima'}`);
    }, !editable || index === 0);
-   up.setAttribute('aria-label', `Move ${label} up`); up.title = `Move ${label} up`;
+   up.setAttribute('aria-label', `Mover ${label} para cima`); up.title = `Mover ${label} para cima`;
    const down = this.button(row, '↓', () => {
     const next = [...ids]; [next[index], next[index + 1]] = [next[index + 1]!, next[index]!];
-    this.mutate(next, `Move ${label} ${index === ids.length - 2 ? 'up' : 'down'}`);
+    this.mutate(next, `Mover ${label} para ${index === ids.length - 2 ? 'cima' : 'baixo'}`);
    }, !editable || index === ids.length - 1);
-   down.setAttribute('aria-label', `Move ${label} down`); down.title = `Move ${label} down`;
-   const remove = this.button(row, 'Remove', () => this.mutate(ids.filter(item => item !== id)), !editable);
-   remove.setAttribute('aria-label', `Remove ${label}`);
+   down.setAttribute('aria-label', `Mover ${label} para baixo`); down.title = `Mover ${label} para baixo`;
+   const remove = this.button(row, 'Remover', () => this.mutate(ids.filter(item => item !== id)), !editable);
+   remove.setAttribute('aria-label', `Remover ${label}`);
    const reason = skill ? dashboardSkillReason(skill, this.provider, undefined, '', this.value.installedProviders) : 'Esta skill deixou de estar registrada.';
    if (reason) row.createEl('small', { text: ` ${reason}` });
   }
   if (!ids.length) root.createEl('p', { text: 'Nenhum atalho selecionado. Você ainda pode acessar Mais fluxos.' });
   root.createEl('h3', { text: 'Fluxos disponíveis' });
   const search = root.createEl('input');
-  search.type = 'search'; search.value = this.search; search.placeholder = 'Find a skill or workflow';
-  search.setAttribute('aria-label', 'Find a skill or workflow'); search.style.width = '100%';
+  search.type = 'search'; search.value = this.search; search.placeholder = 'Buscar skill ou fluxo';
+  search.setAttribute('aria-label', 'Buscar skill ou fluxo'); search.style.width = '100%';
   const catalog = root.createDiv();
   Object.assign(catalog.style, { display: 'grid', gap: '8px', maxHeight: '220px', overflowY: 'auto', marginTop: '8px' });
   const show = () => {
@@ -158,12 +158,12 @@ class DashboardModal extends Modal {
 
   root.createEl('h3', { text: 'Suas skills instaladas' });
   root.createEl('p', { text: 'Use skills já instaladas no Claude Code ou no Codex. As skills registradas ficam na biblioteca mesmo se você cancelar a edição do painel.' });
-  this.button(root, `Find ${this.provider === 'claude' ? 'Claude Code' : 'Codex'} skills`, () => void this.discover(), !editable);
+  this.button(root, `Buscar skills de ${this.provider === 'claude' ? 'Claude Code' : 'Codex'}`, () => void this.discover(), !editable);
   if (this.discovered?.length) {
    const list = root.createDiv(); Object.assign(list.style, { maxHeight: '200px', overflowY: 'auto' });
    for (const skill of this.discovered) {
     const row = list.createDiv(); row.style.marginTop = '8px';
-    this.button(row, `Register ${skill.label}`, () => void this.register(skill.path, skill.providers, skill.label), !editable);
+    this.button(row, `Registrar ${skill.label}`, () => void this.register(skill.path, skill.providers, skill.label), !editable);
     row.createEl('small', { text: ` ${skill.description || skill.path}` });
    }
   }
@@ -182,7 +182,7 @@ class DashboardModal extends Modal {
    wrapper.appendText(provider === 'claude' ? ' Claude Code' : ' Codex');
    checkbox.onchange = () => { this.registerProviders = checkbox.checked ? [...this.registerProviders, provider] : this.registerProviders.filter(item => item !== provider); };
   }
-  this.button(details, 'Register skill', () => {
+  this.button(details, 'Registrar skill', () => {
    if (!this.path.trim() || !this.registerProviders.length) { new Notice('Informe o caminho do SKILL.md e selecione a ferramenta.'); return; }
    void this.register(this.path, this.registerProviders, this.label);
   }, !editable);
@@ -193,8 +193,8 @@ class DashboardModal extends Modal {
 
  private catalogRow(parent: HTMLElement, skill: DashboardSkill, ids: string[], editable: boolean) {
   const row = parent.createDiv();
-  const button = this.button(row, `Add ${skill.label}`, () => this.mutate([...ids, skill.id], `Remove ${skill.label}`), !editable || ids.length >= MAX_DASHBOARD_SKILLS);
-  button.setAttribute('aria-label', `Add ${skill.label} to dashboard`);
+  const button = this.button(row, `Adicionar ${skill.label}`, () => this.mutate([...ids, skill.id], `Remover ${skill.label}`), !editable || ids.length >= MAX_DASHBOARD_SKILLS);
+  button.setAttribute('aria-label', `Adicionar ${skill.label} ao painel`);
   row.createEl('small', { text: ` ${skill.description}` });
   const reason = dashboardSkillReason(skill, this.provider, undefined, '', this.value?.installedProviders);
   if (reason) row.createEl('div', { text: reason });

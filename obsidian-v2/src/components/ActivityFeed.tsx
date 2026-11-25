@@ -109,7 +109,7 @@ export function ActivityFeed({ app, runs, onDismiss }: Props) {
 								onContextMenu={(e) =>
 									showContextMenu(r, e as MouseEvent)
 								}
-								title={`open ${r.deliverable_path || r.md_path || r.id} · clique com o botão direito para dispensar`}
+								title={`abrir ${r.deliverable_path || r.md_path || r.id} · clique com o botão direito para dispensar`}
 							>
 								<span
 									className={`aos-v2-cc-chip ${statusClass(r.status)}`}

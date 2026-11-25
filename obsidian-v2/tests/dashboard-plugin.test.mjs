@@ -145,9 +145,9 @@ test('missing or unsupported native Terminal prevents session writes and pending
   [nativeApp(null), /Ative o plugin da comunidade Terminal, de polyipseity.*Jarvis em http:\/\/127\.0\.0\.1:3217/],
   [withoutManifest, /Ative o plugin da comunidade Terminal/],
   [nativeApp(''), /Ative o plugin da comunidade Terminal/],
-  [nativeApp('0.0.0'), /too old.*Jarvis at http:\/\/127\.0\.0\.1:3217/],
-  [nativeApp('3.28.0-beta.1'), /Pre-release/],
-  [nativeApp('4.0.0'), /has not been verified.*Jarvis at http:\/\/127\.0\.0\.1:3217/],
+  [nativeApp('0.0.0'), /antigo demais.*Jarvis em http:\/\/127\.0\.0\.1:3217/],
+  [nativeApp('3.28.0-beta.1'), /versão preliminar/],
+  [nativeApp('4.0.0'), /ainda precisa ser verificado.*Jarvis em http:\/\/127\.0\.0\.1:3217/],
  ];
  for (const [app, message] of expected) await assert.rejects(dashboard.launchDashboardSkill(app, installed, 'Write a proposal'), message);
  assert.equal(f.events.includes('session'), false);

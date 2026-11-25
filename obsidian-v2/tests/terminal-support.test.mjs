@@ -15,14 +15,14 @@ test('verified, untested, unsupported and missing versions are told apart', () =
 });
 
 test('every message that stops or warns names the Jarvis fallback, and verified says nothing', () => {
-  for (const version of ['3.28.0', '3.28.0-beta.1', '3.27.0', '4.0.0', 'abc', null]) assert.match(terminalSupport(version).message, /Jarvis at http:\/\/127\.0\.0\.1:3217/);
+  for (const version of ['3.28.0', '3.28.0-beta.1', '3.27.0', '4.0.0', 'abc', null]) assert.match(terminalSupport(version).message, /Jarvis em http:\/\/127\.0\.0\.1:3217/);
   assert.equal(terminalSupport('3.27.2').message, '');
-  assert.match(terminalSupport('3.27.0').message, /too old/);
-  assert.match(terminalSupport('3.28.0-beta.1').message, /Pre-release/);
-  assert.match(terminalSupport('4.0.0').message, /has not been verified/);
-  assert.match(terminalSupport(null).message, /need the Terminal community plugin/);
-  assert.match(terminalSupport('3.28.0').message, /newer than the versions tested with Agentic OS \(3\.27\.1, 3\.27\.2\)/);
-  assert.match(untrackedLaunchMessage('3.28.0'), /Terminal 3\.28\.0 opened this conversation, but Agentic OS cannot follow it/);
+  assert.match(terminalSupport('3.27.0').message, /antigo demais/);
+  assert.match(terminalSupport('3.28.0-beta.1').message, /versão preliminar/);
+  assert.match(terminalSupport('4.0.0').message, /ainda precisa ser verificado/);
+  assert.match(terminalSupport(null).message, /exigem o plugin da comunidade Terminal/);
+  assert.match(terminalSupport('3.28.0').message, /mais recente que as versões testadas com o Agentic OS \(3\.27\.1, 3\.27\.2\)/);
+  assert.match(untrackedLaunchMessage('3.28.0'), /Terminal 3\.28\.0 abriu esta conversa\. Esta versão do Terminal impede que o Agentic OS acompanhe a sessão/);
 });
 
 test('the verified list is ordered, so the newest entry sets the untested boundary', () => {

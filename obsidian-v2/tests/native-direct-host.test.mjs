@@ -61,9 +61,9 @@ test('V2 reload retains live controllers and human drafts without reapplying Ter
  const f=fixture();f.queue(f.launch);await f.host.sync();f.bindings[0].binding.hasDraft=true;f.host.dispose();const reloaded=new NativeDirectHost(f.options);await reloaded.sync();assert.equal(await reloaded.open(task),f.leaves[0]);assert.equal(f.bindings.length,1);assert.equal(f.leaves[0].sets,1);assert.equal(f.bindings[0].binding.stops,0);assert.equal(f.bindings[0].binding.hasDraft,true);
 });
 test('a missing or unsupported Terminal fails before claiming actions or changing ordinary shell tabs',async()=>{
- const cases=[[f=>{f.app.plugins.plugins.terminal.manifest.version='4.0.0'},/has not been verified/],[f=>{f.app.plugins.plugins.terminal.manifest.version='3.27.0'},/too old/],
-  [f=>{f.app.plugins.plugins.terminal.manifest.version='3.28.0-beta.1'},/Pre-release/],[f=>{f.app.plugins.plugins.terminal.manifest.version=''},/need the Terminal community plugin/],
-  [f=>{delete f.app.plugins.plugins.terminal.manifest},/need the Terminal community plugin/],[f=>{delete f.app.plugins.plugins.terminal},/need the Terminal community plugin/]];
+ const cases=[[f=>{f.app.plugins.plugins.terminal.manifest.version='4.0.0'},/ainda precisa ser verificado/],[f=>{f.app.plugins.plugins.terminal.manifest.version='3.27.0'},/antigo demais/],
+  [f=>{f.app.plugins.plugins.terminal.manifest.version='3.28.0-beta.1'},/versão preliminar/],[f=>{f.app.plugins.plugins.terminal.manifest.version=''},/exigem o plugin da comunidade Terminal/],
+  [f=>{delete f.app.plugins.plugins.terminal.manifest},/exigem o plugin da comunidade Terminal/],[f=>{delete f.app.plugins.plugins.terminal},/exigem o plugin da comunidade Terminal/]];
  for(const [change,reason] of cases){
   const f=fixture();change(f);f.queue(f.launch);await assert.rejects(f.host.sync(),reason);
   // Only the read-only look at waiting work: nothing claimed, reported or opened.
@@ -73,8 +73,8 @@ test('a missing or unsupported Terminal fails before claiming actions or changin
 test('a refused Terminal says why once, only when a conversation is waiting to open, also across plugin reloads',async()=>{
  const f=fixture();f.app.plugins.plugins.terminal.manifest.version='4.0.0';
  await assert.rejects(f.host.sync());assert.deepEqual(f.notices,[],'no waiting launch: a member who uses Jarvis is not nagged');
- for(let tick=0;tick<3;tick++){f.queue(f.launch);await assert.rejects(f.host.sync(),/has not been verified/)}
- assert.equal(f.notices.length,1);assert.match(f.notices[0],/Terminal 4\.0\.0 has not been verified.*Jarvis at http:\/\/127\.0\.0\.1:3217/);
+ for(let tick=0;tick<3;tick++){f.queue(f.launch);await assert.rejects(f.host.sync(),/ainda precisa ser verificado/)}
+ assert.equal(f.notices.length,1);assert.match(f.notices[0],/Terminal 4\.0\.0 ainda precisa ser verificado.*Jarvis em http:\/\/127\.0\.0\.1:3217/);
  f.host.dispose();const reloaded=new NativeDirectHost(f.options);f.queue(f.launch);await assert.rejects(reloaded.sync());
  assert.equal(f.notices.length,1,'the same session does not repeat it after a reload');
  assert.equal(f.calls.some(call=>call.path!=='/native/pending'),false);assert.equal(f.leaves.length,0);
@@ -82,14 +82,14 @@ test('a refused Terminal says why once, only when a conversation is waiting to o
 test('a newer untested Terminal opens conversations with one notice for the session',async()=>{
  const f=fixture();f.app.plugins.plugins.terminal.manifest.version='3.28.0';f.queue(f.launch);await f.host.sync();
  assert.equal(f.leaves.length,1);assert.equal(events(f).filter(event=>event.type==='launched').length,1);
- assert.equal(f.notices.length,1);assert.match(f.notices[0],/Terminal 3\.28\.0 is newer than the versions tested/);
+ assert.equal(f.notices.length,1);assert.match(f.notices[0],/Terminal 3\.28\.0 é mais recente que as versões testadas/);
  const second={...f.launch,id:'66666666-6666-4666-8666-666666666666',taskId:'77777777-7777-4777-8777-777777777777',instance:'88888888-8888-4888-8888-888888888888'};
  f.queue(second);await f.host.sync();assert.equal(f.leaves.length,2);assert.equal(f.notices.length,1);
 });
 test('an untested Terminal that opened a tab it does not let us follow says the conversation may be running and never relaunches',async t=>{
  // Through the real binding: the fixture's Terminal views expose no emulator, as a changed Terminal might.
  const alive=setInterval(()=>{},1000);t.after(()=>clearInterval(alive));
- const outcomes=[['3.28.0',false,/opened this conversation, but Agentic OS cannot follow it.*may still be running/,1],
+ const outcomes=[['3.28.0',false,/abriu esta conversa\. Esta versão do Terminal impede que o Agentic OS acompanhe a sessão.*ainda pode estar em execução/,1],
   ['3.28.0',true,/^The terminal closed before its process was ready\.$/,0],
   ['3.27.2',false,/^Terminal did not open before the launch timeout\.$/,1]];
  for(const [version,closeTab,expected,tabs] of outcomes){
