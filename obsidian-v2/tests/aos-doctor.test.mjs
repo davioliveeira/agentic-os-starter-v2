@@ -16,11 +16,11 @@ const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'aos-doctor-test-'));
 const workers = [];
 after(async () => { await Promise.all(workers.map(worker => worker.terminate())); fs.rmSync(scratch, {recursive: true, force: true}); });
 
-const VOICE = ['Voice service healthy', 'Text to speech', 'Speech to text hears it back'];
-const HOTKEY = 'Global voice shortcut';
-const PROVIDER = 'Buttons and voice can run';
-const SETUP = 'Setup finished for these files';
-const TERMINAL = 'Terminal plugin (conversations inside Obsidian)';
+const VOICE = ['Serviço de voz operacional', 'Síntese de voz', 'Transcrição do áudio de teste'];
+const HOTKEY = 'Atalho global de voz';
+const PROVIDER = 'Provedor dos botões e da voz';
+const SETUP = 'Instalação concluída para esta versão';
+const TERMINAL = 'Plugin Terminal (conversas no Obsidian)';
 const freeze = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 
 // Unless a test says otherwise: one coding CLI is installed and answers its sign-in check.
@@ -65,7 +65,7 @@ test('a doctor that was frozen by its sign-in checks still reaches the bridge (t
   // go out on the dead connection: ECONNRESET, reported as "voice installed but not answering".
   const services = await fakeServices({speech: 'shared', keepAliveMs: 150, providers: {claude: {installed: true, version: '1.0', command: process.execPath}}});
   const found = await examine(services, installation(), {runCommand: async () => { freeze(2500); return {status: 0, stdout: 'OK'}; }});
-  assert.equal(found.line('claude signed in').status, 'PASS');
+  assert.equal(found.line('Sessão de claude conectada').status, 'PASS');
   for (const name of VOICE) assert.equal(found.line(name).status, 'PASS', `${name}: ${found.text}`);
   assert.equal(found.ok, true, found.text);
   // The property behind it, independent of timing luck: every request arrived on a connection of its
@@ -80,8 +80,8 @@ test('a borrowed speech service reads as PASS, says it is shared, and the speak-
   const services = await fakeServices({speech: 'shared'});
   const found = await examine(services, installation({installed: false}));
   assert.equal(found.line(VOICE[0]).status, 'PASS');
-  assert.match(found.line(VOICE[0]).detail, new RegExp(`shared service at ${services.sharedUrl}, run by another program`));
-  assert.match(found.line(VOICE[1]).detail, /KB of audio/);
+  assert.match(found.line(VOICE[0]).detail, new RegExp(`serviço compartilhado em ${services.sharedUrl}, iniciado por outro programa`));
+  assert.match(found.line(VOICE[1]).detail, /KB de áudio/);
   assert.match(found.line(VOICE[2]).detail, /Voice check/);
   assert.deepEqual((await services.seen()).speech.filter(call => !call.endsWith('/health')), ['GET /speak', 'POST /stt'], 'both calls reached the shared service itself');
   assert.equal(found.failed, 0, found.text);
@@ -90,7 +90,7 @@ test('a borrowed speech service reads as PASS, says it is shared, and the speak-
 test('this installation\'s own speech service reads as PASS and says it is its own', async () => {
   const services = await fakeServices({speech: 'own'});
   const found = await examine(services, installation({installed: true}));
-  assert.match(found.line(VOICE[0]).detail, new RegExp(`this installation's own service on ${services.ports.speech}`));
+  assert.match(found.line(VOICE[0]).detail, new RegExp(`serviço desta instalação na porta ${services.ports.speech}`));
   for (const name of VOICE) assert.equal(found.line(name).status, 'PASS');
 });
 
@@ -101,7 +101,7 @@ test('a voice running in the vault\'s language is spoken to, and judged, in that
   const services = await fakeServices({speech: 'own', echo: true, language: {code: 'pt', wanted: 'pt', error: null}});
   const found = await examine(services, profile(installation({installed: true}), {speechLanguage: 'pt'}));
   for (const name of VOICE) assert.equal(found.line(name).status, 'PASS', `${name}: ${found.text}`);
-  assert.match(found.line(VOICE[0]).detail, /hearing and speaking Portuguese \(Brazil\)/);
+  assert.match(found.line(VOICE[0]).detail, /ouvindo e falando em Português \(Brasil\)/);
   assert.match(found.line(VOICE[2]).detail, /Teste de voz/);
   assert.equal(found.failed, 0, found.text);
   // What speech-to-text really returns: digits for the numerals, no accents guaranteed.
@@ -114,28 +114,28 @@ test('a voice running in the vault\'s language is spoken to, and judged, in that
 
 test('a vault that asks for another language while voice runs in English is a FAIL that says what to run', async () => {
   // An older service (no language in its health) and one that fell back because the model is missing.
-  for (const [language, because] of [[undefined, /voice is running in English$/], [{code: 'en', wanted: 'pt', error: 'not installed'}, /because the speech model for that language is not installed/]]) {
+  for (const [language, because] of [[undefined, /A voz está em Inglês$/], [{code: 'en', wanted: 'pt', error: 'not installed'}, /porque falta o modelo do idioma configurado/]]) {
     const services = await fakeServices({speech: 'own', ...(language ? {language} : {})});
     const found = await examine(services, profile(installation({installed: true}), {speechLanguage: 'pt'}));
     assert.equal(found.line(VOICE[0]).status, 'FAIL', found.text);
-    assert.match(found.line(VOICE[0]).detail, /this vault asks for Portuguese \(Brazil\)/);
+    assert.match(found.line(VOICE[0]).detail, /o cofre está configurado para Português \(Brasil\)/);
     assert.match(found.line(VOICE[0]).detail, because);
-    assert.match(found.text, /node aos\.mjs stop`, then `node aos\.mjs setup --voice yes/);
+    assert.match(found.text, /node aos\.mjs stop` e depois `node aos\.mjs setup --voice yes/);
     // The round trip still runs, in the language that is really running, so the member sees what works.
     assert.equal(found.line(VOICE[1]).status, 'PASS'); assert.equal(found.line(VOICE[2]).status, 'PASS');
   }
   const shared = await examine(await fakeServices({speech: 'shared'}), profile(installation({installed: false}), {speechLanguage: 'pt'}));
   assert.equal(shared.line(VOICE[0]).status, 'FAIL');
-  assert.match(shared.text, /decides its own language/);
+  assert.match(shared.text, /define o próprio idioma/);
   const unknown = await examine(await fakeServices({speech: 'own'}), profile(installation({installed: true}), {speechLanguage: 'klingon'}));
   assert.equal(unknown.line(VOICE[0]).status, 'FAIL');
-  assert.match(unknown.line(VOICE[0]).detail, /"klingon", which voice does not support/);
-  assert.match(unknown.text, /one of en, es, fr, it, pt/);
+  assert.match(unknown.line(VOICE[0]).detail, /"klingon", idioma incompatível/);
+  assert.match(unknown.text, /en, es, fr, it, pt/);
   // No setting, or English: nothing about language is said and nothing fails.
   for (const value of [{}, {speechLanguage: 'en'}, {dailyDrivers: ['Inbox triage']}]) {
     const plain = await examine(await fakeServices({speech: 'own'}), profile(installation({installed: true}), value));
     for (const name of VOICE) assert.equal(plain.line(name).status, 'PASS', plain.text);
-    assert.doesNotMatch(plain.line(VOICE[0]).detail, /hearing and speaking/);
+    assert.doesNotMatch(plain.line(VOICE[0]).detail, /ouvindo e falando/);
   }
 });
 
@@ -148,8 +148,8 @@ test('Mac and Windows shortcut registration uses fresh voice health, without cla
         return {status: 0, stdout: 'OK'};
       }});
     assert.equal(found.line(HOTKEY).status, 'PASS', found.text);
-    assert.match(found.line(HOTKEY).detail, /ctrl\+alt\+k registered/);
-    assert.match(found.line(HOTKEY).detail, /microphone capture and use from another app still need a hands-on test/);
+    assert.match(found.line(HOTKEY).detail, /ctrl\+alt\+k registrado/);
+    assert.match(found.line(HOTKEY).detail, /Teste manualmente a captação do microfone e o atalho em outro aplicativo/);
     assert.equal(found.failed, 0, found.text);
   }
 });
@@ -164,11 +164,11 @@ test('shortcut registration failure is an optional failure while speech still ge
       }});
     assert.equal(found.line(HOTKEY).status, 'FAIL'); assert.equal(found.line(HOTKEY).optional, true);
     assert.match(found.line(HOTKEY).detail, /Already owned by another app/);
-    assert.match(found.text, /choose another VOICE_HOTKEY combination/);
+    assert.match(found.text, /escolha outra combinação em VOICE_HOTKEY/);
     for (const name of VOICE) assert.equal(found.line(name).status, 'PASS');
     assert.equal(found.failed, 1); assert.equal(found.coreFailed, 0); assert.equal(found.ok, false);
-    assert.match(found.lines.at(-1), /1 optional part\(s\) need attention: Global voice shortcut/);
-    assert.doesNotMatch(found.lines.at(-1), /All checks passed/);
+    assert.match(found.lines.at(-1), /o item opcional com falha \(Atalho global de voz\)/);
+    assert.doesNotMatch(found.lines.at(-1), /Diagnóstico concluído com sucesso/);
   }
 });
 
@@ -183,7 +183,7 @@ async function shortcutFailure(error, {capture, platform = 'darwin', services, i
   assert.equal(found.line(HOTKEY).optional, true);
   assert.equal(found.failed, 1); assert.equal(found.coreFailed, 0);
   for (const name of VOICE) assert.equal(found.line(name).status, 'PASS', found.text);
-  const advice = found.lines.find(line => line.startsWith(`FAIL ${HOTKEY}`)).split('\n     fix: ')[1];
+  const advice = found.lines.find(line => line.startsWith(`FAIL ${HOTKEY}`)).split('\n     correção: ')[1];
   return {...found, advice};
 }
 
@@ -195,8 +195,8 @@ test('shortcut advice repairs missing microphone support instead of changing key
   ]) {
     const found = await shortcutFailure(error, {capture});
     assert.match(found.advice, /setup --voice yes/);
-    assert.match(found.advice, /microphone support/i);
-    assert.doesNotMatch(found.advice, /another app|choose another|VOICE_HOTKEY/i);
+    assert.match(found.advice, /acesso ao microfone/i);
+    assert.doesNotMatch(found.advice, /outro aplicativo|escolha outra|VOICE_HOTKEY/i);
     if (capture?.error) assert.equal(found.line(HOTKEY).detail, capture.error);
   }
 });
@@ -204,10 +204,10 @@ test('shortcut advice repairs missing microphone support instead of changing key
 test('shortcut advice checks microphone input and permission for capture failures', async () => {
   for (const platform of ['darwin', 'win32']) {
     const found = await shortcutFailure('Capture failed: PortAudioError', {platform, capture: {available: true, error: 'Capture failed: PortAudioError'}});
-    assert.match(found.advice, /microphone input/i);
-    assert.match(found.advice, /microphone permission/i);
-    assert.match(found.advice, /speech process/i);
-    assert.doesNotMatch(found.advice, /another app|choose another|setup --voice yes/i);
+    assert.match(found.advice, /entrada de áudio/i);
+    assert.match(found.advice, /permissão de microfone/i);
+    assert.match(found.advice, /serviço de voz/i);
+    assert.doesNotMatch(found.advice, /outro aplicativo|escolha outra|setup --voice yes/i);
   }
 });
 
@@ -223,13 +223,13 @@ test('shortcut advice identifies helper failures and stops repeating restart adv
     'Mac hotkey event loop failed (macOS error -9870).',
   ]) {
     const found = await shortcutFailure(error, {services, install});
-    assert.match(found.advice, /shortcut (helper|listener)/i);
+    assert.match(found.advice, /monitor do atalho/i);
     assert.match(found.advice, /node aos\.mjs stop.*node aos\.mjs start/);
-    assert.doesNotMatch(found.advice, /another app|choose another|VOICE_HOTKEY/i);
+    assert.doesNotMatch(found.advice, /outro aplicativo|escolha outra|VOICE_HOTKEY/i);
     const repeated = await shortcutFailure(error, {services, install});
     assert.match(repeated.advice, /service-supervisor\.jsonl/);
-    assert.match(repeated.advice, /coding agent/);
-    assert.doesNotMatch(repeated.advice, /run `node aos\.mjs (stop|start)`/i);
+    assert.match(repeated.advice, /agente de código/);
+    assert.doesNotMatch(repeated.advice, /rode `node aos\.mjs (stop|start)`/i);
   }
 });
 
@@ -239,9 +239,9 @@ test('shortcut advice reserves key-conflict remedies for known conflicts', async
     ['win32', 'Hotkey unavailable (Windows error 1409); another app may own it.'],
   ]) {
     const found = await shortcutFailure(error, {platform});
-    assert.match(found.advice, /choose another VOICE_HOTKEY combination/);
-    assert.match(found.advice, /speech service.*launch configuration/);
-    assert.match(found.advice, /does not save.*login/i);
+    assert.match(found.advice, /escolha outra combinação em VOICE_HOTKEY/);
+    assert.match(found.advice, /configuração de inicialização do serviço/);
+    assert.match(found.advice, /não persistem ao entrar/i);
   }
 });
 
@@ -253,11 +253,11 @@ test('shortcut advice fixes invalid configuration where the speech service is la
     'Mac hotkeys support ANSI physical letter and digit keys.',
   ]) {
     const found = await shortcutFailure(error);
-    assert.match(found.advice, /invalid.*VOICE_HOTKEY/i);
-    assert.match(found.advice, /launch configuration/);
+    assert.match(found.advice, /Corrija VOICE_HOTKEY/i);
+    assert.match(found.advice, /configuração de inicialização/);
     assert.match(found.advice, /ctrl\+alt\+j/);
-    assert.match(found.advice, /does not save.*login/i);
-    assert.doesNotMatch(found.advice, /another app|key conflict/i);
+    assert.match(found.advice, /não persistem ao entrar/i);
+    assert.doesNotMatch(found.advice, /outro aplicativo|combinação em/i);
   }
 });
 
@@ -266,19 +266,19 @@ test('shortcut advice admits unknown registration failures instead of inventing 
     'Hotkey unavailable (Windows error 5); another app may own it.',
     'Mac hotkey unavailable (macOS error -50); another app may own it.']) {
     const found = await shortcutFailure(error);
-    assert.match(found.advice, /cause.*not identified/i);
+    assert.match(found.advice, /causa.*indefinida/i);
     assert.match(found.advice, /service-supervisor\.jsonl/);
-    assert.match(found.advice, /coding agent/);
-    assert.doesNotMatch(found.advice, /another app|choose another|VOICE_HOTKEY/i);
+    assert.match(found.advice, /agente de código/);
+    assert.doesNotMatch(found.advice, /outro aplicativo|escolha outra|VOICE_HOTKEY/i);
   }
 });
 
 test('shared, disabled, unsupported and CI shortcuts explain why registration is skipped', async () => {
   for (const [state, options, reason] of [
-    [{speech: 'shared'}, {platform: 'darwin'}, /managed by another program/],
-    [{speech: 'own', hotkey: {enabled: false, ok: false}}, {platform: 'darwin'}, /disabled/],
-    [{speech: 'own', hotkey: {enabled: true, ok: false, error: 'Unsupported'}}, {platform: 'linux'}, /supported on Mac and Windows/],
-    [{speech: 'own', hotkey: {enabled: true, ok: false, error: 'No desktop'}}, {platform: 'darwin', ci: true}, /not checked with --ci/],
+    [{speech: 'shared'}, {platform: 'darwin'}, /outro programa gerencia/],
+    [{speech: 'own', hotkey: {enabled: false, ok: false}}, {platform: 'darwin'}, /desativado/],
+    [{speech: 'own', hotkey: {enabled: true, ok: false, error: 'Unsupported'}}, {platform: 'linux'}, /disponível no Mac e no Windows/],
+    [{speech: 'own', hotkey: {enabled: true, ok: false, error: 'No desktop'}}, {platform: 'darwin', ci: true}, /teste pulado com --ci/],
   ]) {
     const found = await examine(await fakeServices(state), installation({installed: true}), options);
     assert.equal(found.line(HOTKEY).status, 'SKIP', found.text); assert.match(found.line(HOTKEY).detail, reason);
@@ -290,9 +290,9 @@ test('an older or incomplete own speech health response waits instead of claimin
   for (const hotkey of [null, {}, {enabled: true}, {enabled: true, ok: 'true'}]) {
     const found = await examine(await fakeServices({speech: 'own', hotkey}), installation({installed: true}), {platform: 'darwin'});
     assert.equal(found.line(HOTKEY).status, 'WAIT', found.text);
-    assert.match(found.line(HOTKEY).detail, /does not report shortcut registration/);
+    assert.match(found.line(HOTKEY).detail, /ainda não informa se o atalho está registrado/);
     for (const name of VOICE) assert.equal(found.line(name).status, 'PASS');
-    assert.match(found.lines.at(-1), /Waiting on the step\(s\) marked WAIT/);
+    assert.match(found.lines.at(-1), /Restam as etapas marcadas como WAIT/);
   }
 });
 
@@ -300,40 +300,40 @@ test('a dead speech service is a FAIL that names the real reason, and the two ch
   const shared = await fakeServices({speech: 'shared', healthy: false});
   const lost = await examine(shared, installation());
   assert.equal(lost.line(VOICE[0]).status, 'FAIL');
-  assert.match(lost.line(VOICE[0]).detail, /shared speech service at http:\/\/127\.0\.0\.1:\d+ stopped answering/);
-  assert.match(lost.text, /start that program again.*node aos\.mjs setup --voice yes/s);
-  for (const name of VOICE.slice(1)) { assert.equal(lost.line(name).status, 'SKIP'); assert.match(lost.line(name).detail, /not run: "Voice service healthy" did not pass/); }
-  assert.equal(lost.line(HOTKEY).status, 'SKIP'); assert.match(lost.line(HOTKEY).detail, /"Voice service healthy" did not pass/);
+  assert.match(lost.line(VOICE[0]).detail, /serviço de voz compartilhado em http:\/\/127\.0\.0\.1:\d+ ficou sem resposta/);
+  assert.match(lost.text, /Reinicie o programa.*node aos\.mjs setup --voice yes/s);
+  for (const name of VOICE.slice(1)) { assert.equal(lost.line(name).status, 'SKIP'); assert.match(lost.line(name).detail, /teste pulado: "Serviço de voz operacional" falhou/); }
+  assert.equal(lost.line(HOTKEY).status, 'SKIP'); assert.match(lost.line(HOTKEY).detail, /"Serviço de voz operacional" falhou/);
   assert.equal(lost.coreFailed, 0); assert.equal(lost.ok, false);
-  assert.match(lost.lines.at(-1), /core system is installed and working\. 1 optional part\(s\) need attention: Voice service healthy/);
+  assert.match(lost.lines.at(-1), /sistema principal está funcionando\. Revise o item opcional com falha \(Serviço de voz operacional\)/);
 
   const crashed = await fakeServices({speech: 'own', healthy: false, speechPhase: 'blocked'});
   const broken = await examine(crashed, installation({installed: true}));
-  assert.match(broken.line(VOICE[0]).detail, /keeps crashing/);
+  assert.match(broken.line(VOICE[0]).detail, /caiu repetidamente/);
   assert.match(broken.text, /--reset-recovery/);
-  assert.doesNotMatch(broken.text, /waiting up to/, 'a crashed service is not waited for');
+  assert.doesNotMatch(broken.text, /Aguardando até/, 'a crashed service is not waited for');
 
   const unmonitored = await fakeServices({speech: 'none', monitorRunsSpeech: false});
   const idle = await examine(unmonitored, installation({installed: true}));
-  assert.match(idle.line(VOICE[0]).detail, /the recovery monitor is not running it/);
+  assert.match(idle.line(VOICE[0]).detail, /aguardando início pelo monitor de recuperação/);
 });
 
 test('voice that was asked for but is not installed says so; declined voice and its shortcut are skipped', async () => {
   const services = await fakeServices({speech: 'none'});
   const missing = await examine(services, installation({installed: false}));
-  assert.equal(missing.line(VOICE[0]).status, 'FAIL'); assert.equal(missing.line(VOICE[0]).detail, 'not installed');
-  assert.match(missing.text, /fix: Run `node aos\.mjs setup --voice yes`\./);
+  assert.equal(missing.line(VOICE[0]).status, 'FAIL'); assert.equal(missing.line(VOICE[0]).detail, 'instalação pendente');
+  assert.match(missing.text, /correção: Rode `node aos\.mjs setup --voice yes`\./);
   for (const name of VOICE.slice(1)) assert.equal(missing.line(name).status, 'SKIP');
   const declined = await examine(services, installation({voice: false}));
-  assert.equal(declined.line('Voice').status, 'SKIP'); assert.equal(declined.failed, 0, declined.text);
-  assert.equal(declined.line(HOTKEY).status, 'SKIP'); assert.match(declined.line(HOTKEY).detail, /voice was not enabled/);
+  assert.equal(declined.line('Voz').status, 'SKIP'); assert.equal(declined.failed, 0, declined.text);
+  assert.equal(declined.line(HOTKEY).status, 'SKIP'); assert.match(declined.line(HOTKEY).detail, /voz desativada/);
 });
 
 test('the doctor waits for a voice that is still loading instead of telling the person to run it again', async () => {
   const services = await fakeServices({speech: 'own', healthy: false, speechPhase: 'starting'});
   let pauses = 0;
   const found = await examine(services, installation({installed: true}), {pause: async () => { if (++pauses === 2) await services.set({healthy: true, speechPhase: 'online'}); }});
-  assert.match(found.text, /voice is still loading its models; waiting up to 6 seconds/);
+  assert.match(found.text, /carregando os modelos de voz.*Aguardando até 6 segundos/);
   assert.equal(pauses, 2, 'it stopped waiting as soon as the service answered');
   for (const name of VOICE) assert.equal(found.line(name).status, 'PASS');
 
@@ -343,41 +343,41 @@ test('the doctor waits for a voice that is still loading instead of telling the 
   let paused = 0;
   const restarted = await examine(late, installation({installed: true}), {runCommand: async () => { await late.set({healthy: false, speechPhase: 'starting'}); return {status: 0, stdout: 'OK'}; },
     pause: async () => { if (++paused === 1) await late.set({speechPhase: 'blocked'}); }});
-  assert.match(restarted.text, /waiting up to 6 seconds/, 'decided on what the monitor says now, not before the sign-in checks');
+  assert.match(restarted.text, /Aguardando até 6 segundos/, 'decided on what the monitor says now, not before the sign-in checks');
   assert.equal(paused, 1, 'the wait ended when the monitor gave up');
-  assert.match(restarted.line(VOICE[0]).detail, /keeps crashing/);
+  assert.match(restarted.line(VOICE[0]).detail, /caiu repetidamente/);
 
   // The limit is on the clock: a bridge that answers slowly cannot stretch 6 seconds into minutes.
   const slow = await fakeServices({speech: 'own', healthy: false, speechPhase: 'starting'});
   let rounds = 0;
   const bounded = await examine(slow, installation({installed: true}), {pause: async () => { rounds++; }});
-  assert.equal(rounds, 2); assert.match(bounded.line(VOICE[0]).detail, /still not up after waiting 6 seconds/);
+  assert.equal(rounds, 2); assert.match(bounded.line(VOICE[0]).detail, /serviço indisponível após 6 segundos de espera/);
 });
 
 test('the same failure twice in a row stops saying "try again"; a pass in between starts over', async () => {
   const services = await fakeServices({speech: 'own', healthy: false, speechPhase: 'starting'}), install = installation({installed: true});
   const first = await examine(services, install);
-  assert.match(first.line(VOICE[0]).detail, /still not up after waiting 6 seconds/);
-  assert.match(first.text, /run `node aos\.mjs doctor` once more/);
-  assert.doesNotMatch(first.text, /same failure as the last run/);
+  assert.match(first.line(VOICE[0]).detail, /serviço indisponível após 6 segundos de espera/);
+  assert.match(first.text, /Rode `node aos\.mjs doctor` mais uma vez/);
+  assert.doesNotMatch(first.text, /A mesma falha ocorreu/);
   const second = await examine(services, install);
-  assert.match(second.text, /same failure as the last run \(2 in a row\), so running the doctor again will not change it/);
-  assert.match(second.text, /not going to come up by waiting\. Repair the voice files/);
-  assert.doesNotMatch(second.text, /once more/, 'the advice that loops is gone');
+  assert.match(second.text, /A mesma falha ocorreu em 2 diagnósticos consecutivos/);
+  assert.match(second.text, /não iniciou nas tentativas anteriores\. Repare a voz/);
+  assert.doesNotMatch(second.text, /mais uma vez/, 'the advice that loops is gone');
   // The monitor's momentary phase differs between runs; the failure is still recognised as the same one.
   await services.set({speechPhase: 'backoff'});
-  assert.match((await examine(services, install)).text, /3 in a row/);
+  assert.match((await examine(services, install)).text, /3 diagnósticos consecutivos/);
   await services.set({healthy: true, speechPhase: 'online'});
   assert.equal((await examine(services, install)).failed, 0);
   await services.set({healthy: false, speechPhase: 'starting'});
-  assert.doesNotMatch((await examine(services, install)).text, /same failure as the last run/, 'a pass in between resets the count');
+  assert.doesNotMatch((await examine(services, install)).text, /A mesma falha ocorreu/, 'a pass in between resets the count');
 });
 
 test('no check disappears: a step that fails or throws leaves a SKIP for every line behind it', async () => {
   const mute = await fakeServices({speech: 'shared', canSpeak: false});
   const silent = await examine(mute, installation());
   assert.equal(silent.line(VOICE[1]).status, 'FAIL'); assert.match(silent.line(VOICE[1]).detail, /status 500/);
-  assert.equal(silent.line(VOICE[2]).status, 'SKIP'); assert.match(silent.line(VOICE[2]).detail, /"Text to speech" did not pass/);
+  assert.equal(silent.line(VOICE[2]).status, 'SKIP'); assert.match(silent.line(VOICE[2]).detail, /"Síntese de voz" falhou/);
 
   const deaf = await fakeServices({speech: 'shared', hears: 'thank you for watching'});
   assert.equal((await examine(deaf, installation())).line(VOICE[2]).status, 'FAIL');
@@ -385,27 +385,27 @@ test('no check disappears: a step that fails or throws leaves a SKIP for every l
   // A thrown error (the sign-in program cannot even be started) is a FAIL on the line it interrupted.
   const services = await fakeServices({speech: 'shared', providers: {claude: {installed: true, version: '1', command: process.execPath}, codex: {installed: true, version: '2', command: process.execPath}}});
   const thrown = await examine(services, installation(), {runCommand: async (command, args) => { if (args[0] === 'exec') throw new Error('spawn EPERM'); return {status: 0, stdout: 'OK'}; }});
-  assert.equal(thrown.line('codex signed in').status, 'FAIL'); assert.match(thrown.line('codex signed in').detail, /spawn EPERM/);
+  assert.equal(thrown.line('Sessão de codex conectada').status, 'FAIL'); assert.match(thrown.line('Sessão de codex conectada').detail, /spawn EPERM/);
   assert.equal(thrown.coreFailed, 0, 'one signed-in provider is enough');
 
   const nobody = await examine(services, installation(), {runCommand: async () => ({status: 1, stdout: ''})});
-  assert.equal(nobody.line('A provider that is signed in').status, 'FAIL'); assert.ok(nobody.coreFailed >= 1);
-  assert.match(nobody.lines.at(-1), /including core parts \(A provider that is signed in\)/);
+  assert.equal(nobody.line('Provedor com sessão conectada').status, 'FAIL'); assert.ok(nobody.coreFailed >= 1);
+  assert.match(nobody.lines.at(-1), /incluindo itens essenciais \(Provedor com sessão conectada\)/);
 });
 
 test('every run prints every line, even with the bridge down or no vault configured', async () => {
   const services = await fakeServices({bridgeOnline: false});
   const install = installation(); fs.rmSync(install.at.vaultFile);
   const found = await examine(services, install, {full: true});
-  const expected = ['Node.js 22 or newer', SETUP, 'Vault configured', 'Vault has the daily-note schema', 'Obsidian plugin files installed', 'Plugin switched on in Obsidian',
-    TERMINAL, 'Python helper for conversations inside Obsidian', 'Recovery monitor running', `Bridge answering on ${services.ports.bridge}`, `Jarvis HUD answering on ${services.ports.jarvis}`, 'claude CLI', 'codex CLI', PROVIDER, 'Claude connectors in background work', VOICE[0], HOTKEY, ...VOICE.slice(1), 'Jev fast voice routing', 'Live voice (OpenAI key)', 'A real workflow end to end'];
+  const expected = ['Node.js 22 ou superior', SETUP, 'Cofre configurado', 'Modelo de nota diária no cofre', 'Arquivos do plugin instalados no Obsidian', 'Plugin ativo no Obsidian',
+    TERMINAL, 'Auxiliar Python para conversas no Obsidian', 'Monitor de recuperação em execução', `Ponte respondendo na porta ${services.ports.bridge}`, `Jarvis respondendo na porta ${services.ports.jarvis}`, 'CLI de claude', 'CLI de codex', PROVIDER, 'Conectores do Claude em fluxos de segundo plano', VOICE[0], HOTKEY, ...VOICE.slice(1), 'Roteamento rápido de voz com Jev', 'Voz ao vivo (chave da OpenAI)', 'Execução de um fluxo completo'];
   assert.deepEqual(found.results.map(item => item.name), expected);
-  for (const name of ['Vault has the daily-note schema', 'claude CLI', ...VOICE, HOTKEY, 'A real workflow end to end']) { assert.equal(found.line(name).status, 'SKIP', name); assert.match(found.line(name).detail, /not (run|checked)/); }
+  for (const name of ['Modelo de nota diária no cofre', 'CLI de claude', ...VOICE, HOTKEY, 'Execução de um fluxo completo']) { assert.equal(found.line(name).status, 'SKIP', name); assert.match(found.line(name).detail, /teste pulado/); }
   assert.equal(found.line(TERMINAL).status, 'SKIP'); assert.match(found.line(TERMINAL).detail, /nenhum cofre configurado/);
   const usual = await examine(await fakeServices({speech: 'shared'}), installation());
-  assert.match(usual.line('A real workflow end to end').detail, /doctor --full/);
+  assert.match(usual.line('Execução de um fluxo completo').detail, /doctor --full/);
   const ci = await examine(await fakeServices({speech: 'shared', providers: {claude: {installed: true, version: '1', command: 'x'}}}), installation(), {ci: true, full: true});
-  assert.equal(ci.line('claude signed in').status, 'SKIP'); assert.equal(ci.line('A real workflow end to end').status, 'SKIP'); assert.equal(ci.failed, 0, ci.text);
+  assert.equal(ci.line('Sessão de claude conectada').status, 'SKIP'); assert.equal(ci.line('Execução de um fluxo completo').status, 'SKIP'); assert.equal(ci.failed, 0, ci.text);
 });
 
 test('buttons saved for a coding tool that is not installed or not signed in are a core FAIL that names the switch, and the workflow is not attempted', async () => {
@@ -416,16 +416,16 @@ test('buttons saved for a coding tool that is not installed or not signed in are
   // The Mac that found this: a vault still set to Codex, only Claude Code installed and signed in.
   choose('codex', 'astra');
   const stuck = await examine(claudeOnly, install, {full: true});
-  assert.equal(stuck.line('claude signed in').status, 'PASS');
+  assert.equal(stuck.line('Sessão de claude conectada').status, 'PASS');
   assert.equal(stuck.line(PROVIDER).status, 'FAIL'); assert.equal(stuck.line(PROVIDER).optional, false);
-  assert.match(stuck.line(PROVIDER).detail, /Codex, which is not installed here/);
-  assert.match(stuck.text, /fix: `node aos\.mjs setup --provider claude` switches the buttons and voice to Claude Code, which is installed here/);
-  assert.equal(stuck.line('A real workflow end to end').status, 'SKIP'); assert.match(stuck.line('A real workflow end to end').detail, /Buttons and voice can run/);
+  assert.match(stuck.line(PROVIDER).detail, /Codex, que precisa ser instalado/);
+  assert.match(stuck.text, /correção: `node aos\.mjs setup --provider claude` troca o provedor dos botões e da voz para Claude Code, que já está instalado/);
+  assert.equal(stuck.line('Execução de um fluxo completo').status, 'SKIP'); assert.match(stuck.line('Execução de um fluxo completo').detail, /Provedor dos botões e da voz/);
   // Installed, but its sign-in check does not answer; the other tool does.
   const both = await fakeServices({speech: 'shared', providers: {claude: {installed: true, version: '1', command: process.execPath}, codex: {installed: true, version: '2', command: process.execPath}}});
   const signedOut = await examine(both, install, {runCommand: async (command, args) => args[0] === 'exec' ? {status: 1, stdout: ''} : {status: 0, stdout: 'OK'}});
-  assert.equal(signedOut.line(PROVIDER).status, 'FAIL'); assert.match(signedOut.line(PROVIDER).detail, /did not answer its sign-in check/);
-  assert.match(signedOut.text, /run `codex` and sign in\. Or `node aos\.mjs setup --provider claude` switches/);
+  assert.equal(signedOut.line(PROVIDER).status, 'FAIL'); assert.match(signedOut.line(PROVIDER).detail, /ficou sem resposta no teste de login/);
+  assert.match(signedOut.text, /rode `codex` e entre na sua conta.*`node aos\.mjs setup --provider claude` troca/);
   // The saved tool is installed and answers.
   choose('claude', 'opus');
   const fine = await examine(claudeOnly, install);
@@ -437,7 +437,7 @@ test('buttons saved for a coding tool that is not installed or not signed in are
   assert.equal(ci.line(PROVIDER).status, 'SKIP'); assert.equal(ci.failed, 0, ci.text);
   // A damaged choice says how to choose again.
   fs.writeFileSync(path.join(install.vault, 'system', 'v2', 'provider.json'), '{broken');
-  assert.match((await examine(claudeOnly, install)).text, /provider\.json in the vault could not be read\n\s+fix: Run `node aos\.mjs setup --provider claude`/);
+  assert.match((await examine(claudeOnly, install)).text, /falha ao ler system\/v2\/provider\.json no cofre\n\s+correção: Para escolher o provedor novamente, rode `node aos\.mjs setup --provider claude`/);
 });
 
 test('files replaced without setup running to the end are a core FAIL that says to run setup once (an early 0.3.64 updater)', async () => {
@@ -451,7 +451,7 @@ test('files replaced without setup running to the end are a core FAIL that says 
   // An installation whose setup predates the mark, updated by an updater that ran its old setup.
   const behind = await examine(services, install);
   assert.equal(behind.line(SETUP).status, 'FAIL'); assert.equal(behind.line(SETUP).optional, false);
-  assert.match(behind.text, /fix: Run `node aos\.mjs stop`, then `node aos\.mjs setup` once to finish the update/);
+  assert.match(behind.text, /correção: Rode `node aos\.mjs stop` e `node aos\.mjs setup` para concluir a atualização/);
   // Setup reached its end with these files: the mark matches, and the other stamps are kept.
   stampSetup(install.at);
   assert.equal((await examine(services, install)).line(SETUP).status, 'PASS');
@@ -464,7 +464,7 @@ test('files replaced without setup running to the end are a core FAIL that says 
   assert.equal((await examine(services, install)).line(SETUP).status, 'FAIL');
   // Before any setup at all, the advice is the first-time command.
   fs.writeFileSync(path.join(install.at.runtime, 'aos-setup.json'), '{}');
-  assert.match((await examine(services, install)).text, /fix: Run `node aos\.mjs setup --vault/);
+  assert.match((await examine(services, install)).text, /correção: Rode `node aos\.mjs setup --vault/);
 });
 
 test('the Terminal plugin line reports every state from the vault files and never throws', () => {
@@ -506,32 +506,32 @@ test('a Terminal problem is an optional line and never adds a core failure', asy
   assert.equal(damaged.coreFailed, baseline.coreFailed);
   const noVault = installation(); fs.rmSync(noVault.at.vaultFile);
   const without = await examine(services, noVault);
-  assert.equal(without.line('Vault configured').status, 'FAIL', 'the missing vault stays the core failure it was');
+  assert.equal(without.line('Cofre configurado').status, 'FAIL', 'the missing vault stays the core failure it was');
   assert.equal(without.line(TERMINAL).status, 'SKIP'); assert.equal(without.results.filter(item => item.name === TERMINAL && item.status === 'FAIL').length, 0);
 });
 
 test('the plugin line is only PASS once Obsidian has opened the vault or the cockpit is connected', async () => {
   const services = await fakeServices({speech: 'shared'});
   const fresh = await examine(services, installation({opened: false}), {phase: 'install'});
-  assert.equal(fresh.line('Plugin switched on in Obsidian').status, 'WAIT');
-  assert.match(fresh.line('Plugin switched on in Obsidian').detail, /Obsidian has not opened it yet/);
-  assert.match(fresh.lines.at(-1), /Waiting on the step\(s\) marked WAIT/);
-  assert.equal((await examine(services, installation({opened: false}))).line('Plugin switched on in Obsidian').status, 'FAIL', 'after the install phase it is a FAIL with the clicks to make');
-  assert.equal((await examine(services, installation({opened: true}), {phase: 'install'})).line('Plugin switched on in Obsidian').status, 'PASS');
+  assert.equal(fresh.line('Plugin ativo no Obsidian').status, 'WAIT');
+  assert.match(fresh.line('Plugin ativo no Obsidian').detail, /Abra o cofre no Obsidian/);
+  assert.match(fresh.lines.at(-1), /Restam as etapas marcadas como WAIT/);
+  assert.equal((await examine(services, installation({opened: false}))).line('Plugin ativo no Obsidian').status, 'FAIL', 'after the install phase it is a FAIL with the clicks to make');
+  assert.equal((await examine(services, installation({opened: true}), {phase: 'install'})).line('Plugin ativo no Obsidian').status, 'PASS');
   const connected = await fakeServices({speech: 'shared', surfaces: [{kind: 'native'}]});
-  assert.match((await examine(connected, installation({opened: false}))).line('Plugin switched on in Obsidian').detail, /connected right now/);
+  assert.match((await examine(connected, installation({opened: false}))).line('Plugin ativo no Obsidian').detail, /o painel está conectado/);
 });
 
 test('why the voice line failed is decided from the bridge, the monitor and the disk', () => {
   const ask = values => voiceProblem({probe: {status: 200, data: {ok: false}, error: ''}, speechUrl: 'http://127.0.0.1:3220', own: true, installed: true, phase: 'online', ...values});
-  assert.match(voiceProblem({probe: {status: 0, data: null, error: 'ECONNRESET'}, speechUrl: 'x', own: true, installed: true, phase: 'online'}).detail, /the bridge did not answer the voice check \(ECONNRESET\)/);
+  assert.match(voiceProblem({probe: {status: 0, data: null, error: 'ECONNRESET'}, speechUrl: 'x', own: true, installed: true, phase: 'online'}).detail, /a ponte ficou sem resposta no teste de voz \(ECONNRESET\)/);
   assert.match(voiceProblem({probe: {status: 503, data: null, error: ''}, speechUrl: 'x', own: true}).detail, /HTTP 503/);
-  assert.match(ask({own: false, speechUrl: 'http://127.0.0.1:3108'}).detail, /shared speech service at http:\/\/127\.0\.0\.1:3108/);
-  assert.equal(ask({installed: false}).detail, 'not installed');
-  assert.match(ask({phase: ''}).detail, /monitor is not running it/);
-  assert.match(ask({phase: 'blocked'}).detail, /keeps crashing/);
-  assert.match(ask({phase: 'backoff', waitedSeconds: 90}).detail, /still not up after waiting 90 seconds/);
-  assert.match(ask({}).detail, /running but reports that it is not ready/);
+  assert.match(ask({own: false, speechUrl: 'http://127.0.0.1:3108'}).detail, /serviço de voz compartilhado em http:\/\/127\.0\.0\.1:3108/);
+  assert.equal(ask({installed: false}).detail, 'instalação pendente');
+  assert.match(ask({phase: ''}).detail, /aguardando início pelo monitor de recuperação/);
+  assert.match(ask({phase: 'blocked'}).detail, /caiu repetidamente/);
+  assert.match(ask({phase: 'backoff', waitedSeconds: 90}).detail, /serviço indisponível após 90 segundos de espera/);
+  assert.match(ask({}).detail, /em execução e ainda não está pronto/);
   for (const phase of ['', 'blocked', 'backoff', 'online']) assert.doesNotMatch(JSON.stringify(ask({phase}).fix.repeated || ''), /doctor` (again|once more)/);
 });
 
@@ -614,46 +614,46 @@ test('local requests: one connection each, local addresses only, binary both way
 
 test('the Live voice line: skipped until a key is saved, then says what OpenAI thinks of it', async () => {
   const {CONSENT_VERSION, liveKeyFile} = await import('../runner/live/key.mjs');
-  const LIVE = 'Live voice (OpenAI key)', key = ['sk', 'test', 'doctor_fixture_key_123456789'].join('-');
+  const LIVE = 'Voz ao vivo (chave da OpenAI)', key = ['sk', 'test', 'doctor_fixture_key_123456789'].join('-');
   const services = await fakeServices({speech: 'shared'}), install = installation(), file = liveKeyFile(install.at.runtime);
   const none = await examine(services, install, {checkLive: async () => { throw new Error('must not be asked'); }});
-  assert.equal(none.line(LIVE).status, 'SKIP'); assert.match(none.line(LIVE).detail, /not set up \(optional: `node aos\.mjs openai-key`\)/);
+  assert.equal(none.line(LIVE).status, 'SKIP'); assert.match(none.line(LIVE).detail, /configuração opcional com `node aos\.mjs openai-key`/);
   const save = (fields = {}) => fs.writeFileSync(file, JSON.stringify({key, consentAt: new Date().toISOString(), consentVersion: CONSENT_VERSION, ...fields}));
   save(); const asked = [];
   const good = await examine(services, install, {checkLive: async value => { asked.push(value === key); return {kind: 'accepted'}; }});
-  assert.equal(good.line(LIVE).status, 'PASS'); assert.match(good.line(LIVE).detail, /OpenAI accepts the saved key; a call also needs API credit/); assert.deepEqual(asked, [true]);
+  assert.equal(good.line(LIVE).status, 'PASS'); assert.match(good.line(LIVE).detail, /a OpenAI aceita a chave salva.*crédito de API/); assert.deepEqual(asked, [true]);
   assert.equal(good.text.includes(key), false);
   const refused = await examine(services, install, {checkLive: async () => ({kind: 'refused'})});
-  assert.equal(refused.line(LIVE).status, 'FAIL'); assert.equal(refused.line(LIVE).optional, true); assert.match(refused.text, /fix: Run `node aos\.mjs openai-key` and enter a current key from platform\.openai\.com\/api-keys\./);
+  assert.equal(refused.line(LIVE).status, 'FAIL'); assert.equal(refused.line(LIVE).optional, true); assert.match(refused.text, /correção: Rode `node aos\.mjs openai-key` e informe uma chave atual de platform\.openai\.com\/api-keys\./);
   const hidden = await examine(services, install, {checkLive: async () => ({kind: 'no-model'})});
-  assert.equal(hidden.line(LIVE).status, 'FAIL'); assert.match(hidden.line(LIVE).detail, /Live model \(gpt-live-1\.1\)/);
+  assert.equal(hidden.line(LIVE).status, 'FAIL'); assert.match(hidden.line(LIVE).detail, /modelo de voz ao vivo \(gpt-live-1\.1\)/);
   const offline = await examine(services, install, {checkLive: async () => ({kind: 'unconfirmed', detail: 'OpenAI could not be reached'})});
-  assert.equal(offline.line(LIVE).status, 'SKIP'); assert.match(offline.line(LIVE).detail, /could not confirm it just now \(OpenAI could not be reached\)/);
+  assert.equal(offline.line(LIVE).status, 'SKIP'); assert.match(offline.line(LIVE).detail, /não confirmou o acesso agora \(OpenAI could not be reached\)/);
   const ci = await examine(services, install, {ci: true, checkLive: async () => { throw new Error('must not be asked'); }});
-  assert.equal(ci.line(LIVE).status, 'PASS'); assert.match(ci.line(LIVE).detail, /not checked with OpenAI under --ci/);
+  assert.equal(ci.line(LIVE).status, 'PASS'); assert.match(ci.line(LIVE).detail, /teste com a OpenAI foi pulado com --ci/);
   save({consentVersion: CONSENT_VERSION + 1});
   const stale = await examine(services, install, {checkLive: async () => { throw new Error('must not be asked'); }});
-  assert.equal(stale.line(LIVE).status, 'FAIL'); assert.equal(stale.line(LIVE).detail, 'Live voice needs current consent.'); assert.match(stale.text, /save the key and consent again/);
+  assert.equal(stale.line(LIVE).status, 'FAIL'); assert.equal(stale.line(LIVE).detail, 'Live voice needs current consent.'); assert.match(stale.text, /salve novamente a chave e a autorização/);
 });
 
 test('the connector line says whether a saved Claude token leaves background work without calendar and mail', async () => {
-  const CHECK = 'Claude connectors in background work', install = installation();
+  const CHECK = 'Conectores do Claude em fluxos de segundo plano', install = installation();
   const claude = {providers: {claude: {installed: true, version: '1.0', command: process.execPath}}, speech: 'shared'};
   const seen = async (claudeSignIn, more = {}) => (await examine(await fakeServices({...claude, ...more, ...(claudeSignIn ? {claudeSignIn} : {})}), install)).line(CHECK);
   const older = await seen(null);
-  assert.equal(older.status, 'SKIP'); assert.match(older.detail, /does not report this yet/);
+  assert.equal(older.status, 'SKIP'); assert.match(older.detail, /ainda não informa o estado/);
   const plain = await seen({token: false, stored: null, fallback: false});
-  assert.equal(plain.status, 'PASS'); assert.match(plain.detail, /normal Claude sign-in/);
+  assert.equal(plain.status, 'PASS'); assert.match(plain.detail, /sessão habitual do Claude/);
   const both = await seen({token: true, stored: true, fallback: false});
-  assert.equal(both.status, 'PASS'); assert.match(both.detail, /CLAUDE_CODE_OAUTH_TOKEN is saved.*normal Claude sign-in instead.*connectors stay available/);
+  assert.equal(both.status, 'PASS'); assert.match(both.detail, /CLAUDE_CODE_OAUTH_TOKEN neste computador.*sessão habitual do Claude.*mantêm acesso/);
   const waiting = await seen({token: true, stored: null, fallback: false});
-  assert.equal(waiting.status, 'SKIP'); assert.match(waiting.detail, /has not checked yet/);
+  assert.equal(waiting.status, 'SKIP'); assert.match(waiting.detail, /verifica em até um minuto após iniciar/);
   const only = await examine(await fakeServices({...claude, claudeSignIn: {token: true, stored: false, fallback: false}}), install);
   assert.equal(only.line(CHECK).status, 'FAIL'); assert.equal(only.line(CHECK).optional, true);
-  assert.match(only.line(CHECK).detail, /only through a saved CLAUDE_CODE_OAUTH_TOKEN, which has no connectors: Plan Today, Inbox Brief/);
-  assert.match(only.text, /fix: Open a terminal, run `claude` and sign in with \/login/);
+  assert.match(only.line(CHECK).detail, /apenas com CLAUDE_CODE_OAUTH_TOKEN.*Planejar o dia, Resumo da caixa de entrada/);
+  assert.match(only.text, /correção: Abra um terminal, rode `claude`, entre com \/login/);
   const back = await seen({token: true, stored: true, fallback: true});
-  assert.equal(back.status, 'FAIL'); assert.match(back.detail, /stored Claude sign-in stopped working/);
+  assert.equal(back.status, 'FAIL'); assert.match(back.detail, /sessão do Claude expirou/);
   const none = await seen({token: true, stored: false, fallback: false}, {providers: {codex: {installed: true, version: '1', command: process.execPath}}});
-  assert.equal(none.status, 'SKIP'); assert.match(none.detail, /Claude Code is not installed/);
+  assert.equal(none.status, 'SKIP'); assert.match(none.detail, /Claude Code está sem instalação/);
 });

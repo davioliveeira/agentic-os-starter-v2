@@ -244,9 +244,9 @@ test('the doctor asks for the helper only once the Terminal plugin is in use', (
   assert.equal(terminalPythonCheck('/r', {terminal: {status: 'SKIP'}, recorded: () => assert.fail()}).status, 'SKIP');
   assert.equal(terminalPythonCheck('/r', {terminal: {status: 'PASS'}, recorded: () => '/r/py', works: () => true}).status, 'PASS');
   const broken = terminalPythonCheck('/r', {terminal: {status: 'PASS'}, recorded: () => '/r/py', works: () => false});
-  assert.equal(broken.status, 'FAIL'); assert.match(broken.detail, /no longer runs or loads/);
+  assert.equal(broken.status, 'FAIL'); assert.match(broken.detail, /Falha ao executar ou carregar os módulos/);
   const missing = terminalPythonCheck('/r', {terminal: {status: 'PASS'}, recorded: () => null});
-  assert.equal(missing.status, 'FAIL'); assert.match(missing.fix, /node aos\.mjs setup.*Jarvis at http:\/\/127\.0\.0\.1:3217/);
+  assert.equal(missing.status, 'FAIL'); assert.match(missing.fix, /node aos\.mjs setup.*Jarvis em http:\/\/127\.0\.0\.1:3217/);
 });
 
 test('the bridge hands the plugin the managed Python only when setup recorded one', t => {

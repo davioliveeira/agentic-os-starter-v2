@@ -289,7 +289,7 @@ test('the schedule command adds, lists, switches and removes, and explains a mis
   assert.equal(fs.readFileSync(path.join(theVault, SCHEDULE_FILE), 'utf8'), '{"jobs": [');
   assert.equal((await run([])).code, 1);
   const lines = []; await main(['help'], line => lines.push(line));
-  assert.match(lines.join('\n'), /\n  schedule\s+run a workflow by itself at a set time/);
+  assert.match(lines.join('\n'), /\n  schedule\s+agendar um fluxo/);
   // Whole day names only, and an option the command does not know is a slip.
   fs.writeFileSync(path.join(theVault, SCHEDULE_FILE), JSON.stringify({jobs: []}));
   await assert.rejects(run(['add', 'plan-today', '09:00'], {days: 'mondayish'}), /--days takes/);

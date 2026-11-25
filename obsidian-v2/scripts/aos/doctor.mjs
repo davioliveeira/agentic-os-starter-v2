@@ -22,26 +22,26 @@ import {SPEECH_LANGUAGES, SPEECH_LANGUAGE_CODES, speechLanguage, speechCheck} fr
 
 const readJson = file => { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return {}; } };
 const SUPERVISOR_LOG = 'obsidian-v2/.runtime/service-supervisor.jsonl';
-const SHOW_SOMEONE = `Show your coding agent this line together with the last 30 lines of ${SUPERVISOR_LOG}, or post both in the community.`;
-const SETUP_CHECK = 'Setup finished for these files';
-const VOICE_CHECKS = ['Voice service healthy', 'Text to speech', 'Speech to text hears it back'];
-const HOTKEY_CHECK = 'Global voice shortcut';
+const SHOW_SOMEONE = `Mostre esta mensagem e as últimas 30 linhas de ${SUPERVISOR_LOG} ao seu agente de código ou publique as duas na comunidade.`;
+const SETUP_CHECK = 'Instalação concluída para esta versão';
+const VOICE_CHECKS = ['Serviço de voz operacional', 'Síntese de voz', 'Transcrição do áudio de teste'];
+const HOTKEY_CHECK = 'Atalho global de voz';
 const STILL_STARTING = new Set(['checking', 'starting', 'waiting_for_listener', 'backoff']);
-const LIVE_CHECK = 'Live voice (OpenAI key)';
-const CONNECTOR_CHECK = 'Claude connectors in background work';
-const PROVIDER_CHECK = 'Buttons and voice can run';
+const LIVE_CHECK = 'Voz ao vivo (chave da OpenAI)';
+const CONNECTOR_CHECK = 'Conectores do Claude em fluxos de segundo plano';
+const PROVIDER_CHECK = 'Provedor dos botões e da voz';
 const PROVIDER_NAME = {claude: 'Claude Code', codex: 'Codex'};
-const TERMINAL_CHECK ='Terminal plugin (conversations inside Obsidian)';
-const TERMINAL_PYTHON_CHECK = 'Python helper for conversations inside Obsidian';
+const TERMINAL_CHECK ='Plugin Terminal (conversas no Obsidian)';
+const TERMINAL_PYTHON_CHECK = 'Auxiliar Python para conversas no Obsidian';
 
 // Only matters once the Terminal plugin is in use; the record exists only after setup verified it.
 export function terminalPythonCheck(runtime, {terminal, recorded = recordedTerminalPython, works = python => terminalPythonWorks(python)} = {}) {
-  if (terminal.status !== 'PASS' && terminal.status !== 'FAIL') return {status: 'SKIP', detail: 'not needed until the Terminal plugin is installed and switched on'};
-  const fix = `Run \`node aos.mjs setup\` again (it needs Python 3.12: Windows \`winget install Python.Python.3.12\`, Mac \`xcode-select --install\`), or use the same buttons in Jarvis at ${JARVIS_URL}.`;
+  if (terminal.status !== 'PASS' && terminal.status !== 'FAIL') return {status: 'SKIP', detail: 'necessário somente quando o plugin Terminal estiver instalado e ativo'};
+  const fix = `Rode \`node aos.mjs setup\` novamente com Python 3.12. No Windows, use \`winget install Python.Python.3.12\`. No Mac, use \`xcode-select --install\`. Os mesmos botões estão disponíveis no Jarvis em ${JARVIS_URL}.`;
   const python = recorded(runtime);
-  if (!python) return {status: 'FAIL', detail: 'not prepared', fix};
+  if (!python) return {status: 'FAIL', detail: 'preparação pendente', fix};
   // The record alone proves nothing today: the base Python may be gone or a module broken since.
-  return works(python) ? {status: 'PASS', detail: 'prepared by setup and loads'} : {status: 'FAIL', detail: 'prepared by setup, but it no longer runs or loads its modules', fix};
+  return works(python) ? {status: 'PASS', detail: 'preparado na instalação e carregado'} : {status: 'FAIL', detail: 'preparado na instalação. Falha ao executar ou carregar os módulos', fix};
 }
 
 // The optional Terminal community plugin, from the vault's own files. Never throws: whatever
@@ -69,42 +69,42 @@ export function terminalPluginCheck(vault) {
 //   probe     - the answer of the bridge's /voice/health: {status, data, error}
 //   speechUrl - the speech service the bridge uses; own - whether that is this installation's (3220)
 export function voiceProblem({probe, speechUrl, own, installed, phase, waitedSeconds = 0}) {
-  if (!probe.data) return {detail: `the bridge did not answer the voice check (${probe.error || `HTTP ${probe.status}`})`,
-    fix: 'Run `node aos.mjs status`. If the bridge is not listed as online, run `node aos.mjs start`. If it is online, this is a fault in the check, not in your voice.'};
-  if (!own) return {detail: `the shared speech service at ${speechUrl} stopped answering`,
-    fix: 'That service belongs to another program on this computer: start that program again. To stop depending on it, run `node aos.mjs stop`, then `node aos.mjs setup --voice yes`: with nothing to share, this installation gets a voice of its own. (If you set AOS_V2_SPEECH_URL yourself, remove that setting first; setup says so when it is the cause.)'};
-  if (!installed) return {detail: 'not installed', fix: 'Run `node aos.mjs setup --voice yes`.'};
-  if (!phase) return {detail: 'installed, but the recovery monitor is not running it', fix: 'Run `node aos.mjs stop`, then `node aos.mjs start`: the service list is rebuilt at a start.'};
-  if (phase === 'blocked') return {detail: 'its process keeps crashing and the monitor stopped restarting it',
-    fix: `Read the last lines that mention "speech" in ${SUPERVISOR_LOG}. Then repair the files with \`node aos.mjs setup --voice yes\` and run \`node aos.mjs start --reset-recovery\`.`};
-  if (STILL_STARTING.has(phase)) return {detail: `still not up after waiting ${waitedSeconds} seconds`,
-    fix: {first: `The monitor reports it as "${phase}". A first start on a slow disk can need another minute: run \`node aos.mjs doctor\` once more. ${SUPERVISOR_LOG} shows what the service is doing.`,
-      repeated: `It is not going to come up by waiting. Repair the voice files with \`node aos.mjs setup --voice yes\`, then \`node aos.mjs start --reset-recovery\`.`}};
-  return {detail: 'its process is running but reports that it is not ready', fix: `Run \`node aos.mjs stop\`, then \`node aos.mjs start\`. If it repeats, repair the files with \`node aos.mjs setup --voice yes\`.`};
+  if (!probe.data) return {detail: `a ponte ficou sem resposta no teste de voz (${probe.error || `HTTP ${probe.status}`})`,
+    fix: 'Rode `node aos.mjs status`. Se a ponte estiver offline, rode `node aos.mjs start`. Se estiver online, investigue a comunicação com o diagnóstico.'};
+  if (!own) return {detail: `o serviço de voz compartilhado em ${speechUrl} ficou sem resposta`,
+    fix: 'Reinicie o programa que fornece a voz compartilhada. Para instalar a voz própria, remova AOS_V2_SPEECH_URL se você a configurou, pare o serviço compartilhado e rode `node aos.mjs stop`, seguido de `node aos.mjs setup --voice yes`.'};
+  if (!installed) return {detail: 'instalação pendente', fix: 'Rode `node aos.mjs setup --voice yes`.'};
+  if (!phase) return {detail: 'instalado, aguardando início pelo monitor de recuperação', fix: 'Rode `node aos.mjs stop`, seguido de `node aos.mjs start`, para recriar a lista de serviços.'};
+  if (phase === 'blocked') return {detail: 'o serviço caiu repetidamente e o monitor suspendeu as tentativas de reinício',
+    fix: `Leia as últimas linhas que mencionam "speech" em ${SUPERVISOR_LOG}. Repare os arquivos com \`node aos.mjs setup --voice yes\` e rode \`node aos.mjs start --reset-recovery\`.`};
+  if (STILL_STARTING.has(phase)) return {detail: `serviço indisponível após ${waitedSeconds} segundos de espera`,
+    fix: {first: `O monitor informa o estado "${phase}". A primeira inicialização pode levar mais um minuto em disco lento. Rode \`node aos.mjs doctor\` mais uma vez. Veja o andamento em ${SUPERVISOR_LOG}.`,
+      repeated: `O serviço não iniciou nas tentativas anteriores. Repare a voz com \`node aos.mjs setup --voice yes\` e rode \`node aos.mjs start --reset-recovery\`.`}};
+  return {detail: 'o serviço está em execução e ainda não está pronto', fix: `Rode \`node aos.mjs stop\` e \`node aos.mjs start\`. Se a falha persistir, repare os arquivos com \`node aos.mjs setup --voice yes\`.`};
 }
 
 // The speech health response can report microphone or helper failures in hotkey.error.
 // Only known conflict codes/messages justify telling the member to change keys.
 export function hotkeyProblem({hotkey, capture, platform}) {
   const error = String(capture?.error || hotkey?.error || '').slice(0, 300);
-  const detail = error || (capture?.available === false ? 'microphone support is unavailable' : 'the speech service could not register the shortcut');
-  const inspect = `Read the lines that mention "speech" in ${SUPERVISOR_LOG}. ${SHOW_SOMEONE}`;
+  const detail = error || (capture?.available === false ? 'suporte ao microfone indisponível' : 'falha ao registrar o atalho no serviço de voz');
+  const inspect = `Leia as linhas que mencionam "speech" em ${SUPERVISOR_LOG}. ${SHOW_SOMEONE}`;
   if (/^Microphone dependency unavailable:/i.test(error) || capture?.available === false) return {detail,
-    fix: {first: 'After finishing active tasks, run `node aos.mjs stop`, then `node aos.mjs setup --voice yes` to repair microphone support.',
-      repeated: `Microphone support is still unavailable after the repair advice. ${inspect}`}};
+    fix: {first: 'Ao terminar as tarefas ativas, rode `node aos.mjs stop` seguido de `node aos.mjs setup --voice yes` para reparar o acesso ao microfone.',
+      repeated: `O acesso ao microfone continua indisponível após a orientação de reparo. ${inspect}`}};
   if (capture?.error || /^Capture failed:/i.test(error)) return {detail,
-    fix: `Check the microphone input and microphone permission for the local Python speech process in ${platform === 'darwin' ? 'System Settings > Privacy & Security > Microphone' : 'Windows Settings > Privacy & security > Microphone (including desktop apps)'}. Then test the shortcut again. ${inspect}`};
-  const launchSetting = "Change the speech service's launch configuration; a terminal-only environment change does not save a login setting.";
+    fix: `Confira a entrada de áudio e a permissão de microfone do processo Python do serviço de voz em ${platform === 'darwin' ? 'Ajustes do Sistema > Privacidade e Segurança > Microfone' : 'Configurações do Windows > Privacidade e segurança > Microfone, incluindo aplicativos da área de trabalho'}. Depois, teste o atalho novamente. ${inspect}`};
+  const launchSetting = "Altere a configuração de inicialização do serviço. Variáveis definidas apenas no terminal não persistem ao entrar no sistema.";
   if (/^(Use modifiers plus one letter or digit|A hotkey needs a letter or digit|Mac hotkeys (require Control or Command|support ANSI physical letter and digit keys))/i.test(error)) return {detail,
-    fix: `Correct the invalid VOICE_HOTKEY setting, or remove the custom setting to restore ctrl+alt+j. Use modifiers plus one ASCII letter or digit; on Mac include ctrl (Control) or win (Command). ${launchSetting} Restart Agentic OS after finishing active tasks.`};
+    fix: `Corrija VOICE_HOTKEY ou remova a opção personalizada para restaurar ctrl+alt+j. Use modificadores e uma letra ou um dígito ASCII. No Mac, inclua ctrl (Control) ou win (Command). ${launchSetting} Reinicie o Agentic OS depois de concluir as tarefas ativas.`};
   // ERROR_HOTKEY_ALREADY_REGISTERED / eventHotKeyExistsErr. Other OS error
   // codes use the same "another app may own it" runtime text, so do not match it.
   if (/\(Windows error 1409\)|\(macOS error -9878\)|already (?:owned|registered)/i.test(error)) return {detail,
-    fix: `Another app has registered the key combination. Free it or choose another VOICE_HOTKEY combination. ${launchSetting} Restart Agentic OS after finishing active tasks. ${platform === 'darwin' ? 'On Mac, use Control+Option for ctrl+alt.' : 'On Windows, use Ctrl+Alt for ctrl+alt.'} The HUD microphone button is an alternative while resolving this.`};
+    fix: `Outro aplicativo registrou essa combinação. Libere-a ou escolha outra combinação em VOICE_HOTKEY. ${launchSetting} Reinicie o Agentic OS depois de concluir as tarefas ativas. ${platform === 'darwin' ? 'No Mac, use Control+Option para ctrl+alt.' : 'No Windows, use Ctrl+Alt para ctrl+alt.'} Enquanto isso, use o botão do microfone no painel.`};
   if (/^(?:Mac )?hotkey (?:helper|registration timed out|event )|^Mac hotkeys must run on the macOS helper main thread/i.test(error)) return {detail,
-    fix: {first: 'The shortcut listener failed to start or keep running. After finishing active tasks, run `node aos.mjs stop`, then `node aos.mjs start` once.',
-      repeated: `The shortcut listener failed again. ${inspect}`}};
-  return {detail, fix: `The shortcut failure's cause is not identified. ${inspect}`};
+    fix: {first: 'O monitor do atalho falhou ao iniciar ou durante a execução. Depois de concluir as tarefas ativas, rode `node aos.mjs stop` e `node aos.mjs start`.',
+      repeated: `O monitor do atalho falhou novamente. ${inspect}`}};
+  return {detail, fix: `A causa da falha do atalho ainda está indefinida. ${inspect}`};
 }
 
 // phase 'install' = before the user has opened Obsidian: the plugin switch is WAIT, not FAIL.
@@ -122,8 +122,8 @@ export async function doctor({root = projectRoot, ci = false, full = false, phas
       const repeats = before[name]?.detail === detail ? before[name].count : 0;
       failing[name] = {detail, count: repeats + 1};
       const advice = typeof fix === 'string' ? fix : (repeats && fix.repeated) || fix.first;
-      if (advice) lines += `\n     fix: ${advice}`;
-      if (repeats) lines += `\n     This is the same failure as the last run (${repeats + 1} in a row), so running the doctor again will not change it. ${SHOW_SOMEONE}`;
+      if (advice) lines += `\n     correção: ${advice}`;
+      if (repeats) lines += `\n     A mesma falha ocorreu em ${repeats + 1} diagnósticos consecutivos. Siga a correção indicada antes de repetir o diagnóstico. ${SHOW_SOMEONE}`;
     }
     results.push({status, name, detail, optional});
     log(`${status.padEnd(4)} ${name}${detail ? ' - ' + detail : ''}${lines}`);
@@ -135,22 +135,22 @@ export async function doctor({root = projectRoot, ci = false, full = false, phas
     let reason = '';
     try { reason = (await fn()) || ''; }
     catch (error) {
-      add('FAIL', names.find(name => !reported(name)) || `${names[0]} (unexpected error)`, String(error.code || error.message || error).slice(0, 300),
-        {first: 'Run `node aos.mjs doctor` once more.', repeated: 'This is a fault, not a hiccup.'}, {optional});
+      add('FAIL', names.find(name => !reported(name)) || `${names[0]} (erro inesperado)`, String(error.code || error.message || error).slice(0, 300),
+        {first: 'Rode `node aos.mjs doctor` mais uma vez.', repeated: 'A falha persistiu na nova tentativa.'}, {optional});
     }
     const failedStep = names.find(name => results.some(item => item.name === name && item.status === 'FAIL'));
-    for (const name of names) if (!reported(name)) add('SKIP', name, `not run: ${reason || (failedStep ? `"${failedStep}" did not pass` : 'an earlier step did not finish')}`);
+    for (const name of names) if (!reported(name)) add('SKIP', name, `teste pulado: ${reason || (failedStep ? `"${failedStep}" falhou` : 'uma etapa anterior ficou incompleta')}`);
   };
 
   const major = Number(process.versions.node.split('.')[0]);
-  add(major >= 22 ? 'PASS' : 'FAIL', 'Node.js 22 or newer', process.versions.node, 'Install the current LTS from nodejs.org, open a new terminal, run setup again.');
+  add(major >= 22 ? 'PASS' : 'FAIL', 'Node.js 22 ou superior', process.versions.node, 'Instale a versão LTS atual de nodejs.org, abra outro terminal e rode o setup novamente.');
 
   // An older update command can replace the files and then run its old setup (see setup-stamp.mjs).
   const finished = setupStatus(at);
   if (finished === 'current') add('PASS', SETUP_CHECK);
-  else if (finished === 'unknown') add('SKIP', SETUP_CHECK, 'the setup code could not be read in this folder');
-  else add('FAIL', SETUP_CHECK, setup.vault ? 'the files were updated, but setup has not run to the end with them yet' : 'setup has not run here yet',
-    setup.vault ? 'Run `node aos.mjs stop`, then `node aos.mjs setup` once to finish the update (it keeps your vault, notes and choices), then run the doctor again.' : 'Run `node aos.mjs setup --vault "<absolute path>"`.');
+  else if (finished === 'unknown') add('SKIP', SETUP_CHECK, 'falha ao ler o código de instalação nesta pasta');
+  else add('FAIL', SETUP_CHECK, setup.vault ? 'os arquivos foram atualizados e a instalação ainda não terminou' : 'instalação pendente nesta pasta',
+    setup.vault ? 'Rode `node aos.mjs stop` e `node aos.mjs setup` para concluir a atualização. O setup preserva o cofre, as notas e as preferências. Depois, rode o diagnóstico novamente.' : 'Rode `node aos.mjs setup --vault "<caminho absoluto>"`.');
 
   // Asked first, printed in their usual place: the plugin line below needs the bridge's answer.
   let supervisor = await tryJson(`${local(ports.supervisor)}/status`);
@@ -158,20 +158,20 @@ export async function doctor({root = projectRoot, ci = false, full = false, phas
   const hud = await tryJson(`${local(ports.jarvis)}/api/state`, {timeoutMs: 15000});
 
   const vault = configuredVaultPath(at);
-  await group(['Vault configured', 'Vault has the daily-note schema', 'Obsidian plugin files installed', 'Plugin switched on in Obsidian'], async () => {
-    if (!vault || !fs.existsSync(vault)) { add('FAIL', 'Vault configured', vault || 'none', 'Run `node aos.mjs setup --vault "<absolute path>"`.'); return; }
-    add('PASS', 'Vault configured', vault);
-    add(fs.existsSync(path.join(vault, 'system', 'schemas', 'daily-note.md')) ? 'PASS' : 'FAIL', 'Vault has the daily-note schema', '', 'Run setup again; it adds missing template files and never overwrites notes.');
-    add(pluginInstalled(vault) ? 'PASS' : 'FAIL', 'Obsidian plugin files installed', '', 'Run `node aos.mjs setup --vault "<path>"` again.');
+  await group(['Cofre configurado', 'Modelo de nota diária no cofre', 'Arquivos do plugin instalados no Obsidian', 'Plugin ativo no Obsidian'], async () => {
+    if (!vault || !fs.existsSync(vault)) { add('FAIL', 'Cofre configurado', vault || 'ausente', 'Rode `node aos.mjs setup --vault "<caminho absoluto>"`.'); return; }
+    add('PASS', 'Cofre configurado', vault);
+    add(fs.existsSync(path.join(vault, 'system', 'schemas', 'daily-note.md')) ? 'PASS' : 'FAIL', 'Modelo de nota diária no cofre', '', 'Rode o setup novamente para adicionar os modelos que faltam. Ele preserva as notas.');
+    add(pluginInstalled(vault) ? 'PASS' : 'FAIL', 'Arquivos do plugin instalados no Obsidian', '', 'Rode novamente `node aos.mjs setup --vault "<caminho>"`.');
     // A new vault arrives with the plugin already listed as enabled, which proves nothing: Obsidian
     // still asks the user to trust it the first time the vault is opened. Proof is the cockpit
     // being connected to the bridge right now, or Obsidian having opened this vault before.
     const connected = (services?.surfaces || []).some(surface => surface.kind === 'native');
     const openedBefore = ['workspace.json', 'workspace-mobile.json', 'app.json', 'appearance.json'].some(name => fs.existsSync(path.join(vault, '.obsidian', name)));
     const needsUser = phase === 'install' || ci ? 'WAIT' : 'FAIL';
-    if (pluginEnabled(vault) && (connected || openedBefore)) add('PASS', 'Plugin switched on in Obsidian', connected ? 'the cockpit is connected right now' : '');
-    else if (pluginEnabled(vault)) add(needsUser, 'Plugin switched on in Obsidian', 'ready in this new vault, but Obsidian has not opened it yet', 'Open Obsidian -> "Open folder as vault" -> choose the vault folder -> "Trust author and enable plugins".');
-    else add(needsUser, 'Plugin switched on in Obsidian', 'needs the user', 'In Obsidian: Settings > Community plugins -> turn on community plugins -> enable "Agentic OS V2".');
+    if (pluginEnabled(vault) && (connected || openedBefore)) add('PASS', 'Plugin ativo no Obsidian', connected ? 'o painel está conectado' : '');
+    else if (pluginEnabled(vault)) add(needsUser, 'Plugin ativo no Obsidian', 'configurado no cofre novo. Abra o cofre no Obsidian', 'No Obsidian, escolha Abrir pasta como cofre, selecione a pasta e confirme que confia no autor para ativar os plugins.');
+    else add(needsUser, 'Plugin ativo no Obsidian', 'ativação pendente', 'No Obsidian, abra Configurações > Plugins da comunidade, permita plugins da comunidade e ative Agentic OS V2.');
   });
   await group([TERMINAL_CHECK, TERMINAL_PYTHON_CHECK], () => {
     const check = terminalPluginCheck(vault);
@@ -180,29 +180,29 @@ export async function doctor({root = projectRoot, ci = false, full = false, phas
     add(python.status, TERMINAL_PYTHON_CHECK, python.detail, python.fix || '', {optional: true});
   }, {optional: true});
 
-  add(supervisor ? 'PASS' : 'FAIL', 'Recovery monitor running', supervisor ? `${supervisor.services.length} services watched` : '', 'Run `node aos.mjs start`.');
-  add(services?.bridge?.online ? 'PASS' : 'FAIL', `Bridge answering on ${ports.bridge}`, '', `Run \`node aos.mjs start\`, wait 20 seconds, then look at ${SUPERVISOR_LOG}.`);
-  add(hud ? 'PASS' : 'FAIL', `Jarvis HUD answering on ${ports.jarvis}`, '', 'Run `node aos.mjs setup` again to build the HUD, then `node aos.mjs start`.');
-  const bridgeDown = 'the bridge is not answering (see the FAIL above)';
+  add(supervisor ? 'PASS' : 'FAIL', 'Monitor de recuperação em execução', supervisor ? `${supervisor.services.length} serviços monitorados` : '', 'Rode `node aos.mjs start`.');
+  add(services?.bridge?.online ? 'PASS' : 'FAIL', `Ponte respondendo na porta ${ports.bridge}`, '', `Rode \`node aos.mjs start\`, aguarde 20 segundos e consulte ${SUPERVISOR_LOG}.`);
+  add(hud ? 'PASS' : 'FAIL', `Jarvis respondendo na porta ${ports.jarvis}`, '', 'Rode `node aos.mjs setup` para compilar o Jarvis e depois `node aos.mjs start`.');
+  const bridgeDown = 'a ponte está sem resposta. Veja a falha acima';
 
   const signedIn = [], installed = [];
   for (const provider of ['claude', 'codex']) {
     const info = services?.providers?.[provider];
-    if (!services) { add('SKIP', `${provider} CLI`, `not checked: ${bridgeDown}`); continue; }
-    if (!info?.installed) { add('SKIP', `${provider} CLI`, 'not installed (one provider is enough)'); continue; }
+    if (!services) { add('SKIP', `CLI de ${provider}`, `teste pulado: ${bridgeDown}`); continue; }
+    if (!info?.installed) { add('SKIP', `CLI de ${provider}`, 'instalação opcional. Basta um provedor'); continue; }
     installed.push(provider);
-    add('PASS', `${provider} CLI found`, String(info.version || '').slice(0, 60));
-    if (ci) { add('SKIP', `${provider} signed in`, 'not checked with --ci'); continue; }
-    await group([`${provider} signed in`], async () => {
+    add('PASS', `CLI de ${provider} encontrada`, String(info.version || '').slice(0, 60));
+    if (ci) { add('SKIP', `Sessão de ${provider} conectada`, 'teste pulado com --ci'); continue; }
+    await group([`Sessão de ${provider} conectada`], async () => {
       const args = provider === 'claude' ? ['--print', '--model', 'haiku', 'Reply with the single word OK.'] : ['exec', '--skip-git-repo-check', '-s', 'read-only', 'Reply with the single word OK.'];
       // Not spawnSync: a CLI can take two minutes to answer, and a frozen doctor cannot keep a timer or a connection alive.
       const result = await runCommand(info.command, args, {timeoutMs: 120000, cwd: at.runtime, input: ''});
-      if (result.status === 0 && /\bOK\b/i.test(result.stdout || '')) { signedIn.push(provider); add('PASS', `${provider} signed in`); }
-      else add('FAIL', `${provider} signed in`, result.timedOut ? 'no reply within two minutes' : 'no reply', `Open a terminal, run \`${provider}\`, sign in, then run the doctor again.`, {optional: true});
+      if (result.status === 0 && /\bOK\b/i.test(result.stdout || '')) { signedIn.push(provider); add('PASS', `Sessão de ${provider} conectada`); }
+      else add('FAIL', `Sessão de ${provider} conectada`, result.timedOut ? 'sem resposta após dois minutos' : 'sem resposta', `Abra um terminal, rode \`${provider}\`, entre na conta e rode o diagnóstico novamente.`, {optional: true});
     }, {optional: true});
   }
-  if (!ci && services && !installed.length) add('FAIL', 'At least one of Claude Code or Codex', 'neither found', 'Install Claude Code or Codex, sign in, then run `node aos.mjs setup` again so its location is saved.');
-  else if (!ci && installed.length && !signedIn.length) add('FAIL', 'A provider that is signed in', `${installed.join(' and ')} installed, none answered`, 'Nothing can run without one. Open a terminal, run `claude` or `codex`, sign in, then run the doctor again.');
+  if (!ci && services && !installed.length) add('FAIL', 'Claude Code ou Codex', 'instalação de um provedor pendente', 'Instale o Claude Code ou o Codex, entre na sua conta e rode `node aos.mjs setup` para salvar o caminho da CLI.');
+  else if (!ci && installed.length && !signedIn.length) add('FAIL', 'Provedor com sessão conectada', `${installed.join(' e ')} instalado(s), sem resposta`, 'Abra um terminal, rode `claude` ou `codex`, entre na sua conta e rode o diagnóstico novamente.');
 
   // The buttons and voice run on the ONE tool saved in the vault (system/v2/provider.json), not on
   // whichever is signed in. A vault can keep a choice from another computer or an older release
@@ -210,34 +210,34 @@ export async function doctor({root = projectRoot, ci = false, full = false, phas
   // while the lines above all pass.
   const stored = vault && fs.existsSync(vault) ? readStoredSelection(vault) : {state: 'novault'};
   const chosen = stored.selection?.provider, other = chosen === 'claude' ? 'codex' : 'claude';
-  const switchTo = `\`node aos.mjs setup --provider ${other}\` switches the buttons and voice to ${PROVIDER_NAME[other]}`;
-  if (stored.state === 'novault') add('SKIP', PROVIDER_CHECK, 'no vault configured');
-  else if (stored.state === 'absent') add('SKIP', PROVIDER_CHECK, 'no choice saved in the vault yet (setup saves it)');
-  else if (stored.state === 'invalid') add('FAIL', PROVIDER_CHECK, 'system/v2/provider.json in the vault could not be read', 'Run `node aos.mjs setup --provider claude` (or `codex`) to choose again.');
-  else if (!services) add('SKIP', PROVIDER_CHECK, `uses ${PROVIDER_NAME[chosen]}; not checked: ${bridgeDown}`);
-  else if (ci) add('SKIP', PROVIDER_CHECK, `uses ${PROVIDER_NAME[chosen]}; not checked with --ci`);
-  else if (!services.providers?.[chosen]?.installed) add('FAIL', PROVIDER_CHECK, `they use ${PROVIDER_NAME[chosen]}, which is not installed here, so every button and workflow will stop`,
-    installed.includes(other) ? `${switchTo}, which is installed here. Or install ${PROVIDER_NAME[chosen]} and sign in.` : `Install ${PROVIDER_NAME[chosen]} and sign in, then run \`node aos.mjs setup\` again.`);
-  else if (!signedIn.includes(chosen)) add('FAIL', PROVIDER_CHECK, `they use ${PROVIDER_NAME[chosen]}, which did not answer its sign-in check`,
-    signedIn.includes(other) ? `Open a terminal, run \`${chosen}\` and sign in. Or ${switchTo}, which is signed in.` : `Open a terminal, run \`${chosen}\` and sign in, then run the doctor again.`);
+  const switchTo = `\`node aos.mjs setup --provider ${other}\` troca o provedor dos botões e da voz para ${PROVIDER_NAME[other]}`;
+  if (stored.state === 'novault') add('SKIP', PROVIDER_CHECK, 'nenhum cofre configurado');
+  else if (stored.state === 'absent') add('SKIP', PROVIDER_CHECK, 'escolha pendente. O setup salva o provedor no cofre');
+  else if (stored.state === 'invalid') add('FAIL', PROVIDER_CHECK, 'falha ao ler system/v2/provider.json no cofre', 'Para escolher o provedor novamente, rode `node aos.mjs setup --provider claude` ou use `codex` como valor.');
+  else if (!services) add('SKIP', PROVIDER_CHECK, `usa ${PROVIDER_NAME[chosen]}. Teste pulado: ${bridgeDown}`);
+  else if (ci) add('SKIP', PROVIDER_CHECK, `usa ${PROVIDER_NAME[chosen]}. Teste pulado com --ci`);
+  else if (!services.providers?.[chosen]?.installed) add('FAIL', PROVIDER_CHECK, `os botões e os fluxos dependem de ${PROVIDER_NAME[chosen]}, que precisa ser instalado neste computador`,
+    installed.includes(other) ? `${switchTo}, que já está instalado. Você também pode instalar ${PROVIDER_NAME[chosen]} e entrar na sua conta.` : `Instale ${PROVIDER_NAME[chosen]}, entre na sua conta e rode \`node aos.mjs setup\` novamente.`);
+  else if (!signedIn.includes(chosen)) add('FAIL', PROVIDER_CHECK, `${PROVIDER_NAME[chosen]} ficou sem resposta no teste de login`,
+    signedIn.includes(other) ? `Abra um terminal, rode \`${chosen}\` e entre na sua conta. Você também pode usar a sessão ativa de ${PROVIDER_NAME[other]}. ${switchTo}.` : `Abra um terminal, rode \`${chosen}\`, entre na conta e rode o diagnóstico novamente.`);
   else add('PASS', PROVIDER_CHECK, `${PROVIDER_NAME[chosen]} (${stored.selection.model})`);
   const providerProblem = results.find(item => item.name === PROVIDER_CHECK && item.status === 'FAIL');
 
   // A saved CLAUDE_CODE_OAUTH_TOKEN signs Claude in without the account's connectors, so calendar and mail workflows
   // end "blocked" with the connector connected. The bridge reports what it found; it never reports the token.
-  const signIn = services?.claudeSignIn, signInFix = 'Open a terminal, run `claude` and sign in with /login (the saved token can stay for your other tools), then run the doctor again.';
-  if (!services) add('SKIP', CONNECTOR_CHECK, `not checked: ${bridgeDown}`);
-  else if (!services.providers?.claude?.installed) add('SKIP', CONNECTOR_CHECK, 'Claude Code is not installed');
-  else if (!signIn) add('SKIP', CONNECTOR_CHECK, 'the running bridge does not report this yet; restart the services after updating');
-  else if (!signIn.token) add('PASS', CONNECTOR_CHECK, 'workflows use your normal Claude sign-in');
-  else if (signIn.fallback) add('FAIL', CONNECTOR_CHECK, 'your stored Claude sign-in stopped working, so workflows are back on the saved CLAUDE_CODE_OAUTH_TOKEN, which has no calendar or mail connectors', signInFix, {optional: true});
-  else if (signIn.stored === true) add('PASS', CONNECTOR_CHECK, 'a CLAUDE_CODE_OAUTH_TOKEN is saved on this computer; workflows use your normal Claude sign-in instead, so calendar and mail connectors stay available');
-  else if (signIn.stored === null) add('SKIP', CONNECTOR_CHECK, 'the bridge has not checked yet (it does within a minute of starting); run the doctor again');
-  else add('FAIL', CONNECTOR_CHECK, 'Claude signs in only through a saved CLAUDE_CODE_OAUTH_TOKEN, which has no connectors: Plan Today, Inbox Brief and other calendar or mail workflows will end "blocked"', signInFix, {optional: true});
+  const signIn = services?.claudeSignIn, signInFix = 'Abra um terminal, rode `claude`, entre com /login e rode o diagnóstico novamente. O token salvo pode continuar disponível para outras ferramentas.';
+  if (!services) add('SKIP', CONNECTOR_CHECK, `teste pulado: ${bridgeDown}`);
+  else if (!services.providers?.claude?.installed) add('SKIP', CONNECTOR_CHECK, 'Claude Code está sem instalação');
+  else if (!signIn) add('SKIP', CONNECTOR_CHECK, 'esta versão da ponte ainda não informa o estado. Reinicie os serviços após atualizar');
+  else if (!signIn.token) add('PASS', CONNECTOR_CHECK, 'os fluxos usam a sessão habitual do Claude');
+  else if (signIn.fallback) add('FAIL', CONNECTOR_CHECK, 'a sessão do Claude expirou. Os fluxos voltaram a usar CLAUDE_CODE_OAUTH_TOKEN, que não dá acesso a calendário e e-mail', signInFix, {optional: true});
+  else if (signIn.stored === true) add('PASS', CONNECTOR_CHECK, 'há um CLAUDE_CODE_OAUTH_TOKEN neste computador. Os fluxos usam a sessão habitual do Claude e mantêm acesso a calendário e e-mail');
+  else if (signIn.stored === null) add('SKIP', CONNECTOR_CHECK, 'a ponte verifica em até um minuto após iniciar. Rode o diagnóstico novamente');
+  else add('FAIL', CONNECTOR_CHECK, 'o Claude entrou apenas com CLAUDE_CODE_OAUTH_TOKEN. Planejar o dia, Resumo da caixa de entrada e outros fluxos de calendário e e-mail ficarão bloqueados', signInFix, {optional: true});
 
   if (setup.voice === false) {
-    add('SKIP', 'Voice', 'not installed (add later: `node aos.mjs setup --voice yes`)');
-    add('SKIP', HOTKEY_CHECK, 'voice was not enabled');
+    add('SKIP', 'Voz', 'instalação opcional com `node aos.mjs setup --voice yes`');
+    add('SKIP', HOTKEY_CHECK, 'voz desativada');
   } else await group([VOICE_CHECKS[0], HOTKEY_CHECK, ...VOICE_CHECKS.slice(1)], async () => {
     if (!services?.bridge?.online) return bridgeDown;
     const healthUrl = `${local(ports.bridge)}/voice/health`, speechUrl = services.speech?.url || local(ports.speech), own = speechUrl === local(ports.speech);
@@ -252,7 +252,7 @@ export async function doctor({root = projectRoot, ci = false, full = false, phas
     // the clock, slow probes included (the last round can run over by one probe, never by more),
     // and the wait ends as soon as the monitor stops calling it "starting".
     if (!probe.data?.ok && own && speechInstalled(at) && STILL_STARTING.has(speechPhase())) {
-      log(`     voice is still loading its models; waiting up to ${Math.round(voiceWaitMs / 1000)} seconds ...`);
+      log(`     carregando os modelos de voz. Aguardando até ${Math.round(voiceWaitMs / 1000)} segundos…`);
       const started = now(), left = () => voiceWaitMs - (now() - started);
       while (!probe.data?.ok && STILL_STARTING.has(speechPhase()) && left() > 0) {
         await pause(Math.min(3000, left())); await refresh();
@@ -264,94 +264,95 @@ export async function doctor({root = projectRoot, ci = false, full = false, phas
       const problem = voiceProblem({probe, speechUrl, own, installed: speechInstalled(at), phase: speechPhase(), waitedSeconds: Math.round(voiceWaitMs / 1000)});
       add('FAIL', VOICE_CHECKS[0], problem.detail, problem.fix, {optional: true}); return;
     }
-    const whose = own ? `this installation's own service on ${ports.speech}` : `shared service at ${speechUrl}, run by another program on this computer`;
+    const whose = own ? `serviço desta instalação na porta ${ports.speech}` : `serviço compartilhado em ${speechUrl}, iniciado por outro programa neste computador`;
     // The language the service is REALLY running (an older or shared service reports none: English),
     // against the one this vault asks for. A wrong language is not a hiccup: the English-only model
     // writes down English-looking words for any other language, and every check below would still pass.
     const running = probe.data.speech?.language, runningCode = Object.hasOwn(SPEECH_LANGUAGES, running?.code) ? running.code : 'en';
     const want = speechLanguage(vault), runningName = SPEECH_LANGUAGES[runningCode].name;
-    if (!want.known) add('FAIL', VOICE_CHECKS[0], `"speechLanguage" in system/v2/profile.json is "${want.asked}", which voice does not support; it is running in ${runningName}`,
-      `Set it to one of ${SPEECH_LANGUAGE_CODES.join(', ')} (or remove the line for English), then run \`node aos.mjs stop\` and \`node aos.mjs setup --voice yes\`.`, {optional: true});
-    else if (want.code !== runningCode) add('FAIL', VOICE_CHECKS[0], `this vault asks for ${SPEECH_LANGUAGES[want.code].name}, but voice is running in ${runningName}${running?.error ? ' because the speech model for that language is not installed' : ''}`,
-      own ? 'Run `node aos.mjs stop`, then `node aos.mjs setup --voice yes`: it fetches what is missing and starts voice in that language.' : `The shared speech service at ${speechUrl} decides its own language; "speechLanguage" only applies to this installation's own voice.`, {optional: true});
-    else add('PASS', VOICE_CHECKS[0], `${probe.data.engine ? probe.data.engine + ', ' : ''}${whose}${runningCode === 'en' ? '' : ', hearing and speaking ' + runningName}`);
+    if (!want.known) add('FAIL', VOICE_CHECKS[0], `"speechLanguage" em system/v2/profile.json é "${want.asked}", idioma incompatível. A voz está em ${runningName}`,
+      `Escolha um destes códigos: ${SPEECH_LANGUAGE_CODES.join(', ')}. Sem o campo, o serviço usa inglês. Rode \`node aos.mjs stop\` e \`node aos.mjs setup --voice yes\`.`, {optional: true});
+    else if (want.code !== runningCode) add('FAIL', VOICE_CHECKS[0], `o cofre está configurado para ${SPEECH_LANGUAGES[want.code].name}. A voz está em ${runningName}${running?.error ? ' porque falta o modelo do idioma configurado' : ''}`,
+      own ? 'Rode `node aos.mjs stop` e depois `node aos.mjs setup --voice yes` para baixar o modelo e iniciar a voz no idioma configurado.' : `O serviço compartilhado em ${speechUrl} define o próprio idioma. "speechLanguage" só se aplica ao serviço de voz desta instalação.`, {optional: true});
+    else add('PASS', VOICE_CHECKS[0], `${probe.data.engine ? probe.data.engine + ', ' : ''}${whose}${runningCode === 'en' ? '' : ', ouvindo e falando em ' + runningName}`);
     // Say and expect the language that is running, so a working non-English voice is not reported broken.
     const check = speechCheck(runningCode);
     // Use the fresh health response: provider sign-in and model loading can outlive
     // the initial /services snapshot. Registration is not proof of microphone access.
     const hotkey = probe.data.speech?.hotkey;
-    if (!own) add('SKIP', HOTKEY_CHECK, 'the shared speech service is managed by another program');
-    else if (!['darwin', 'win32'].includes(platform)) add('SKIP', HOTKEY_CHECK, 'supported on Mac and Windows; use the voice orb on this platform');
-    else if (hotkey?.enabled === false) add('SKIP', HOTKEY_CHECK, 'disabled by the voice service configuration');
-    else if (ci) add('SKIP', HOTKEY_CHECK, 'not checked with --ci; run the doctor in your interactive desktop session');
-    else if (hotkey?.enabled !== true || typeof hotkey.ok !== 'boolean') add('WAIT', HOTKEY_CHECK, 'the running speech service does not report shortcut registration; update the starter and restart its services, then run the doctor again');
-    else if (hotkey.ok) add('PASS', HOTKEY_CHECK, `${hotkey.combo || 'configured shortcut'} registered; microphone capture and use from another app still need a hands-on test`);
+    if (!own) add('SKIP', HOTKEY_CHECK, 'outro programa gerencia o serviço de voz compartilhado');
+    else if (!['darwin', 'win32'].includes(platform)) add('SKIP', HOTKEY_CHECK, 'disponível no Mac e no Windows. Nesta plataforma, use o botão de voz');
+    else if (hotkey?.enabled === false) add('SKIP', HOTKEY_CHECK, 'desativado na configuração do serviço de voz');
+    else if (ci) add('SKIP', HOTKEY_CHECK, 'teste pulado com --ci. Rode o diagnóstico na sessão gráfica');
+    else if (hotkey?.enabled !== true || typeof hotkey.ok !== 'boolean') add('WAIT', HOTKEY_CHECK, 'o serviço de voz ainda não informa se o atalho está registrado. Atualize, reinicie os serviços e rode o diagnóstico novamente');
+    else if (hotkey.ok) add('PASS', HOTKEY_CHECK, `${hotkey.combo || 'atalho configurado'} registrado. Teste manualmente a captação do microfone e o atalho em outro aplicativo`);
     else {
       const problem = hotkeyProblem({hotkey, capture: probe.data.speech?.capture, platform});
       add('FAIL', HOTKEY_CHECK, problem.detail, problem.fix, {optional: true});
     }
     // The same two calls the bridge makes, against the same service, own or shared.
-    const repair = own ? 'Run `node aos.mjs setup --voice yes` again to repair the voice files.' : `The shared speech service at ${speechUrl} answers its health check but cannot do this; restart the program that runs it.`;
+    const repair = own ? 'Rode `node aos.mjs setup --voice yes` novamente para reparar os arquivos de voz.' : `O serviço compartilhado em ${speechUrl} responde ao teste de conexão, mas falhou nesta operação. Reinicie o programa que o executa.`;
     const spoken = await request(`${speechUrl}/speak?text=${encodeURIComponent(check.phrase)}`, {timeoutMs: 60000});
     if (!spoken.ok || spoken.body.length < 5000) { add('FAIL', VOICE_CHECKS[1], `status ${spoken.status}, ${spoken.body.length} bytes`, repair, {optional: true}); return; }
-    add('PASS', VOICE_CHECKS[1], `${Math.round(spoken.body.length / 1024)} KB of audio`);
+    add('PASS', VOICE_CHECKS[1], `${Math.round(spoken.body.length / 1024)} KB de áudio`);
     const heard = await request(`${speechUrl}/stt`, {method: 'POST', headers: {'Content-Type': 'audio/wav'}, body: spoken.body, timeoutMs: 120000});
     let text = ''; try { text = heard.ok ? String(JSON.parse(heard.body.toString('utf8')).text || '') : ''; } catch { /* not JSON */ }
-    add(check.heard(text) ? 'PASS' : 'FAIL', VOICE_CHECKS[2], heard.ok ? text.slice(0, 60) || 'heard nothing' : `status ${heard.status}`, repair, {optional: true});
+    add(check.heard(text) ? 'PASS' : 'FAIL', VOICE_CHECKS[2], heard.ok ? text.slice(0, 60) || 'áudio sem transcrição' : `status ${heard.status}`, repair, {optional: true});
   }, {optional: true});
 
-  if (!hasJevKey(at.runtime)) add('SKIP', 'Jev fast voice routing', 'no OpenRouter key saved (optional: `node aos.mjs jev-key`)');
-  else if (ci) add('PASS', 'Jev key saved');
-  else await group(['Jev fast voice routing'], async () => {
+  if (!hasJevKey(at.runtime)) add('SKIP', 'Roteamento rápido de voz com Jev', 'chave do OpenRouter opcional. Para salvar, use `node aos.mjs jev-key`');
+  else if (ci) add('PASS', 'Chave do Jev salva');
+  else await group(['Roteamento rápido de voz com Jev'], async () => {
     const {readJevConfig, jevState, classifyJev} = await import('../../runner/jev.mjs');
     const config = readJevConfig();
     try {
       const result = await classifyJev(jevState({transcript: 'What is on my schedule today?'}), {key: config.key, deadlineMs: 8000, tier2kind: config.tier2kind, rulebook: config.rulebook});
-      add('PASS', 'Jev fast voice routing', `answered in ${Math.round(result.ms)} ms`);
+      add('PASS', 'Roteamento rápido de voz com Jev', `respondeu em ${Math.round(result.ms)} ms`);
     } catch (error) {
       // Timings differ per run; keep the detail stable so a repeat is recognised.
-      add('FAIL', 'Jev fast voice routing', String(error.message).replace(/\d+(\.\d+)? ?ms/g, 'N ms'), /HTTP 40[13]/.test(error.message) ? 'The key was refused. Run `node aos.mjs jev-key` and paste a fresh key from openrouter.ai/keys.' : /HTTP 402/.test(error.message) ? 'The OpenRouter account has no credit. Add a few dollars at openrouter.ai/credits.' : 'Check the internet connection. Voice still works without Jev, only slower.', {optional: true});
+      add('FAIL', 'Roteamento rápido de voz com Jev', String(error.message).replace(/\d+(\.\d+)? ?ms/g, 'N ms'), /HTTP 40[13]/.test(error.message) ? 'O OpenRouter recusou a chave. Rode `node aos.mjs jev-key` e informe uma chave atual de openrouter.ai/keys.' : /HTTP 402/.test(error.message) ? 'A conta do OpenRouter está sem saldo. Consulte openrouter.ai/credits.' : 'Confira a conexão com a internet. A voz continua disponível sem o Jev, com resposta mais lenta.', {optional: true});
     }
   }, {optional: true});
 
   // Live voice is optional. With a key saved, ask OpenAI whether it still accepts it; credit only shows on a call.
   const live = liveAuthorization(at.runtime);
-  if (!live.ready && /^Run aos openai-key to set up/.test(live.reason || '')) add('SKIP', LIVE_CHECK, 'not set up (optional: `node aos.mjs openai-key`)');
-  else if (!live.ready) add('FAIL', LIVE_CHECK, String(live.reason || 'the saved key cannot be used').replace(/\s*Run aos openai-key\.?$/, ''), 'Run `node aos.mjs openai-key` and save the key and consent again.', {optional: true});
-  else if (ci) add('PASS', LIVE_CHECK, 'key and consent saved; not checked with OpenAI under --ci');
+  if (!live.ready && /^Run aos openai-key to set up/.test(live.reason || '')) add('SKIP', LIVE_CHECK, 'configuração opcional com `node aos.mjs openai-key`');
+  else if (!live.ready) add('FAIL', LIVE_CHECK, String(live.reason || 'a chave salva está indisponível').replace(/\s*Run aos openai-key\.?$/, ''), 'Rode `node aos.mjs openai-key` e salve novamente a chave e a autorização.', {optional: true});
+  else if (ci) add('PASS', LIVE_CHECK, 'chave e autorização salvas. O teste com a OpenAI foi pulado com --ci');
   else await group([LIVE_CHECK], async () => {
     const result = await checkLive(readLiveKey(at.runtime));
-    if (result?.kind === 'accepted') add('PASS', LIVE_CHECK, 'OpenAI accepts the saved key; a call also needs API credit and the microphone');
-    else if (result?.kind === 'refused') add('FAIL', LIVE_CHECK, 'OpenAI no longer accepts the saved key', 'Run `node aos.mjs openai-key` and enter a current key from platform.openai.com/api-keys.', {optional: true});
-    else if (result?.kind === 'no-model') add('FAIL', LIVE_CHECK, `OpenAI does not show the saved key the Live model (${LIVE_MODEL})`, 'Check that key\'s project and permissions at platform.openai.com/api-keys, or save a key from a project that can use it with `node aos.mjs openai-key`.', {optional: true});
-    else add('SKIP', LIVE_CHECK, `key and consent saved; OpenAI could not confirm it just now${result?.detail ? ' (' + result.detail + ')' : ''}`);
+    if (result?.kind === 'accepted') add('PASS', LIVE_CHECK, 'a OpenAI aceita a chave salva. Para ligar, também é preciso crédito de API e microfone');
+    else if (result?.kind === 'refused') add('FAIL', LIVE_CHECK, 'a OpenAI recusou a chave salva', 'Rode `node aos.mjs openai-key` e informe uma chave atual de platform.openai.com/api-keys.', {optional: true});
+    else if (result?.kind === 'no-model') add('FAIL', LIVE_CHECK, `a chave salva não tem acesso ao modelo de voz ao vivo (${LIVE_MODEL}) na OpenAI`, 'Confira o projeto e as permissões em platform.openai.com/api-keys ou use `node aos.mjs openai-key` para salvar uma chave com acesso.', {optional: true});
+    else add('SKIP', LIVE_CHECK, `chave e autorização salvas. A OpenAI não confirmou o acesso agora${result?.detail ? ' (' + result.detail + ')' : ''}`);
   }, {optional: true});
 
-  const WORKFLOW = 'A real workflow end to end';
-  if (!full) add('SKIP', WORKFLOW, 'not asked for (`node aos.mjs doctor --full` includes it)');
-  else if (ci) add('SKIP', WORKFLOW, 'not run with --ci');
-  else if (providerProblem) add('SKIP', WORKFLOW, `not run: "${PROVIDER_CHECK}" did not pass, so it could only fail`);
+  const WORKFLOW = 'Execução de um fluxo completo';
+  if (!full) add('SKIP', WORKFLOW, 'use `node aos.mjs doctor --full` para incluir este teste');
+  else if (ci) add('SKIP', WORKFLOW, 'teste pulado com --ci');
+  else if (providerProblem) add('SKIP', WORKFLOW, `teste pulado porque "${PROVIDER_CHECK}" falhou`);
   else await group([WORKFLOW], async () => {
     if (!services?.bridge?.online) return bridgeDown;
     const token = JSON.parse(fs.readFileSync(at.auth, 'utf8')).token, id = crypto.randomUUID();
     const started = await fetchJson(`${local(ports.bridge)}/work/skill`, {method: 'POST', headers: {'X-V2-Token': token, 'X-V2-App': 'web'}, body: {id, skill: 'vault-summary'}, timeoutMs: 15000});
-    if (!started.ok) { add('FAIL', WORKFLOW, started.data?.error || `status ${started.status}`, 'Sign in to the selected provider, then run `node aos.mjs doctor --full` again. If the selected provider is not the one you use, switch with `node aos.mjs setup --provider claude` (or `codex`).'); return; }
+    if (!started.ok) { add('FAIL', WORKFLOW, started.data?.error || `status ${started.status}`, 'Entre na conta do provedor selecionado e rode `node aos.mjs doctor --full` novamente. Para mudar de provedor, use `node aos.mjs setup --provider claude` ou informe `codex`.'); return; }
     for (let waited = 0; waited < 300; waited += 3) {
       await pause(3000);
       const task = (await tryJson(`${local(ports.bridge)}/work`, {timeoutMs: 8000}))?.tasks?.find(item => item.id === id);
       const destination = task?.workflow?.destination;
       if (task?.state === 'stopped' && !task.error && destination && fs.existsSync(path.join(vault, destination))) { add('PASS', WORKFLOW, destination); return; }
-      if (task && (task.state === 'error' || task.state === 'needs input' || (task.state === 'stopped' && task.error))) { add('FAIL', WORKFLOW, String(task.error || task.state).slice(0, 200), `Open the HUD at ${local(ports.jarvis)}, look at the failed task in History, and show its message to your coding agent.`); return; }
+      if (task && (task.state === 'error' || task.state === 'needs input' || (task.state === 'stopped' && task.error))) { add('FAIL', WORKFLOW, String(task.error || task.state).slice(0, 200), `Abra o Jarvis em ${local(ports.jarvis)}, encontre a tarefa no Histórico e mostre a mensagem ao seu agente de código.`); return; }
     }
-    add('FAIL', WORKFLOW, 'no result after 5 minutes', 'Open the HUD, check the task under Terminals, and show what it says to your coding agent.');
+    add('FAIL', WORKFLOW, 'sem resultado após cinco minutos', 'No Jarvis, abra Terminais, confira a tarefa e mostre a mensagem ao agente de código.');
   });
 
   try { fs.mkdirSync(at.runtime, {recursive: true}); fs.writeFileSync(memoryFile, JSON.stringify({failures: failing}, null, 1)); } catch { /* a read-only folder only loses the repeat detection */ }
 
   const fails = results.filter(item => item.status === 'FAIL'), core = fails.filter(item => !item.optional), waiting = results.filter(item => item.status === 'WAIT').length;
   const listed = items => items.map(item => item.name).join(', ');
-  log(`\n${!fails.length ? (waiting ? 'Everything installed. Waiting on the step(s) marked WAIT.' : 'All checks passed.')
-    : !core.length ? `The core system is installed and working. ${fails.length} optional part(s) need attention: ${listed(fails)}. Each FAIL line above says what to do; everything else can be used now.`
-    : `${fails.length} check(s) failed, including core parts (${listed(core)}). Work through the fix lines from the top.`}`);
+  const optionalFailures = fails.length === 1 ? 'o item opcional com falha' : `os ${fails.length} itens opcionais com falha`;
+  log(`\n${!fails.length ? (waiting ? 'Instalação concluída. Restam as etapas marcadas como WAIT.' : 'Diagnóstico concluído com sucesso.')
+    : !core.length ? `O sistema principal está funcionando. Revise ${optionalFailures} (${listed(fails)}) seguindo as correções acima.`
+    : `${fails.length} verificações falharam, incluindo itens essenciais (${listed(core)}). Siga as correções de cima para baixo.`}`);
   return {ok: fails.length === 0, failed: fails.length, coreFailed: core.length, waiting, results};
 }

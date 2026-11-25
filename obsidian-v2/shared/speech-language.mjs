@@ -17,11 +17,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export const SPEECH_LANGUAGES = Object.freeze({
-  en: Object.freeze({name: 'English', whisper: 'small.en', voice: 'bm_george', kokoro: 'en-gb', phrase: 'Voice check, one two three.', heard: ['voice', 'check', 'one', 'two', 'three']}),
-  es: Object.freeze({name: 'Spanish', whisper: 'small', voice: 'ef_dora', kokoro: 'es', phrase: 'Prueba de voz, uno dos tres.', heard: ['prueba', 'voz']}),
-  fr: Object.freeze({name: 'French', whisper: 'small', voice: 'ff_siwis', kokoro: 'fr-fr', phrase: 'Bonjour, ceci est un test, un deux trois.', heard: ['bonjour', 'test']}),
-  it: Object.freeze({name: 'Italian', whisper: 'small', voice: 'if_sara', kokoro: 'it', phrase: 'Prova della voce, uno due tre.', heard: ['prova', 'voce']}),
-  pt: Object.freeze({name: 'Portuguese (Brazil)', whisper: 'small', voice: 'pf_dora', kokoro: 'pt-br', phrase: 'Teste de voz, um dois três.', heard: ['teste', 'voz']}),
+  en: Object.freeze({name: 'Inglês', whisper: 'small.en', voice: 'bm_george', kokoro: 'en-gb', phrase: 'Voice check, one two three.', heard: ['voice', 'check', 'one', 'two', 'three']}),
+  es: Object.freeze({name: 'Espanhol', whisper: 'small', voice: 'ef_dora', kokoro: 'es', phrase: 'Prueba de voz, uno dos tres.', heard: ['prueba', 'voz']}),
+  fr: Object.freeze({name: 'Francês', whisper: 'small', voice: 'ff_siwis', kokoro: 'fr-fr', phrase: 'Bonjour, ceci est un test, un deux trois.', heard: ['bonjour', 'test']}),
+  it: Object.freeze({name: 'Italiano', whisper: 'small', voice: 'if_sara', kokoro: 'it', phrase: 'Prova della voce, uno due tre.', heard: ['prova', 'voce']}),
+  pt: Object.freeze({name: 'Português (Brasil)', whisper: 'small', voice: 'pf_dora', kokoro: 'pt-br', phrase: 'Teste de voz, um dois três.', heard: ['teste', 'voz']}),
 });
 export const SPEECH_LANGUAGE_CODES = Object.freeze(Object.keys(SPEECH_LANGUAGES));
 

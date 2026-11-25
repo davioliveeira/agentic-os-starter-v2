@@ -24,7 +24,7 @@ test('voice shows every setting, and each one can be changed from the command li
   const f = installation();
   let shown = await f.run();
   assert.equal(shown.code, 0);
-  for (const line of [/Spoken replies:\s+on/, /Voice:\s+the usual one/, /Speaking speed:\s+normal/, /Language:\s+English/, /start the model's program early off, take the answer as it arrives on, speak after the first sentence on/, /learned: Jev/]) assert.match(shown.text, line);
+  for (const line of [/Spoken replies:\s+on/, /Voice:\s+the usual one/, /Speaking speed:\s+normal/, /Language:\s+Inglês/, /start the model's program early off, take the answer as it arrives on, speak after the first sentence on/, /learned: Jev/]) assert.match(shown.text, line);
 
   assert.match((await f.run('mute')).text, /Spoken replies are off/);
   assert.match((await f.run('use', 'af_heart')).text, /Heart · American, female/);
@@ -72,5 +72,5 @@ test('a wrong command explains itself and changes nothing', async () => {
 test('the command is listed in the launcher\'s help', async () => {
   const lines = [];
   await main(['help'], line => lines.push(line));
-  assert.match(lines.join('\n'), /\n  voice\s+how voice sounds, how fast it answers, the words it listens for/);
+  assert.match(lines.join('\n'), /\n  voice\s+configurar a voz, a velocidade e as palavras reconhecidas/);
 });
