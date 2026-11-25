@@ -87,6 +87,8 @@ const BY_WORKER=/\b(?:you|it|the (?:agent|worker|assistant|codex|claude|terminal
 const PDF_HINT=/\bpdf|deck|slides?\b/;
 const DOC_HINT=/\b(?:note|notes|doc|docs|document|documents|markdown|summary|brief|report|write-?up|explainer|page)\b/;
 const ORDINAL=/^(?:(?:the|number)\s+)?(first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th|1|2|3|4|5|one|two|three|four|five|top|last)(?:\s+one)?\b[.!?\s]*$/;
+export const PORTUGUESE_OPEN_ORDINAL=/^(?:(?:o|a|número|opção)\s+)?(primeir[oa]|segund[oa]|terceir[oa]|quart[oa]|quint[oa]|[uú]ltim[oa]|[1-5][oa]?)(?:\s+(?:opção|nota|arquivo))?[.!?\s]*$/i;
+const ORDINAL_PT_ORDER=['primeir','segund','terceir','quart','quint'];
 const AFFIRM=/^(?:yes(?: please)?|yeah|yep|sure|absolutely|go ahead|do (?:it|that)|please do|go for it|sounds good|that one|that works|ok(?:ay)?)(?: please)?(?: jarvis)?[.!?\s]*$/i;
 
 export function openIntent(transcript){
@@ -353,9 +355,17 @@ export function resolveOpenTarget(root,transcript,{now=new Date(),exchanges=[],s
  // Follow-ups to a candidate list or an offered nearest date.
  if(fresh?.lookup?.source==='open-candidates'&&Array.isArray(fresh.lookup.candidates)){
   const candidates=fresh.lookup.candidates;
-  const ordinal=ORDINAL.exec(plain.replace(PREAMBLE,'').replace(REQUEST,''));
+  const choice=plain.replace(PREAMBLE,'').replace(REQUEST,'');
+  const ordinal=ORDINAL.exec(choice),ordinalPT=PORTUGUESE_OPEN_ORDINAL.exec(choice)?.[1];
   let pick=null;
   if(ordinal){const word=ordinal[1];const index={first:0,'1st':0,'1':0,one:0,top:0,second:1,'2nd':1,'2':1,two:1,third:2,'3rd':2,'3':2,three:2,fourth:3,'4th':3,'4':3,four:3,fifth:4,'5th':4,'5':4,five:4,last:candidates.length-1}[word];pick=candidates[index]??null}
+  else if(ordinalPT){
+   const stem=ordinalPT.replace(/[oa]$/,'');
+   let index=ORDINAL_PT_ORDER.indexOf(stem);
+   if(/^[1-5]$/.test(stem))index=Number(stem)-1;
+   if(/^[uú]ltim$/.test(stem))index=candidates.length-1;
+   pick=candidates[index]??null;
+  }
   else{const words=tokenize(plain).filter(t=>!STOP.has(t));if(words.length){const hits=candidates.filter(c=>{const label=tokenize(c.label);return words.every(w=>label.some(t=>tokenMatch(w,t)>=2))});if(hits.length===1)pick=hits[0]}}
   if(pick)return pick.artifact?{kind:'artifact',taskId:pick.taskId,artifact:pick.artifact,label:pick.label}:{kind:'note',path:pick.path,label:pick.label,type:pick.type||'note'};
  }

@@ -14,7 +14,7 @@ import {explainLookup,GAP_REPLY,directGeneralWork,compoundWork,compoundHint} fro
 import {selectedTaskContext} from './voice-task-context.mjs';
 import {SPOKEN_REPLY_STYLE} from './spoken-answer.mjs';
 import {readConversationEpoch,taskInScope} from './current-conversations.mjs';
-import {resolveOpenTarget,openIntent,searchTargets,describeCandidates,uniqueLabels} from './voice-targets.mjs';
+import {resolveOpenTarget,openIntent,searchTargets,describeCandidates,uniqueLabels,PORTUGUESE_OPEN_ORDINAL} from './voice-targets.mjs';
 import {hedgeClassifier,jevState} from './jev.mjs';
 import {strictRules} from './voice-strict-rules.mjs';
 import {taskStatusReply} from './task-updates.mjs';
@@ -242,7 +242,7 @@ async function classify(root,{id,transcript,chosen,terminals,workTarget,appScope
  // A short assent or ordinal may answer this resolver's own question
  // ("which one?" / "want me to open that one?") from the previous turn.
  const shortReply=/^(?:(?:hey|ok|okay|yes|yeah|yep|sure|please|jarvis)[,\s]+)*(?:yes|yeah|yep|sure|ok(?:ay)?|absolutely|go ahead|do it|please do|that one|that works|(?:the |number )?(?:first|second|third|fourth|fifth|1st|2nd|3rd|top|last)(?: one)?|the \S+(?: \S+)? one)[.!?\s]*$/i.test(transcript.trim());
- if(!newConversation&&(shortReply||openIntent(transcript))){
+ if(!newConversation&&(shortReply||PORTUGUESE_OPEN_ORDINAL.test(transcript.normalize('NFKC').trim())||openIntent(transcript))){
   const opened=openRequest(root,transcript,{terminals:live?null:terminals,appScope,selected:selected(true),exchanges:memory()});
   if(opened)return via('router.openRequest',opened);
  }

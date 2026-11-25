@@ -9,10 +9,10 @@ class WorkflowModal extends Modal {
  private closed = false;
  onOpen() {
   this.contentEl.addClass('aos-v2-cc-modal');
-  this.contentEl.createEl('h2', { text: 'Run a workflow' });
+  this.contentEl.createEl('h2', { text: 'Executar um fluxo' });
   const search = this.contentEl.createEl('input');
-  search.type = 'search'; search.placeholder = 'Find a workflow';
-  search.setAttribute('aria-label', 'Find a workflow'); search.style.width = '100%';
+  search.type = 'search'; search.placeholder = 'Buscar um fluxo';
+  search.setAttribute('aria-label', 'Buscar um fluxo'); search.style.width = '100%';
   const message = this.contentEl.createEl('p', { text: 'Carregando fluxos…' }); message.setAttribute('role', 'status');
   const list = this.contentEl.createDiv();
   Object.assign(list.style, { display: 'grid', gap: '6px', maxHeight: '50vh', overflowY: 'auto', marginTop: '12px' });
@@ -23,7 +23,7 @@ class WorkflowModal extends Modal {
    const entries = catalog.filter(skill => `${skill.id} ${skill.label} ${skill.description}`.toLowerCase().includes(search.value.toLowerCase()));
    for (const skill of entries) {
     const reason = dashboardSkillReason(skill, provider, undefined, error, installedProviders);
-    const button = list.createEl('button', { text: skill.label + (skill.direct ? ' · Refresh' : '') });
+    const button = list.createEl('button', { text: skill.label + (skill.direct ? ' · Atualizar' : '') });
     button.type = 'button'; button.disabled = !!reason;
     button.title = reason || skill.description;
     button.onclick = () => void this.choose(skill);

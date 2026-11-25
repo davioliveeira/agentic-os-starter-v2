@@ -12,24 +12,24 @@ import {setup, update, startAtLogin, startCommand} from './aos/setup.mjs';
 
 const HELP = `Agentic OS V2
 
-  setup --vault "<path>" [--provider claude|codex] [--voice yes|no] [--autostart yes|no] [--rebuild]
-                      install or repair everything, then run the checks
-                      (--provider: the coding tool buttons and voice use; default = the one installed)
-  start [--no-wait]   start the local services (bridge, Jarvis HUD, voice) and wait until they answer
-  stop                stop them (refuses while a task is open)
-  status              what is running
-  doctor [--full]     PASS / FAIL checks; --full also runs one real workflow
-  jev-key             open a local page to save your OpenRouter key (never shown to an agent)
-  openai-key          open a local page to save your OpenAI key and consent for Live voice (--check: is it set up?)
-  autostart on|off    start at login
-  update              get the latest version and rebuild
-  upgrade             find your existing system and assess an upgrade (read only)
-  dashboard           list buttons; discover, add, select or reset dashboard skills
-  skills              list the skill pack and install the ones you want as your own (skills help)
-  voice               how voice sounds, how fast it answers, the words it listens for (voice help)
-  schedule            run a workflow by itself at a set time, for example Plan Today at 7:00 (schedule help)
-  about               show or update the vault's About me section (about help)
-  live-context        what a Live call reads when it starts: your notes and reports, parts on or off (live-context help)
+  setup --vault "<caminho>" [--provider claude|codex] [--voice yes|no] [--autostart yes|no] [--rebuild]
+                      instalar ou reparar o sistema e executar o diagnóstico
+                      (--provider escolhe a ferramenta dos botões e da voz, entre as instaladas)
+  start [--no-wait]   iniciar os serviços locais (ponte, Jarvis e voz) e aguardar resposta
+  stop                parar os serviços quando não houver tarefas abertas
+  status              mostrar os serviços e as tarefas em execução
+  doctor [--full]     executar o diagnóstico, com um fluxo real se usar --full
+  jev-key             abrir uma página local para salvar a chave do OpenRouter, sem expô-la ao agente
+  openai-key          salvar a chave da OpenAI e a autorização para a voz ao vivo (consulte com --check)
+  autostart on|off    ativar ou desativar a inicialização ao entrar no sistema
+  update              baixar a versão mais recente e recompilar
+  upgrade             localizar a instalação atual e avaliar uma atualização em modo somente leitura
+  dashboard           listar, buscar, registrar, selecionar ou restaurar skills do painel
+  skills              listar e instalar as skills do pacote (skills help)
+  voice               configurar a voz, a velocidade e as palavras reconhecidas (voice help)
+  schedule            agendar um fluxo, como Planejar o dia às 7h (schedule help)
+  about               mostrar ou atualizar a seção Sobre mim do cofre (about help)
+  live-context        escolher as notas e os relatórios que a voz ao vivo lê ao iniciar (live-context help)
 `;
 
 export function parseArgs(argv) {
@@ -42,9 +42,9 @@ export function parseArgs(argv) {
   }
   return {command, flags, words};
 }
-const yesNo = (value, name) => { if (value === undefined) return undefined; if (['yes', 'true', true].includes(value)) return true; if (['no', 'false'].includes(value)) return false; throw new Error(`--${name} takes yes or no`); };
+const yesNo = (value, name) => { if (value === undefined) return undefined; if (['yes', 'true', true].includes(value)) return true; if (['no', 'false'].includes(value)) return false; throw new Error(`Use yes ou no com --${name}.`); };
 
-const providerFlag = value => { if (value === undefined) return undefined; if (['claude', 'codex'].includes(value)) return value; throw new Error('Use --provider claude  or  --provider codex'); };
+const providerFlag = value => { if (value === undefined) return undefined; if (['claude', 'codex'].includes(value)) return value; throw new Error('Use --provider claude ou --provider codex.'); };
 
 export async function main(argv = process.argv.slice(2), log = console.log) {
   const {command, flags, words} = parseArgs(argv);
@@ -56,20 +56,20 @@ export async function main(argv = process.argv.slice(2), log = console.log) {
     case 'doctor': return (await doctor({ci: flags.ci === true, full: flags.full === true, phase: flags.phase === 'install' ? 'install' : 'ready', log})).ok ? 0 : 1;
     case 'jev-key': {
       if (flags.check === true) { log(JSON.stringify({saved: hasJevKey(layout().runtime)})); return 0; }
-      const result = await collectJevKey({runtimeDir: layout().runtime, announce: url => log(`A page opened in your browser. If it did not, open this address yourself:\n${url}\nWaiting up to five minutes ...`)});
+      const result = await collectJevKey({runtimeDir: layout().runtime, announce: url => log(`Acesse esta página no navegador se ela não abrir automaticamente.\n${url}\nAguardando por até cinco minutos…`)});
       log(JSON.stringify(result));
-      if (result.saved) log('Saved. The voice router picks it up within a few seconds; no restart needed.');
+      if (result.saved) log('Chave salva. O roteador de voz vai usá-la em alguns segundos, sem reiniciar o serviço.');
       return result.saved ? 0 : 1;
     }
     case 'openai-key': {
       // --check says whether a key and consent are saved, without opening anything. Never the key.
       if (flags.check === true) { const {liveAuthorization}=await import('../runner/live/key.mjs'); log(JSON.stringify(liveAuthorization(layout().runtime))); return 0; }
       const {collectOpenAIKey,openAIKeyOutcome}=await import('./aos/openai-key.mjs');
-      const result=await collectOpenAIKey({runtimeDir:layout().runtime,announce:url=>log(`Open this local page to set up Live voice:\n${url}\nWaiting up to five minutes ...`)});
+      const result=await collectOpenAIKey({runtimeDir:layout().runtime,announce:url=>log(`Abra a página local para configurar a voz ao vivo.\n${url}\nAguardando por até cinco minutos…`)});
       log(JSON.stringify(result));log(openAIKeyOutcome(result));return result.saved?0:1;
     }
     case 'autostart': {
-      if (!['on', 'off'].includes(words[0])) throw new Error('Use: autostart on  or  autostart off');
+      if (!['on', 'off'].includes(words[0])) throw new Error('Use autostart on ou autostart off.');
       if (words[0] === 'on') await startAtLogin({log}); else log(disableAutostart(layout()));
       return 0;
     }
@@ -86,5 +86,5 @@ export async function main(argv = process.argv.slice(2), log = console.log) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main().then(code => { process.exitCode = code; }).catch(error => { console.error(`\nStopped: ${error.message}`); process.exitCode = 1; });
+  main().then(code => { process.exitCode = code; }).catch(error => { console.error(`\nOperação interrompida: ${error.message}`); process.exitCode = 1; });
 }

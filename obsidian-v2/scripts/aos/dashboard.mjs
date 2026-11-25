@@ -12,7 +12,7 @@ const allowedFlags = {
   reset: ['vault', 'revision'],
 };
 function required(flags, name) {
-  if (typeof flags[name] !== 'string' || !flags[name].trim()) throw new Error('dashboard requires --' + name);
+  if (typeof flags[name] !== 'string' || !flags[name].trim()) throw new Error('O comando dashboard exige --' + name);
   return flags[name];
 }
 
@@ -21,21 +21,21 @@ function required(flags, name) {
 // without starting another install or exposing any bridge credentials.
 export function dashboardCommand({words = [], flags = {}, log = console.log, at = layout(), options = {}} = {}) {
   const action = words[0] || 'list';
-  if (!actions.has(action) || words.length > 1) throw new Error('Use: dashboard list|discover|select|add|reset');
+  if (!actions.has(action) || words.length > 1) throw new Error('Uso: dashboard list|discover|select|add|reset');
   for (const name of Object.keys(flags)) {
-    if (!allowedFlags[action].includes(name)) throw new Error('Unknown dashboard flag: --' + name);
+    if (!allowedFlags[action].includes(name)) throw new Error('Opção desconhecida para dashboard: --' + name);
   }
   if (flags.vault !== undefined && (typeof flags.vault !== 'string' || !path.isAbsolute(flags.vault))) {
-    throw new Error('--vault must be an absolute path to an installed Agentic OS vault.');
+    throw new Error('--vault exige o caminho absoluto de um cofre configurado para o Agentic OS.');
   }
   const vault = flags.vault || configuredVaultPath(at);
-  if (!vault) throw new Error('Set up a vault first, or pass --vault with its absolute path.');
+  if (!vault) throw new Error('Configure um cofre ou informe o caminho absoluto com --vault.');
   const root = assertVault(vault);
   let result;
   if (action === 'list') result = readDashboard(root, options);
   if (action === 'discover') {
     const provider = required(flags, 'provider');
-    if (!['claude', 'codex'].includes(provider)) throw new Error('--provider takes claude or codex for discovery.');
+    if (!['claude', 'codex'].includes(provider)) throw new Error('Para buscar skills, use --provider claude ou --provider codex.');
     result = discoverDashboardSkills(root, {...options, provider});
   }
   if (action === 'select') {
@@ -46,8 +46,8 @@ export function dashboardCommand({words = [], flags = {}, log = console.log, at 
   if (action === 'reset') result = saveDashboard(root, {revision: required(flags, 'revision'), selected: null}, options);
   if (action === 'add') {
     const provider = required(flags, 'provider');
-    if (!['claude', 'codex', 'both'].includes(provider)) throw new Error('--provider takes claude, codex or both.');
-    if (flags.label !== undefined && typeof flags.label !== 'string') throw new Error('--label requires a name.');
+    if (!['claude', 'codex', 'both'].includes(provider)) throw new Error('Use claude, codex ou both com --provider.');
+    if (flags.label !== undefined && typeof flags.label !== 'string') throw new Error('Informe um nome com --label.');
     result = registerDashboardSkill(root, {
       revision: required(flags, 'revision'), path: required(flags, 'path'),
       providers: provider === 'both' ? ['claude', 'codex'] : [provider],

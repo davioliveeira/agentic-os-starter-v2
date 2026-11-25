@@ -49,7 +49,7 @@ export class IntentArgModal extends Modal {
 
 		const buttons = contentEl.createDiv({ cls: "aos-v2-cc-modal-buttons" });
 		const submitBtn = buttons.createEl("button", {
-			text: "Open workflow",
+			text: "Executar fluxo",
 			cls: "mod-cta",
 		});
 		submitBtn.onclick = () => this.submit();

@@ -38,8 +38,8 @@ test('onboarding CLI requires explicit revisions, known IDs and an installed vau
   assert.throws(() => command('select', {skills: 'plan-today'}), /revision/);
   assert.throws(() => command('select', {revision: command('list').revision, skills: 'made-up-skill'}), /precisa ser registrada/i);
   assert.throws(() => command('select', {revision: command('list').revision, skills: 'plan-today,plan-today'}), /skills distintas/i);
-  assert.throws(() => command('list', {unexpected: true}), /Unknown dashboard flag/);
-  assert.throws(() => dashboardCommand({words: ['list'], flags: {vault: 'relative'}, options}), /absolute/);
+  assert.throws(() => command('list', {unexpected: true}), /Opção desconhecida para dashboard/);
+  assert.throws(() => dashboardCommand({words: ['list'], flags: {vault: 'relative'}, options}), /absoluto/);
   assert.throws(() => dashboardCommand({words: ['list'], flags: {vault: path.join(root, 'missing')}, options}), /ENOENT/);
 });
 
@@ -57,5 +57,5 @@ test('onboarding CLI registers only a selected skill file and keeps it out of th
   assert.equal(skill.kind, 'installed');
   const saved = command('select', {revision: added.revision, skills: 'plan-today,' + added.registeredId});
   assert.deepEqual(saved.selected, ['plan-today', added.registeredId]);
-  assert.throws(() => command('discover', {provider: 'both'}), /claude or codex/);
+  assert.throws(() => command('discover', {provider: 'both'}), /--provider claude ou --provider codex/);
 });

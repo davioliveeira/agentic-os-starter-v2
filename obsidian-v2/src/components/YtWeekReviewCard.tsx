@@ -14,6 +14,14 @@ interface Props {
 	app: App;
 }
 
+const verdictLabels: Record<Verdict, string> = {
+	Hit: "Destaque",
+	Steady: "Estável",
+	Climbing: "Em alta",
+	Miss: "Abaixo do esperado",
+	Unknown: "Sem classificação",
+};
+
 function compact(n: number | null): string {
 	if (n === null) return "—";
 	return new Intl.NumberFormat("pt-BR", {
@@ -128,14 +136,14 @@ export function YtWeekReviewCard({ app }: Props) {
 	}
 	const totalUploads = review.uploads.length;
 	const ringSegments = [
-		{ tone: "hit", count: verdictCounts["Hit"] || 0, label: "HIT" },
-		{ tone: "steady", count: verdictCounts["Steady"] || 0, label: "STEADY" },
+		{ tone: "hit", count: verdictCounts["Hit"] || 0, label: verdictLabels.Hit },
+		{ tone: "steady", count: verdictCounts["Steady"] || 0, label: verdictLabels.Steady },
 		{
 			tone: "climbing",
 			count: verdictCounts["Climbing"] || 0,
-			label: "CLIMBING",
+			label: verdictLabels.Climbing,
 		},
-		{ tone: "miss", count: verdictCounts["Miss"] || 0, label: "MISS" },
+		{ tone: "miss", count: verdictCounts["Miss"] || 0, label: verdictLabels.Miss },
 	];
 
 	const maxViews = Math.max(
@@ -202,7 +210,7 @@ export function YtWeekReviewCard({ app }: Props) {
 						</span>
 						{review.baselineViews !== null ? (
 							<span className="aos-v2-cc-yt-review-chart-baseline">
-								baseline {compact(review.baselineViews)}
+								referência {compact(review.baselineViews)}
 							</span>
 						) : null}
 					</div>
@@ -221,7 +229,7 @@ export function YtWeekReviewCard({ app }: Props) {
 									<div
 										key={i}
 										className={`aos-v2-cc-yt-review-bar-col aos-v2-cc-yt-review-bar-col--${verdictTone(u.verdict)}`}
-										title={`${u.title} · ${compact(u.views)} views · ${u.vsBaselinePct ?? "?"}% baseline · ${u.verdict}`}
+										title={`${u.title} · ${compact(u.views)} visualizações · ${u.vsBaselinePct ?? "?"}% da referência · ${verdictLabels[u.verdict]}`}
 									>
 										<div className="aos-v2-cc-yt-review-bar-value">
 											{compact(u.views)}

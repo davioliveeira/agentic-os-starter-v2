@@ -86,7 +86,7 @@ test('a skill that leans on another brings it along; a skill that does not work 
   const at = scratch(t);
   const loop = installSkillPack({...at, ids: ['claudex-loop'], provider: 'claude'});
   assert.deepEqual(loop.results.map(item => [item.id, item.status]), [['claudex-loop', 'installed'], ['codex-build', 'installed']]);
-  assert.match(loop.results[1].note, /another chosen skill uses it/);
+  assert.match(loop.results[1].note, /uma das skills escolhidas depende dela/);
   assert.ok(fs.existsSync(path.join(skillsFolder('claude', at.home), 'codex-build', 'TANDEM-MODE.md')));
   const codex = installSkillPack({...at, ids: ['claudex-loop', 'close-day'], provider: 'codex'});
   assert.equal(status(codex, 'claudex-loop'), 'not-for-this-tool');
@@ -100,14 +100,14 @@ test('a skill that leans on another brings it along; a skill that does not work 
 test('the command refuses what it cannot do and says how to use it', t => {
   const at = scratch(t), lines = [], run = (words, flags) => skillsCommand({words, flags, log: line => lines.push(line), at: {runtime: at.runtimeDir}, options: {home: at.home, packDir: at.packDir}});
   assert.equal(run(['list'], {}), 0); assert.equal(JSON.parse(lines.pop()).skills.length, 5);
-  assert.equal(run(['help'], {}), 0); assert.match(lines.pop(), /skills <action>/);
-  assert.throws(() => run(['install'], {skills: 'close-day'}), /--provider takes claude or codex/);
-  assert.throws(() => run(['install'], {provider: 'claude'}), /Name the skills/);
-  assert.throws(() => run(['install'], {provider: 'claude', skills: 'not-a-skill'}), /is not in the skill pack/);
-  assert.throws(() => run(['install'], {provider: 'gemini', all: true}), /--provider takes claude or codex/);
-  assert.throws(() => run(['list'], {skills: 'x'}), /Unknown skills flag/);
-  assert.throws(() => run(['remove'], {}), /Use: skills list/);
-  assert.throws(() => readSkillPack(path.join(at.home, 'nowhere')), /no skill pack/);
+  assert.equal(run(['help'], {}), 0); assert.match(lines.pop(), /skills <ação>/);
+  assert.throws(() => run(['install'], {skills: 'close-day'}), /Use --provider claude ou --provider codex/);
+  assert.throws(() => run(['install'], {provider: 'claude'}), /Informe as skills/);
+  assert.throws(() => run(['install'], {provider: 'claude', skills: 'not-a-skill'}), /está ausente no pacote de skills/);
+  assert.throws(() => run(['install'], {provider: 'gemini', all: true}), /Use --provider claude ou --provider codex/);
+  assert.throws(() => run(['list'], {skills: 'x'}), /Opção desconhecida para skills/);
+  assert.throws(() => run(['remove'], {}), /Use skills list/);
+  assert.throws(() => readSkillPack(path.join(at.home, 'nowhere')), /está ausente ou ilegível/);
   assert.equal(run(['install'], {provider: 'claude', skills: 'close-day, yt-search'}), 0);
   assert.deepEqual(JSON.parse(lines.pop()).results.map(item => item.status), ['installed', 'installed']);
 });
@@ -127,9 +127,9 @@ test('what the member was shown is remembered, whatever they answered, so a late
   // Installing does not need it and does not change it.
   run(['install'], {provider: 'claude', skills: 'codex-build'});
   assert.equal(offered()['codex-build'], false);
-  assert.throws(() => run(['offered'], {}), /Name the skills that were shown/);
-  assert.throws(() => run(['offered'], {skills: 'not-a-skill'}), /Not in the skill pack: not-a-skill/);
-  assert.throws(() => run(['offered'], {skills: 'close-day', provider: 'claude'}), /Unknown skills flag/);
+  assert.throws(() => run(['offered'], {}), /Informe as skills apresentadas/);
+  assert.throws(() => run(['offered'], {skills: 'not-a-skill'}), /Skills ausentes no pacote: not-a-skill/);
+  assert.throws(() => run(['offered'], {skills: 'close-day', provider: 'claude'}), /Opção desconhecida para skills/);
   // A damaged record reads as nothing shown, never as an error.
   fs.writeFileSync(path.join(at.runtimeDir, 'skill-pack-offered.json'), '{broken');
   assert.ok(Object.values(offered()).every(value => value === false));

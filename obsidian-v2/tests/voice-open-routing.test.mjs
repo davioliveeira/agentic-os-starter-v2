@@ -57,6 +57,8 @@ test('named notes open by title, speech errors tolerated, and a tie becomes one 
  assert.match(ambiguous.reply,/^I found 2 that could match: content calendar plan or content backfill plan\. Which one\?$/);
  assert.equal(ambiguous.lookup.source,'open-candidates');assert.equal(ambiguous.deliverable,null);
  note(await f.speak('the second one'),'projects/2026-04-30-content-backfill-plan.md');
+ assert.equal((await f.speak('open the content plan')).lookup?.source,'open-candidates');
+ note(await f.speak('a segunda'),'projects/2026-04-30-content-backfill-plan.md');
  const unknown=await f.speak('open the quarterly tax memo');
  assert.match(unknown.reply,/couldn't find anything named "the quarterly tax memo"/);assert.deepEqual(unknown.workIds,[]);
  assert.equal(f.calls.length,0);
