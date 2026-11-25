@@ -43,7 +43,7 @@ function fixture(){
 }
 for(const provider of ['codex','claude'])test(`${provider} skill dispatch requests background execution and offers to open its report once`,async t=>{
  const f=fixture();t.after(f.dispose);f.state.selection=provider==='codex'?{provider,model:'astra'}:{provider,model:'sonnet'};registerSkillReports(f.plugin);
- const id=await writeIntent(f.app,'morning-intel');assert.equal(f.calls.length,1);assert.equal(f.calls[0].path,'/skill');assert.equal(f.calls[0].body.execution,'headless');assert.deepEqual(f.calls[0].body.selection,f.state.selection);assert.equal(f.opens.length,0);assert.match(f.notices[0],/background/);
+ const id=await writeIntent(f.app,'morning-intel');assert.equal(f.calls.length,1);assert.equal(f.calls[0].path,'/skill');assert.equal(f.calls[0].body.execution,'headless');assert.deepEqual(f.calls[0].body.selection,f.state.selection);assert.equal(f.opens.length,0);assert.match(f.notices[0],/em segundo plano/);
  f.complete(id);f.complete(id);await f.settle();assert.deepEqual(f.opens,[]);assert.equal(f.resultNotices.length,1);
  f.resultNotices[0].open();assert.deepEqual(f.opens,['inbox/report.md']);
  f.complete(id);await f.settle();assert.equal(f.opens.length,1);
@@ -61,5 +61,5 @@ test('plugin unload removes listeners and prevents a request accepted afterward 
 test('a recovered workflow keeps its saved provider and scripts remain background jobs',async t=>{
  const f=fixture();t.after(f.dispose);registerSkillReports(f.plugin);const saved={provider:'claude',model:'sonnet'};
  await writeIntent(f.app,'morning-intel',{},saved);assert.deepEqual(f.calls[0].body.selection,saved);
- const id=await writeIntent(f.app,'metrics-pull');f.files.set('system/v2/runs/'+id+'.json',JSON.stringify({id,skill:'metrics-pull',status:'ok',deliverable_path:null}));for(const handler of f.events.get('modify'))handler({path:'system/v2/runs/'+id+'.json'});await f.settle();assert.equal(f.opens.length,0);assert.ok(f.notices.includes('Atualizar métricas finished.'));
+ const id=await writeIntent(f.app,'metrics-pull');f.files.set('system/v2/runs/'+id+'.json',JSON.stringify({id,skill:'metrics-pull',status:'ok',deliverable_path:null}));for(const handler of f.events.get('modify'))handler({path:'system/v2/runs/'+id+'.json'});await f.settle();assert.equal(f.opens.length,0);assert.ok(f.notices.includes('Atualizar métricas terminou.'));
 });

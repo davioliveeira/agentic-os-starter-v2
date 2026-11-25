@@ -106,9 +106,9 @@ for(const provider of ['codex','claude']){
 
  test(`${provider}: missing, foreign, stopped, busy and draft conversations never start a replacement`,async t=>{
   const f=fixture(t,provider),utterance='Why did you choose that approach?';
-  await assert.rejects(f.speak(utterance,crypto.randomUUID()),/conversation is unavailable/);
+  await assert.rejects(f.speak(utterance,crypto.randomUUID()),/conversa está indisponível/);
   const foreign=f.add({provider:provider==='codex'?'claude':'codex'});
-  await assert.rejects(f.speak(utterance,foreign.id),/different provider/);
+  await assert.rejects(f.speak(utterance,foreign.id),/outro provedor/);
   for(const state of ['stopped','working','needs input','editing']){
    const task=f.add({state});
    await assert.rejects(f.speak(utterance,task.id),state==='stopped'?/Resume this terminal/:/working or needs terminal input/);

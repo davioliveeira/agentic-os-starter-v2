@@ -48,29 +48,29 @@ export class SkillReportTracker {
      try{run=await this.options.read(job.id)}catch{/* A partial write or temporary vault read failure is retried. */}
      if(this.closed)return;
      if(!run||run.status==='running'||run.status==='queued'){
-      if(this.now()-job.started>2*60*60_000)this.finish(job,`${job.label}: completion could not be confirmed. Check the Activity Feed.`);
+      if(this.now()-job.started>2*60*60_000)this.finish(job,`${job.label}: a conclusão ainda não foi confirmada. Consulte Atividade recente.`);
       continue;
      }
-     if(run.id!==job.id||run.skill!==job.skill){this.finish(job,`${job.label}: its result did not match this request. Check the Activity Feed.`);continue}
+     if(run.id!==job.id||run.skill!==job.skill){this.finish(job,`${job.label}: o resultado recebido é de outra solicitação. Consulte Atividade recente.`);continue}
      if(run.status!=='ok'){
       const detail=typeof run.summary==='string'?run.summary.replace(/\s+/g,' ').trim().slice(0,220):'';
-      this.finish(job,`${job.label} did not finish${detail?`: ${detail}`:'. Check the Activity Feed.'}`);continue;
+      this.finish(job,`${job.label} não terminou${detail?`: ${detail}`:'. Consulte Atividade recente.'}`);continue;
      }
-     if(!run.deliverable_path&&!job.expectsReport){this.finish(job,`${job.label} finished.`);continue}
+     if(!run.deliverable_path&&!job.expectsReport){this.finish(job,`${job.label} terminou.`);continue}
      const path=checkedReportPath(run.deliverable_path);
-     if(!path){this.finish(job,`${job.label}: no readable report was returned. Check the Activity Feed.`);continue}
+     if(!path){this.finish(job,`${job.label}: o fluxo não retornou um relatório legível. Consulte Atividade recente.`);continue}
      let ready=false;
      try{ready=await this.options.ready(path)}catch{/* The new file may not be indexed yet. */}
      if(this.closed)return;
      if(!ready){
       job.settledAt??=this.now();
-      if(this.now()-job.settledAt>15_000)this.finish(job,`${job.label}: the report is not available to open. Check the Activity Feed.`);
+      if(this.now()-job.settledAt>15_000)this.finish(job,`${job.label}: o relatório ainda está indisponível. Consulte Atividade recente.`);
       continue;
      }
      // Claim before awaiting the open: vault events and multiple mounted
      // dashboards cannot race into creating another tab for the same job.
      this.finish(job);
-     try{await this.options.open(path,job.label)}catch{if(!this.closed)this.options.notice(`${job.label}: the report was saved, but could not be opened. Open it from the Activity Feed.`)}
+     try{await this.options.open(path,job.label)}catch{if(!this.closed)this.options.notice(`${job.label}: falha ao abrir o relatório salvo. Abra-o em Atividade recente.`)}
     }
    }while(this.again&&!this.closed);
   }finally{this.busy=false}

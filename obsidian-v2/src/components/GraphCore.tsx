@@ -631,7 +631,7 @@ export function GraphCore({
 	return (
 		<div className="aos-v2-cc-orb" aria-hidden="true">
 			<div ref={mountRef} className="aos-v2-cc-orb-canvas" />
-			{unavailable&&<div className="galaxy-fallback">Voice animation unavailable.</div>}
+			{unavailable&&<div className="galaxy-fallback">A animação de voz está indisponível.</div>}
 		</div>
 	);
 }

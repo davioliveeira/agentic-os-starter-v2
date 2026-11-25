@@ -98,7 +98,7 @@ export async function handleVoiceRequest(ctx,request,{source='text',guard,phase,
    ...(artifacts?{
     onDispatch:(taskId,epoch)=>artifacts.bind(taskId,target?{...target,epoch}:null),
     reopenArtifact:({id:requestId,taskId,artifact},check)=>{
-     if(!target)throw new Error('No connected dashboard can display that file right now.');
+     if(!target)throw new Error('Abra um painel conectado para exibir esse arquivo.');
      const task=terminals.get(taskId);
      artifacts.bind(taskId,{...target,epoch:conversationEpoch});
      const turn={id:`reopen:${requestId}`,artifacts:[{...artifact,open:true,isFinal:true}]};

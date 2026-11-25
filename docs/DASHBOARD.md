@@ -1,29 +1,29 @@
-# Make the dashboard yours
+# Personalizar o painel
 
-Choose **Customize dashboard** in the Obsidian cockpit or the Jarvis HUD. Pick up to ten buttons, change their order, and save. The same selection appears in both places within a few seconds.
+Abra **Personalizar painel** no Obsidian ou no Jarvis. Escolha até dez atalhos, organize a ordem e salve. Em alguns segundos, os dois painéis passam a mostrar a mesma seleção.
 
-- **Keep the defaults:** before you personalize, Obsidian keeps its original ten buttons and the HUD keeps its four. Restoring defaults returns each app to that layout.
-- **Choose your own:** your saved list replaces both sets of quick buttons. You can choose fewer than ten, or none. The full workflow browser stays available.
-- **Save or cancel:** changes to your button selection apply when you save. Registering an installed skill adds it to the available catalog immediately, but does not run it.
-- **Two windows:** if another window changes the saved configuration while you are editing, reload and reconcile the selection. The older draft cannot silently overwrite it.
+- **Padrões.** Antes da primeira personalização, o Obsidian mostra dez atalhos e o Jarvis mostra quatro. A opção de restaurar os padrões recupera o conjunto de cada aplicativo.
+- **Seleção própria.** A lista salva substitui os atalhos rápidos nos dois painéis. Você pode escolher menos de dez ou deixar a lista vazia. O catálogo de fluxos continua disponível.
+- **Salvar ou cancelar.** A seleção de atalhos muda ao salvar. Ao registrar uma skill instalada, ela entra no catálogo imediatamente e aguarda um pedido para ser executada.
+- **Duas janelas.** Se outra janela alterar a configuração enquanto você estiver editando, recarregue a tela e revise a seleção antes de salvar.
 
-## Included workflows and personal skills
+## Fluxos incluídos e skills pessoais
 
-Included workflows such as Plan Today, Deep Research and Content Cascade use the existing background workflow runner and save a report in your vault. Some need a calendar, email connection or source URL.
+Fluxos incluídos, como **Planejar hoje**, **Pesquisa aprofundada** e **Reaproveitar conteúdo**, executam em segundo plano e salvam um relatório no cofre. Alguns precisam de acesso à agenda, ao e-mail ou de um link de origem.
 
-Use **Find installed skills** to discover skills in the standard folders for your chosen coding tool. Select an existing skill to register it, then add it to your dashboard. You can also register an exact local `SKILL.md` path. Discovery does not install anything or scan your notes.
+Na seção **Adicionar skills instaladas**, procure skills nas pastas padrão da ferramenta de código escolhida. Registre uma skill existente para incluí-la no catálogo e adicione-a ao painel. Você também pode registrar o caminho local de um `SKILL.md` específico. A busca se limita às pastas de skills da ferramenta.
 
-Personal skills open an ordinary conversation in Claude Code or Codex. Enter what you want the skill to do; questions and approvals appear in the terminal. A registered file is not a guarantee that its connectors, helper tools or accounts are ready. If they are missing, finish that setup in the conversation.
+Uma skill pessoal abre uma conversa no Claude Code ou no Codex. Escreva o que você quer que ela faça. Perguntas e pedidos de aprovação aparecem no terminal. Se houver conectores, ferramentas auxiliares ou contas para configurar, faça isso durante a conversa.
 
-Running a personal skill inside Obsidian needs the **Terminal** community plugin (by polyipseity) enabled: any stable 3.x release from 3.27.1 on; 3.27.1 and 3.27.2 are tested, newer ones show a one-time notice, pre-releases are not supported. If you prefer not to install it, use the same button in the Jarvis HUD. Bundled background workflows do not need that plugin.
+Para executar uma skill pessoal dentro do Obsidian, habilite o plugin da comunidade **Terminal**, de polyipseity. Use uma versão estável da série 3.x a partir da 3.27.1. As versões 3.27.1 e 3.27.2 foram testadas, e versões mais recentes exibem um aviso na primeira vez. Você também pode usar o atalho no Jarvis. Os fluxos incluídos executam em segundo plano sem o plugin Terminal.
 
-A skill is tied to the provider or providers it was registered for. Switching providers can disable an incompatible button. A missing or changed skill file is also disabled; re-register the reviewed file to use its new version. Skills are never downloaded or executed merely because they were found.
+O cadastro de cada skill especifica em quais provedores ela pode rodar. Trocar de provedor pode desabilitar um atalho incompatível. Se o arquivo da skill for alterado ou removido, revise o novo arquivo e registre-o novamente. Encontrar uma skill na busca apenas mostra a opção de cadastrá-la.
 
-Registration accepts ordinary local files in their actual folder. Linked files or folders and hard-linked files are rejected; use the real folder path instead of a shortcut or symbolic link. Discovery may skip linked or invalid folders and reports when its bounded search was incomplete.
+Para registrar, escolha o arquivo real em sua pasta de origem. Use arquivos locais comuns. A busca pode ignorar pastas inválidas ou vinculadas por links e avisa quando atinge o limite de busca.
 
-## Commands for your installing agent
+## Comandos do instalador
 
-Run from the starter repository. The configured vault is used automatically; `--vault "<absolute vault path>"` can select another installed Agentic OS vault explicitly. These commands do not start or stop services.
+Execute no repositório do Agentic OS. Os comandos usam o cofre configurado. Para selecionar outro cofre já preparado, use `--vault "<caminho absoluto do cofre>"`. O cadastro pode ser feito com os serviços ligados ou desligados.
 
 ```text
 node aos.mjs dashboard list
@@ -31,28 +31,26 @@ node aos.mjs dashboard discover --provider claude
 node aos.mjs dashboard discover --provider codex
 ```
 
-`list` returns the catalog, saved selection and a `revision`. Use that revision when changing the configuration:
+O comando `list` retorna o catálogo, a seleção salva e a revisão atual. Informe essa revisão ao alterar a configuração.
 
 ```text
-node aos.mjs dashboard select --skills "plan-today,deep-research-chase,weekly-review" --revision "<revision>"
-node aos.mjs dashboard add --path "<absolute path to SKILL.md>" --provider claude --revision "<revision>"
-node aos.mjs dashboard reset --revision "<revision>"
+node aos.mjs dashboard select --skills "plan-today,deep-research-chase,weekly-review" --revision "<revisão>"
+node aos.mjs dashboard add --path "<caminho absoluto de SKILL.md>" --provider claude --revision "<revisão>"
+node aos.mjs dashboard reset --revision "<revisão>"
 ```
 
-For registration, `--provider` accepts `claude`, `codex` or `both`; only choose `both` after checking compatibility. Optional `--label "Write proposals"` supplies the button label. The result includes a `registeredId` and the updated revision. Include that ID in your next `select` command to pin it. `--skills none` explicitly saves an empty quick-button list.
+No cadastro, `--provider` aceita `claude`, `codex` ou `both`. Confirme a compatibilidade com as duas ferramentas antes de usar `both`. Para definir o texto do botão, use por exemplo `--label "Escrever propostas"`. O cadastro retorna `registeredId` e a nova revisão. Use o ID retornado no próximo `select` para fixar a skill no painel. Para salvar sem atalhos rápidos, use `--skills none`.
 
-Keep unrelated notes and profile settings unchanged. The configuration is a separate file, `system/v2/dashboard.json`, inside the vault. It is preserved by setup and update. If it is malformed, the UI reports the error and refuses to overwrite it; have your coding agent help repair that file.
+A configuração fica em `system/v2/dashboard.json`, dentro do cofre. A instalação e a atualização preservam esse arquivo. Se o painel indicar que o arquivo está inválido, peça ao agente de código para repará-lo antes de salvar.
 
-## What each button needs
+## O que cada atalho precisa
 
-Every built-in button says what it produces and what it needs, in **Customize dashboard** and in `node aos.mjs dashboard list`. Some work on a brand-new vault with nothing connected: Summarize Vault, Deep Research, Vault Cleanup, the Intel Brief, Morning Report, AI Trend Scan, Brainstorm Angles and Build Outline. Others stop and say so until their need is met: Plan Today, Plan Tomorrow and Refresh Schedule need Google Calendar, Inbox Brief and Morning Brief need Gmail, the YouTube workflows need a YouTube API key, and Lead Research needs a leads database of your own.
+Consulte a descrição de cada fluxo em **Personalizar painel** ou em `node aos.mjs dashboard list`. Ela informa o resultado esperado e as dependências. Em um cofre novo, você já pode resumir o cofre, fazer pesquisa aprofundada, revisar a organização, gerar o boletim de IA e o relatório da manhã, investigar tendências e trabalhar em ângulos e roteiros. **Planejar hoje**, **Planejar amanhã** e **Atualizar agenda** precisam do Google Agenda. O resumo da caixa de entrada e o boletim com e-mails precisam do Gmail. Fluxos do YouTube usam uma chave da API do YouTube, e a pesquisa de leads precisa de uma base fornecida por você.
 
-## The skill pack
+## Pacote de skills
 
-The built-in buttons run inside the app and cannot be edited. The starter also ships a small pack of skills you can own: `node aos.mjs skills list` shows them, and `node aos.mjs skills install --skills "<id>" --provider claude` (or `codex`) copies the ones you choose into your coding tool's own skills folder. There you can read them, change them, and use them in any conversation. To put one on the dashboard, register the path the install prints with `dashboard add`. A copy you edited is never overwritten by a later install or update.
+Os atalhos incluídos fazem parte do Agentic OS. O pacote separado reúne skills que você pode ler, editar e usar em qualquer conversa. Use `node aos.mjs skills list` para ver o catálogo e `node aos.mjs skills install --skills "<id>" --provider claude` para instalar uma skill. Para o Codex, use `--provider codex`. Para adicioná-la ao painel, registre com `dashboard add` o caminho informado pelo instalador. Atualizações preservam as cópias que você editou.
 
-## Suggestions during setup
+## Escolher os primeiros atalhos
 
-Tell the agent what work you do and which skills you use often. It should explain a short recommended selection and ask you to approve it. It should not invent usage history, install every recommendation, or promise an unconnected skill works. Keeping the defaults is always an option.
-
-You can also describe a new workflow you want a button for. The agent can help create that skill in your coding tool's normal skill folder, check its requirements, and register it once it is ready. The dashboard itself does not generate a skill from a label: every personal button points to an actual reviewed SKILL.md file.
+Conte ao agente que tipo de trabalho você faz e quais skills usa com frequência. Ele pode sugerir uma lista curta para você aprovar ou manter os atalhos padrão. Se quiser um fluxo novo, descreva o resultado desejado e peça ao agente para ajudar a criar e revisar o `SKILL.md` antes de cadastrá-lo no painel.

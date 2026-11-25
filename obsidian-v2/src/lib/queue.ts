@@ -27,10 +27,10 @@ export function registerSkillReports(plugin:Plugin){
   open:async(path,label)=>{
    const file=app.vault.getFileByPath(path);
    if(!file)throw new Error('O relatório está indisponível.');
-   showWorkNotice(`${label} is done.`,()=>{
+   showWorkNotice(`${label} terminou.`,()=>{
     const existing=app.workspace.getLeavesOfType('markdown').find(leaf=>(leaf.view as unknown as {file?:{path:string}}).file?.path===path);
     const opening=existing?app.workspace.revealLeaf(existing):app.workspace.getLeaf('tab').openFile(file);
-    void opening.catch(()=>{new Notice(`${label} was saved. Open it from the Activity Feed.`)});
+    void opening.catch(()=>{new Notice(`${label} foi salvo. Abra o relatório em Atividade recente.`)});
    });
   },
   notice:message=>{new Notice(message)},
@@ -110,7 +110,7 @@ export async function writeIntent(
  if(result.id!==id||(result.execution!=='headless'&&result.execution!=='script'))throw new Error('Atualize o serviço de fluxos para executar skills em segundo plano.');
  if(tracker&&reportTrackers.get(app)!==tracker)return result.id;
  const label=SKILLS[skill]?.label||skill;
- new Notice(`${label} is running in the background.`);
+ new Notice(`${label} está em execução em segundo plano.`);
  void tracker?.track(result.id,skill,label,!SKILLS[skill]?.direct);
  return result.id;
 }

@@ -95,12 +95,12 @@ test('explicit inbox headings and item recommendations support categories while 
  const reply=readBriefSectionReply(f.root,{section:'inbox',category:'reply'},now);assert.match(reply.reply,/ReplyFixtureOne.*CueReplyFixture/);assert.doesNotMatch(reply.reply,/NegativeReplyFixture|NegativeCueFixture|AffiliateFixture|MixedFixture/);assert.equal(reply.lookup.count,2);
  const sponsor=readBriefSectionReply(f.root,{section:'inbox',category:'sponsor'},now);assert.match(sponsor.reply,/SponsorFixtureOne/);assert.doesNotMatch(sponsor.reply,/AffiliateFixture|MixedFixture/);
  fs.writeFileSync(f.file,'## Inbox\n### Opportunities / Needs reply\n- MixedOnlyFixture interesting lead.\n\nNo operational alerts.');
- for(const category of ['urgent','reply','sponsor']){const answer=readBriefSectionReply(f.root,{section:'inbox',category},now);assert.match(answer.reply,/does not explicitly label/);assert.doesNotMatch(answer.reply,/MixedOnlyFixture/);}
+ for(const category of ['urgent','reply','sponsor']){const answer=readBriefSectionReply(f.root,{section:'inbox',category},now);assert.match(answer.reply,/não identifica explicitamente mensagens/);assert.doesNotMatch(answer.reply,/MixedOnlyFixture/);}
 });
 test('ranked content plan keeps hooks and detail with their own saved item',t=>{
  const f=fixture(t),section=getBriefCatalog(f.root,now,{sections:['content-youtube']}).sections['content-youtube'];
  assert.equal(section.ordered,true);assert.equal(section.items.length,2);assert.match(section.items[0].text,/ContentVideoFixtureOne.*FirstHookFixture.*FirstRationaleFixture/);assert.doesNotMatch(section.items[0].text,/SecondHook|ContentVideoFixtureTwo/);
- const second=readBriefSectionReply(f.root,{section:'content-youtube',count:1,offset:1},now);assert.match(second.reply,/2\. ContentVideoFixtureTwo.*SecondHookFixture.*SecondRationaleFixture/);assert.doesNotMatch(second.reply,/FirstHook|ContentVideoFixtureOne/);assert.equal(second.lookup.count,1);assert.equal(second.lookup.offset,1);
+ const second=readBriefSectionReply(f.root,{section:'content-youtube',count:1,offset:1},now);assert.match(second.reply,/Plano de conteúdo para o YouTube: 2\. ContentVideoFixtureTwo.*SecondHookFixture.*SecondRationaleFixture/);assert.doesNotMatch(second.reply,/FirstHook|ContentVideoFixtureOne/);assert.equal(second.lookup.count,1);assert.equal(second.lookup.offset,1);
 });
 test('closed threads, reversed urgency and ignored sponsor spam never become action categories',t=>{
  const f=fixture(t,`## Inbox
@@ -124,7 +124,7 @@ test('closed threads, reversed urgency and ignored sponsor spam never become act
 test('tables preserve row order and malformed rows never produce partial answers',t=>{
  const f=fixture(t);const youtube=readBriefSectionReply(f.root,{section:'youtube'},now);assert.match(youtube.reply,/VideoFixtureOne.*MakerOne.*900.*VideoFixtureTwo/);assert.equal(youtube.lookup.count,2);
  fs.writeFileSync(f.file,report.replace('| VideoFixtureTwo | MakerTwo | 700 | 7.0x |','| VideoFixtureTwo | missing fields |'));
- assert.equal(getBriefCatalog(f.root,now,{sections:['youtube']}).sections.youtube.status,'malformed');assert.match(readBriefSectionReply(f.root,{section:'youtube'},now).reply,/readable/);
+ assert.equal(getBriefCatalog(f.root,now,{sections:['youtube']}).sections.youtube.status,'malformed');assert.match(readBriefSectionReply(f.root,{section:'youtube'},now).reply,/Não foi possível ler a seção Radar do YouTube/);
  assert.equal(getBriefCatalog(f.root,now,{sections:['outliers']}).sections.outliers.status,'available');
 });
 test('missing, empty, duplicate, oversized and fenced sections are explicit',()=>{
@@ -146,5 +146,5 @@ test('section answers keep every requested item inside speech budget and expose 
  assert.equal(readBriefSectionReply(f.root,{section:'github',offset:4},now).lookup.count,1);
 });
 test('stale and missing current reports never present previous section content as today',t=>{
- const f=fixture(t);fs.renameSync(f.file,path.join(f.folder,'2026-09-11-intel.md'));const result=readBriefSectionReply(f.root,{section:'inbox',category:'reply'},now);assert.match(result.reply,/don't have today's.*2026-09-11/);assert.doesNotMatch(result.reply,/ReplyFixture/);
+ const f=fixture(t);fs.renameSync(f.file,path.join(f.folder,'2026-09-11-intel.md'));const result=readBriefSectionReply(f.root,{section:'inbox',category:'reply'},now);assert.match(result.reply,/Ainda não tenho o boletim da manhã de hoje.*2026-09-11/);assert.doesNotMatch(result.reply,/ReplyFixture/);
 });

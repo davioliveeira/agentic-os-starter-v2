@@ -153,10 +153,10 @@ for(const provider of ['codex','claude']){
 
  test(`${provider}: quick local values preserve zero and daily semantics without a model or terminal dispatch`,async t=>{
   const f=fixture(t);
-  const subscribers=await f.speak(provider,'How many people are subscribed to my YouTube channel?');assert.match(normalized(subscribers.reply),/43127/);
-  const followers=await f.speak(provider,'What is my Instagram follower count?');assert.match(followers.reply,/\b0\b/);assert.doesNotMatch(followers.reply,/unavailable|missing|don't have/i);
-  const schedule=await f.speak(provider,'Remind me what is on the calendar for today.');assert.match(schedule.reply,/Demo rehearsal/);
-  const focus=await f.speak(provider,'What am I focusing on today?');assert.match(focus.reply,/offline reader/);
+  const subscribers=await f.speak(provider,'How many people are subscribed to my YouTube channel?');assert.match(subscribers.reply,/43127 inscritos/);
+  const followers=await f.speak(provider,'What is my Instagram follower count?');assert.match(followers.reply,/\b0 seguidores/);
+  const schedule=await f.speak(provider,'Remind me what is on the calendar for today.');assert.match(schedule.reply,/nota de hoje.*16:20.*Demo rehearsal/);
+  const focus=await f.speak(provider,'What am I focusing on today?');assert.match(focus.reply,/foco registrado.*offline reader/);
   assert.equal(f.calls.length,0);
  });
 
@@ -164,18 +164,18 @@ for(const provider of ['codex','claude']){
   const f=fixture(t);fs.unlinkSync(path.join(f.root,`inbox/research/morning-intel/${f.today}-intel.md`));
   f.writeBrief('2000-01-01',report.replaceAll('Quasar notebook','OLD_RANKING_SENTINEL'));f.writeBrief('2999-01-01',report.replaceAll('Quasar notebook','FUTURE_RANKING_SENTINEL'));
   const answer=await f.speak(provider,'Read the top three Hacker News stories from this morning.',undefined,{workTarget:'unavailable-current'});
-  assert.match(answer.reply,/today|morning/i);assert.match(answer.reply,/2000-01-01|missing|don't have|not available/i);assert.doesNotMatch(answer.reply,/OLD_RANKING_SENTINEL|FUTURE_RANKING_SENTINEL/);assert.deepEqual(answer.workIds,[]);
+  assert.match(answer.reply,/boletim da manhã de hoje/i);assert.match(answer.reply,/2000-01-01/);assert.doesNotMatch(answer.reply,/OLD_RANKING_SENTINEL|FUTURE_RANKING_SENTINEL/);assert.deepEqual(answer.workIds,[]);
   fs.rmSync(path.join(f.root,'inbox'),{recursive:true,force:true});
-  const missing=await f.speak(provider,'What is the main AI headline today?');assert.match(missing.reply,/don't have|not available|missing/i);assert.deepEqual(missing.workIds,[]);
+  const missing=await f.speak(provider,'What is the main AI headline today?');assert.match(missing.reply,/Ainda não tenho o boletim/i);assert.deepEqual(missing.workIds,[]);
  });
 
  test(`${provider}: local saved values label staleness and do not invent missing metrics or today's plan`,async t=>{
   const f=fixture(t);
   f.write('system/metrics/metrics.csv','timestamp,source,metric,value,status,error\n2000-01-01T12:00:00Z,youtube,subscribers,123,stale,\n');
-  const stale=await f.speak(provider,'How many subscribers does my YouTube channel have?');assert.match(stale.reply,/\b123\b/);assert.match(stale.reply,/last saved|stale|not a live/i);
-  const absent=await f.speak(provider,'What is my TikTok follower count?');assert.match(absent.reply,/don't have|missing|not available|unavailable/i);assert.doesNotMatch(absent.reply,/\b0 followers/);
+  const stale=await f.speak(provider,'How many subscribers does my YouTube channel have?');assert.match(stale.reply,/\b123 inscritos/);assert.match(stale.reply,/último registro salvo/i);
+  const absent=await f.speak(provider,'What is my TikTok follower count?');assert.match(absent.reply,/não tenho um registro válido/i);assert.doesNotMatch(absent.reply,/\b0 seguidores/);
   fs.renameSync(path.join(f.root,`daily-notes/${f.today}.md`),path.join(f.root,'daily-notes/2000-01-01.md'));
-  const plan=await f.speak(provider,'What is on my schedule today?');assert.match(plan.reply,/don't have|no (?:daily note|schedule)|missing/i);assert.doesNotMatch(plan.reply,/Demo rehearsal/);
+  const plan=await f.speak(provider,'What is on my schedule today?');assert.match(plan.reply,/não há nota diária de hoje/i);assert.doesNotMatch(plan.reply,/Demo rehearsal/);
   assert.equal(f.calls.length,0);
  });
 

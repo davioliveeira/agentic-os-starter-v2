@@ -60,10 +60,10 @@ test('daily lookup uses only the relevant note, answers flags, and observes edit
  f.write('system/metrics/metrics.csv','private unrelated source');
  const read=fs.readFileSync,reads=[];fs.readFileSync=function(file,...args){reads.push(String(file));return read.call(this,file,...args)};
  try{
-  const first=f.answer('What are my priorities for today?');assert.match(first.reply,/Prepare the talk/);assert.equal(first.deliverable,'daily-notes/2026-09-12.md');
-  const cachedCount=reads.length;f.answer('What am I focusing on today?');assert.equal(reads.length,cachedCount);
-  assert.match(f.answer('Did I finish priority two?').reply,/checked off/);
-  assert.match(f.answer('Did I finish priority one?').reply,/not checked off/);
+  const first=f.answer('What are my priorities for today?');assert.match(first.reply,/prioridades registradas.*Prepare the talk/);assert.equal(first.deliverable,'daily-notes/2026-09-12.md');
+  const cachedCount=reads.length;assert.match(f.answer('What am I focusing on today?').reply,/foco registrado.*Finish the dashboard/);assert.equal(reads.length,cachedCount);
+  assert.match(f.answer('Did I finish priority two?').reply,/marcada como concluída/);
+  assert.match(f.answer('Did I finish priority one?').reply,/não está marcada como concluída/);
   fs.writeFileSync(file,daily.replace('1. [ ]','1. [x]'));const stamp=new Date(Date.now()+2000);fs.utimesSync(file,stamp,stamp);
   assert.doesNotMatch(f.answer('What are my remaining priorities today?').reply,/Prepare the talk/);
   const next=answerLocalLookup(f.root,inspectLocalLookup('What are my priorities today?'),{now:new Date('2026-09-13T18:00:00Z')});assert.match(next.reply,/Plan the next recording/);
@@ -73,9 +73,9 @@ test('daily lookup uses only the relevant note, answers flags, and observes edit
 
 test('missing current note never becomes a historical current plan; generic history is explicitly dated',t=>{
  const f=fixture(t);f.write('daily-notes/2020-01-01.md',daily);f.write('daily-notes/2099-01-01.md',daily.replace('Prepare the talk','Future private plan'));
- assert.match(f.answer('What are my priorities today?').reply,/daily note for today/);
+ assert.match(f.answer('What are my priorities today?').reply,/nota diária de hoje/);
  assert.doesNotMatch(f.answer('What are my priorities today?').reply,/Prepare the talk|Future/);
- const historical=f.answer('What are my priorities?');assert.match(historical.reply,/2020-01-01/);assert.match(historical.reply,/saved priorities were/);assert.doesNotMatch(historical.reply,/Future/);
+ const historical=f.answer('What are my priorities?');assert.match(historical.reply,/1 de janeiro de 2020/);assert.match(historical.reply,/as prioridades registradas eram/);assert.doesNotMatch(historical.reply,/Future/);assert.equal(historical.lookup.date,'2020-01-01');
  f.write('daily-notes/2026-09-12.md',daily.replace('Prepare the talk','Current actual plan'));
  assert.match(f.answer('What are my priorities?').reply,/Current actual plan/);
 });
@@ -84,30 +84,31 @@ test('metrics reuse the shared parser, cache by file state, preserve zero and ne
  const f=fixture(t),file=f.write('system/metrics/metrics.csv',csv());
  const read=fs.readFileSync,reads=[];fs.readFileSync=function(file,...args){reads.push(String(file));return read.call(this,file,...args)};
  try{
-  assert.match(f.answer('How many subscribers do I have?').reply,/42 YouTube|YouTube has 42/);
-  const count=reads.length;assert.match(f.answer('How many Instagram followers do I have?').reply,/0 followers/);assert.equal(reads.length,count);
-  assert.match(f.answer('What is my YouTube view count for 28 days?').reply,/123,456 views over 28 days/);
+  assert.match(f.answer('How many subscribers do I have?').reply,/YouTube.*42 inscritos/);
+  const count=reads.length;assert.match(f.answer('How many Instagram followers do I have?').reply,/0 seguidores/);assert.equal(reads.length,count);
+  assert.match(f.answer('What is my YouTube view count for 28 days?').reply,/123456 visualizações em 28 dias/);
   fs.writeFileSync(file,csv(99));const stamp=new Date(Date.now()+2000);fs.utimesSync(file,stamp,stamp);
   assert.match(f.answer('How many subscribers do I have?').reply,/99/);
-  fs.unlinkSync(file);assert.match(f.answer('How many subscribers do I have?').reply,/don't have/);
+  fs.unlinkSync(file);assert.match(f.answer('How many subscribers do I have?').reply,/não tenho/i);
   assert.ok(reads.every(file=>file.endsWith(`${path.sep}system${path.sep}metrics${path.sep}metrics.csv`)),reads.join('\n'));
  }finally{fs.readFileSync=read}
 });
 
 test('stale, mock, malformed and missing metrics are distinguished from live values and zero',t=>{
  const f=fixture(t);
- f.write('system/metrics/metrics.csv',csv(123,'stale'));assert.match(f.answer('How many subscribers do I have?').reply,/123.*last saved reading/);
- f.write('system/metrics/metrics.csv',csv(42,'ok','2020-01-01T12:00:00Z'));assert.match(f.answer('How many subscribers do I have?').reply,/last saved reading/);
- f.write('system/metrics/metrics.csv',csv(123,'mock'));assert.match(f.answer('How many subscribers do I have?').reply,/don't have a usable/);
- f.write('system/metrics/metrics.csv','garbage');assert.match(f.answer('How many subscribers do I have?').reply,/don't have/);
+ f.write('system/metrics/metrics.csv',csv(123,'stale'));assert.match(f.answer('How many subscribers do I have?').reply,/123.*último registro salvo/);
+ f.write('system/metrics/metrics.csv',csv(42,'ok','2020-01-01T12:00:00Z'));assert.match(f.answer('How many subscribers do I have?').reply,/último registro salvo/);
+ f.write('system/metrics/metrics.csv',csv(123,'mock'));assert.match(f.answer('How many subscribers do I have?').reply,/não tenho um registro válido/i);
+ f.write('system/metrics/metrics.csv','garbage');assert.match(f.answer('How many subscribers do I have?').reply,/não tenho/i);
 });
 
 test('latest video preserves absent counts as unavailable instead of synthetic zero',t=>{
- const f=fixture(t);f.write('system/metrics/latest-video.json',{title:'The dashboard tour',views:0,comments:10,status:'ok',published_at:'2026-09-11T18:00:00Z'});
- assert.match(f.answer('What are the views on my latest video?').reply,/0 views/);
- assert.match(f.answer('What are the likes on my latest video?').reply,/isn't available/);
- assert.doesNotMatch(f.answer('What are the likes on my latest video?').reply,/0 likes/);
- assert.match(f.answer('When was my latest video published?').reply,/2026-09-11/);
+ const f=fixture(t);f.write('system/metrics/latest-video.json',{title:'The dashboard tour',views:0,comments:1,status:'ok',published_at:'2026-09-11T18:00:00Z'});
+ assert.match(f.answer('What are the views on my latest video?').reply,/0 visualizações/);
+ assert.match(f.answer('What are the comments on my latest video?').reply,/\b1 comentário\b/);
+ assert.match(f.answer('What are the likes on my latest video?').reply,/não tenho.*curtidas/i);
+ assert.doesNotMatch(f.answer('What are the likes on my latest video?').reply,/0 curtidas/);
+ assert.match(f.answer('When was my latest video published?').reply,/The dashboard tour foi publicado em 11 de setembro de 2026/);
  const context=getLookupContext(f.root,inspectLocalLookup('How is my latest video revenue doing?'),{now});assert.equal(context.video.likes,null);assert.equal(context.video.views,0);
 });
 
@@ -129,16 +130,16 @@ test('report discovery exposes only existing recorded safe outputs and invalidat
  f.write('system/runs/missing.json',{status:'ok',summary:'MISSING_SUMMARY',deliverable_path:'inbox/missing.md'});
  const read=fs.readFileSync,reads=[];fs.readFileSync=function(file,...args){reads.push(String(file));return read.call(this,file,...args)};
  try{
-  const reply=f.answer('What is my latest report?');assert.equal(reply.deliverable,'inbox/research/second.md');assert.match(reply.reply,/second summary/);
+  const reply=f.answer('What is my latest report?');assert.equal(reply.deliverable,'inbox/research/second.md');assert.match(reply.reply,/relatórios recentes.*The second summary/);
   const context=getLookupContext(f.root,{source:'reports'},{now});assert.equal(context.reports.length,2);assert.doesNotMatch(JSON.stringify(context),/PRIVATE_REPORT|UNSAFE|MISSING/);
   assert.ok(reads.every(file=>file.endsWith('.json')),reads.join('\n'));
   fs.writeFileSync(record,JSON.stringify({status:'error',summary:'failed'}));assert.equal(getLookupContext(f.root,{source:'reports'},{now}).reports.length,1);
-  fs.unlinkSync(path.join(f.root,'inbox/research/second.md'));assert.match(f.answer('What recent reports are available?').reply,/don't have/);
+  fs.unlinkSync(path.join(f.root,'inbox/research/second.md'));assert.match(f.answer('What recent reports are available?').reply,/não encontrei.*relatório/i);
  }finally{fs.readFileSync=read}
 });
 
 test('linked source directories cannot expose files outside the vault',t=>{
  const f=fixture(t),other=fixture(t);other.write('metrics.csv',csv(999));
  fs.mkdirSync(path.join(f.root,'system'),{recursive:true});fs.symlinkSync(other.root,path.join(f.root,'system/metrics'),process.platform==='win32'?'junction':'dir');
- const reply=f.answer('How many subscribers do I have?');assert.match(reply.reply,/don't have/);assert.doesNotMatch(reply.reply,/999/);
+ const reply=f.answer('How many subscribers do I have?');assert.match(reply.reply,/não tenho/i);assert.doesNotMatch(reply.reply,/999/);
 });

@@ -35,7 +35,7 @@ test('all 16 original Claude routing regressions retain their intent semantics',
   ['give me the rundown',2],['hey jarvis brief me',2],['can you hear me',2],['how many subscribers do I have',2],["what's in the queue",2],
   ['run the github trending',2,'running'],['run github trending again',1,'github-trending','running']
  ];
- withVoiceContext({root,exchanges:[]},()=>{for(const [utterance,tier,expected,running]of cases){const state=empty();if(expected==='running'||running)state.runs=[{skill:'github-trending',status:'running'}];const result=rules.inFlightGuard(rules.rulesRoute(utterance,state),utterance,state);assert.equal(result.tier,tier,utterance);if(expected==='fallthrough')assert.equal(result.fallthrough,true,utterance);else if(expected==='running')assert.match(result.reply,/already running/);else if(expected)assert.equal(result.skill,expected,utterance)}});
+ withVoiceContext({root,exchanges:[]},()=>{for(const [utterance,tier,expected,running]of cases){const state=empty();if(expected==='running'||running)state.runs=[{skill:'github-trending',status:'running'}];const result=rules.inFlightGuard(rules.rulesRoute(utterance,state),utterance,state);assert.equal(result.tier,tier,utterance);if(expected==='fallthrough')assert.equal(result.fallthrough,true,utterance);else if(expected==='running')assert.match(result.reply,/já está em execução/);else if(expected)assert.equal(result.skill,expected,utterance)}});
 });
 for(const provider of ['codex','claude']){
  test(`${provider}: legacy tasks require a supported skill, while valid legacy work remains compatible`,async t=>{
@@ -85,9 +85,9 @@ for(const provider of ['codex','claude']){
  test(`${provider}: historical priorities and focus are explicitly dated, never today's remaining work`,async t=>{
   const f=fixture(t);fs.renameSync(path.join(f.root,`daily-notes/${date()}.md`),path.join(f.root,'daily-notes/2020-01-01.md'));
   const priorities=await f.speak(provider,'What are my priorities?');
-  assert.match(priorities.reply,/no daily note for today/i);assert.match(priorities.reply,/2020-01-01/);assert.match(priorities.reply,/saved priorities were/);assert.doesNotMatch(priorities.reply,/still open|One left|cleared all/);
-  const focus=await f.speak(provider,'What is my focus?');assert.match(focus.reply,/No focus set for today/);assert.match(focus.reply,/2020-01-01/);assert.doesNotMatch(focus.reply,/Today's focus is/);
-  const schedule=await f.speak(provider,'What is on my schedule today?');assert.match(schedule.reply,/No schedule for today/);
+  assert.match(priorities.reply,/não há nota diária de hoje/i);assert.match(priorities.reply,/1 de janeiro de 2020/);assert.match(priorities.reply,/as prioridades registradas eram/i);assert.doesNotMatch(priorities.reply,/still open|One left|cleared all/);
+  const focus=await f.speak(provider,'What is my focus?');assert.match(focus.reply,/não há nota diária de hoje/i);assert.match(focus.reply,/1 de janeiro de 2020/);assert.doesNotMatch(focus.reply,/foco de hoje é/i);
+  const schedule=await f.speak(provider,'What is on my schedule today?');assert.match(schedule.reply,/não há (?:nota diária|uma agenda) (?:de|para) hoje/i);
   assert.equal(f.calls.length,0);
  });
  test(`${provider}: metrics, priorities, full briefing, read/open reports and UI stay model-free`,async t=>{
@@ -114,7 +114,7 @@ for(const provider of ['codex','claude']){
  });
  test(`${provider}: named workflows guard duplicate work and allow explicit reruns`,async t=>{
   const f=fixture(t);
-  await f.speak(provider,'Run github trending');const duplicate=await f.speak(provider,'Run github trending');assert.match(duplicate.reply,/already running/);assert.equal(f.calls.length,1);
+  await f.speak(provider,'Run github trending');const duplicate=await f.speak(provider,'Run github trending');assert.match(duplicate.reply,/já está em execução/);assert.equal(f.calls.length,1);
   await f.speak(provider,'Run github trending again');assert.equal(f.calls.length,2);assert.ok(f.calls.every(c=>c.selection.provider===provider));
  });
  test(`${provider}: snapshot questions, generic offers and required arguments use the correct fast model`,async t=>{
@@ -145,7 +145,7 @@ test('Fable override keeps quick replies model-free and selects the full worker 
  const f=fixture(t);assert.match((await f.speak('claude','Use fable and what are my priorities?')).reply,/Record the launch demo/);assert.equal(f.calls.length,0);
  const result=await f.speak('claude','Use fable and research Aurora',async(_root,job)=>{assert.equal(job.model,'haiku');return {text:JSON.stringify({tier:3,reply:'Researching Aurora.'})}});
  assert.equal(result.workerModel,'fable');assert.equal(f.calls[0].selection.model,'fable');assert.match(f.calls[0].prompt,/^research Aurora\n\nEarlier in this conversation \(for reference only\):\nUser: Use fable and what are my priorities\?/);assert.doesNotMatch(f.calls[0].prompt,/Original voice request|Background work|At \d{4}-/);
- await assert.rejects(f.speak('codex','Use haiku and research Aurora'),/not an enabled codex worker/);assert.equal(f.calls.length,1);
+ await assert.rejects(f.speak('codex','Use haiku and research Aurora'),/haiku está indisponível em codex/);assert.equal(f.calls.length,1);
 });
 test('fresh original named offers execute without a model',async t=>{
  const f=fixture(t);writeJson(f.root,'system/v2/voice-results/offer.json',{ts:Date.now(),provider:'codex',transcript:'Brief me',reply:'Want me to run the inbox audit?'});
@@ -184,7 +184,7 @@ test('concurrent vault requests retain separate roots during model awaits',async
 test('other provider task conversations are not prompt context, but active duplicate workflows are guarded',async t=>{
  const f=fixture(t);f.sessions.push({id:crypto.randomUUID(),provider:'claude',title:'PRIVATE_OTHER_TASK',state:'working',workflow:{skill:'github-trending'},turns:[{text:'OTHER_PROVIDER_ANSWER'}]});
  await f.speak('codex','What else can you say about that?',async(_root,job,prompt)=>{assert.doesNotMatch(prompt,/PRIVATE_OTHER_TASK|OTHER_PROVIDER_ANSWER/);return {text:JSON.stringify({tier:2,reply:'Which topic do you mean?'})}});
- const reply=await f.speak('codex','Run github trending');assert.match(reply.reply,/already running/);assert.equal(f.calls.length,0);
+ const reply=await f.speak('codex','Run github trending');assert.match(reply.reply,/já está em execução/);assert.equal(f.calls.length,0);
 });
 const bundle=await build({entryPoints:['shared/voice-session.ts'],bundle:true,platform:'node',format:'esm',write:false});
 const {VoiceSession}=await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'));

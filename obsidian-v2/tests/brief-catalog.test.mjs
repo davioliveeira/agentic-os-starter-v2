@@ -52,9 +52,9 @@ test('catalog retains only bounded public briefing facts, preserving distinct ra
  assert.doesNotMatch(JSON.stringify(catalog),/private|invoice|embargoed/i);
  assert.match(getBriefCatalog(f.root,now,{includeSummary:true}).summary,/Private invoice/);
  assert.doesNotMatch(JSON.stringify(getBriefCatalog(f.root,now)),/private|invoice|embargoed/i,'whole-brief opt-in never leaks into later public news lookups');
- const answer=readBriefLookupReply(f.root,[{source:'hn',rank:'comments',offset:1}],now);assert.match(answer.reply,/2\. Third item/);assert.deepEqual(answer.lookup,{date,briefSource:`inbox/research/morning-intel/${date}-intel.md`,plan:[{source:'hn',rank:'comments',offset:1}]});
- assert.match(readBriefLookupReply(f.root,[{source:'brief',rank:'points',count:3}],now).reply,/Public lead.*Second public.*Third public/);
- assert.match(readBriefLookupReply(f.root,[{source:'brief',rank:'points',count:5}],now).reply,/doesn't include that many/);
+ const answer=readBriefLookupReply(f.root,[{source:'hn',rank:'comments',offset:1}],now);assert.match(answer.reply,/Hacker News por comentários: 2\. Third item/);assert.deepEqual(answer.lookup,{date,briefSource:`inbox/research/morning-intel/${date}-intel.md`,plan:[{source:'hn',rank:'comments',offset:1}]});
+ assert.match(readBriefLookupReply(f.root,[{source:'brief',rank:'points',count:3}],now).reply,/Manchetes do boletim da manhã de hoje:.*Public lead.*Second public.*Third public/);
+ assert.match(readBriefLookupReply(f.root,[{source:'brief',rank:'points',count:5}],now).reply,/tem menos manchetes públicas do que você pediu/);
  const copy=getBriefCatalog(f.root,now);copy.headlines.push('Injected');assert.equal(getBriefCatalog(f.root,now).headlines.length,3);
 });
 test('warm catalog reuses discovery and parsed facts and invalidates on edit/create/delete/day rollover',t=>{

@@ -53,7 +53,7 @@ for(const provider of ['codex','claude']){
   ]){
    const result=await f.speak(provider,text);
    assert.equal(result.model,null,text);assert.deepEqual(result.workIds,[]);assert.equal(result.action,'reply');assert.equal(result.transcript,text);
-   assert.ok(result.deliverable.endsWith('-intel.md'));assert.equal((result.reply.match(/saved morning brief/g)||[]).length,1);
+   assert.ok(result.deliverable.endsWith('-intel.md'));assert.equal((result.reply.match(/boletim da manhã de hoje/g)||[]).length,1);
    assert.match(result.reply,text.includes('most comments')?/Most-discussed story/:/A misalignment of AI in mathematics/);
    assert.doesNotMatch(result.reply,/RubyGems/);
   }
@@ -65,7 +65,7 @@ for(const provider of ['codex','claude']){
    assert.match(result.reply,/RubyGems.*A misalignment of AI in mathematics/);assert.ok(result.deliverable.endsWith('-intel.md'));
   }
   const ranks=await f.speak(provider,'What HN story had the most points and the most comments today?');
-  assert.match(ranks.reply,/mathematics.*most points.*Most-discussed story.*most comments/);assert.equal(ranks.model,null);
+  assert.match(ranks.reply,/mathematics.*por pontos.*Most-discussed story.*por comentários/);assert.equal(ranks.model,null);
  });
  test(`${provider}: repetition does not hide compound work or unknown read requests`,async t=>{
   const f=fixture(t);f.write(report);
@@ -92,12 +92,12 @@ for(const provider of ['codex','claude']){
   const f=fixture(t);f.write(report);
   const result=await f.speak(provider,'So what was the biggest story in Hacker News today?',undefined,{workTarget:crypto.randomUUID()});
   assert.equal(result.tier,1);assert.equal(result.model,null);assert.equal(result.workerModel,null);assert.equal(result.action,'reply');assert.deepEqual(result.workIds,[]);
-  assert.match(result.reply,/saved morning brief.*A misalignment of AI in mathematics.*1,050 points and 1,003 comments/);
+  assert.match(result.reply,/boletim da manhã de hoje.*A misalignment of AI in mathematics.*1050 pontos e 1003 comentários/);
   assert.doesNotMatch(result.reply,/RubyGems|inbox|dig into|working/i);assert.equal(result.deliverable,`inbox/research/morning-intel/${localDate()}-intel.md`);
   const receipt=JSON.parse(fs.readFileSync(path.join(f.root,'system/v2/voice-results',result.id+'.json'),'utf8'));
   assert.equal(receipt.transcript,'So what was the biggest story in Hacker News today?');
   const comments=await f.speak(provider,'Which HN story was most discussed today?');
-  assert.match(comments.reply,/Most-discussed story.*most comments.*99 points and 2,003 comments/);
+  assert.match(comments.reply,/Most-discussed story.*por comentários.*99 pontos e 2003 comentários/);
   const ai=await f.speak(provider,'What was the biggest story in AI today?');
   assert.match(ai.reply,/RubyGems/);assert.doesNotMatch(ai.reply,/mathematics/);
  });
@@ -130,19 +130,20 @@ for(const provider of ['codex','claude']){
 test('source ranking parser supports column order and escaped pipes, reports ties honestly',t=>{
  const f=fixture(t);f.write('## Hacker News\n| Story | Comments | Points |\n|:---|---:|---:|\n| [A \\| B](https://example.test/a) | 20 | 1,100 |\n| Other | 99 | 1,100 |');
  const result=readHackerNewsReply(f.root);
- assert.match(result.reply,/A \| B was tied for the most points/);
+ assert.match(result.reply,/A \| B empatou na liderança.*por pontos/);
  assert.deepEqual(parseHackerNews('## HN Pulse\n| Title | Score | Replies |\n|---|---|---|\n| Zero comments | 1 | 0 |'),[{title:'Zero comments',points:1,comments:0,url:null}]);
+ assert.deepEqual(parseHackerNews('## Hacker News\n| Notícia | Pontos | Comentários |\n|---|---|---|\n| Artigo de exemplo | 50 | 12 |'),[{title:'Artigo de exemplo',points:50,comments:12,url:null}]);
 });
 test('missing, old, future, oversized and malformed source rankings stay truthful',t=>{
  const f=fixture(t),now=new Date(2026,8,12,12);
- assert.match(readHackerNewsReply(f.root,'points',now).reply,/don't have today's/);
+ assert.match(readHackerNewsReply(f.root,'points',now).reply,/Ainda não tenho o boletim da manhã de hoje/);
  f.write(report,'2026-09-11');f.write(report,'2026-09-13');
- assert.match(readHackerNewsReply(f.root,'points',now).reply,/latest one is from 2026-09-11/);
+ assert.match(readHackerNewsReply(f.root,'points',now).reply,/mais recente é de 2026-09-11/);
  for(const raw of ['', '## Top Story\nUnrelated editorial lead.',report.replace('| 1,050 |','| unknown |'),report.replace('| 1,050 |','| 1,05 |'),report.replace('| 1,050 |','| -1 |'),report.replace('| 1,050 |','| 9007199254740992 |')]){
   f.write(raw,'2026-09-12');const reply=readHackerNewsReply(f.root,'points',now).reply;
-  assert.match(reply,/doesn't include a readable Hacker News ranking/);assert.doesNotMatch(reply,/RubyGems|most points|dig into/i);
+  assert.match(reply,/não traz um ranking legível do Hacker News/);assert.doesNotMatch(reply,/RubyGems|most points|dig into/i);
  }
- f.write('x'.repeat(512001),'2026-09-12');assert.match(readHackerNewsReply(f.root,'points',now).reply,/too large/);
+ f.write('x'.repeat(512001),'2026-09-12');assert.match(readHackerNewsReply(f.root,'points',now).reply,/longo demais/);
 });
 test('HN quick scope excludes other dates, partial rankings, filtered topics and extra actions',()=>{
  for(const text of [

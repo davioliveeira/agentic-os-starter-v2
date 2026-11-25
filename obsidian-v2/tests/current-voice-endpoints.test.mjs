@@ -85,7 +85,7 @@ for(const target of ['missing','other-app','other-provider'])test(`native work s
  const f=fixture(t,{scope:'native'}),task=f.add(target==='other-provider'?'claude':'codex',target==='other-app'?'web':'native');
  if(target==='missing')f.records.delete(task.id);
  const response=await f.voice('Create a visual explainer',{targetId:task.id});
- assert.equal(response.status,400);assert.match(response.value.error,target==='missing'?/unavailable/:target==='other-app'?/other app/:/different provider/);
+ assert.equal(response.status,400);assert.match(response.value.error,target==='missing'?/conversa está indisponível/:target==='other-app'?/outro aplicativo/:/outro provedor/);
  assert.equal(f.calls.length,0);assert.equal(f.counts().models,0);assert.equal(f.terminals.live.size,0);assert.equal(f.state().codex,null);
 });
 

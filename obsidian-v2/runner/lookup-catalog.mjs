@@ -164,51 +164,63 @@ export function getLookupContext(root,request,{now=new Date()}={}){
  if(request?.source==='metrics')return {source:'metrics',...metricsData(root,now,request.platform)};
  if(request?.source==='latest-upload')return {source:'latest-upload',...videoData(root,now)};
  if(request?.source==='reports')return {source:'reports',...reportData(root)};
- return {sources:[{source:'daily',contains:'Today’s priorities, schedule and focus'},{source:'metrics',contains:'Saved YouTube subscribers and 28-day views; Instagram and TikTok followers'},{source:'latest-upload',contains:'Latest saved YouTube upload title, views, likes and comments'},{source:'reports',contains:'Recent completed report summaries'}]};
+ return {sources:[{source:'daily',contains:'Prioridades, agenda e foco de hoje'},{source:'metrics',contains:'Registros de inscritos e visualizações em 28 dias no YouTube e de seguidores no Instagram e no TikTok'},{source:'latest-upload',contains:'Título, visualizações, curtidas e comentários do vídeo mais recente registrado do YouTube'},{source:'reports',contains:'Resumos dos relatórios concluídos recentemente'}]};
 }
 export function getLocalCatalog(root,{now=new Date(),sources=[]}={}){
  return {date:dateAt(now),...getLookupContext(root,null),available:sources.filter(s=>['daily','metrics','latest-upload','reports'].includes(s)).slice(0,4).map(source=>getLookupContext(root,{source},{now}))};
 }
-const number=value=>new Intl.NumberFormat('en-US',{maximumFractionDigits:0}).format(value);
+// Keep counts ungrouped so the speech formatter can read the exact digits.
+const number=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0,useGrouping:false});
+const dateLabel=(date,timeZone=TIME_ZONE)=>new Intl.DateTimeFormat('pt-BR',{dateStyle:'long',timeZone}).format(date);
 const friendly=platform=>({youtube:'YouTube',instagram:'Instagram',tiktok:'TikTok'})[platform]||platform;
-const freshMessage=(status,age)=>status==='stale'||age===null||age>24?' This is the last saved reading, not a live check.':'';
+const metricLabels={
+ subscribers:['inscrito','inscritos'],followers:['seguidor','seguidores'],views_28d:['visualização em 28 dias','visualizações em 28 dias'],
+ views:['visualização','visualizações'],likes:['curtida','curtidas'],comments:['comentário','comentários'],
+};
+const metricLabel=(metric,value)=>metricLabels[metric]?.[Math.round(Math.abs(value))===1?0:1]??metric;
+const freshMessage=(status,age)=>status==='stale'||age===null||age>24?' O dado vem do último registro salvo, sem consulta em tempo real.':'';
 export function answerLocalLookup(root,request,{now=new Date()}={}){
  if(request?.kind!=='lookup')return null;
  const context=getLookupContext(root,request,{now});
  const lookup={source:request.source,date:context.date||dateAt(now),path:context.path||null,...(request.field?{field:request.field}:{})};
  const result=reply=>({reply:shorten(reply,780),lookup,...(['current','historical'].includes(context.status)&&request.source==='daily'?{deliverable:context.path}:{}),panels:[request.source==='daily'?'priorities':request.source==='reports'?'documents':'vitals']});
  if(request.source==='daily'){
-  if(context.status==='missing')return result(request.field==='schedule'?"No schedule for today: I don't have a daily note for today.":"I don't have a daily note for today, so I can't confirm today's plan.");
-  const historical=context.status==='historical',lead=historical?`There is no daily note for today. On ${context.date}, your saved`:'Today’s saved';
+  if(context.status==='missing')return result(request.field==='schedule'?'Não há nota diária de hoje para consultar a agenda.':'Não consigo confirmar o plano de hoje porque não há nota diária de hoje.');
+  const historical=context.status==='historical';
+  const lead=historical?'Não há nota diária de hoje. ':'';
+  const note=historical?`Na nota de ${dateLabel(new Date(`${context.date}T00:00:00Z`),'UTC')}`:'Na nota de hoje';
   if(request.field==='priority-status'){
    const priority=context.priorities[request.index];
-   return result(priority?`${historical?`On ${context.date}`:'In today’s note'}, priority ${request.index+1}, ${priority.text}, is ${priority.done?'checked off':'not checked off'}.`:`${lead} note has no priority ${request.index+1} saved.`);
+   return result(priority?`${note}, a prioridade ${request.index+1}, ${priority.text}, ${priority.done?'está marcada como concluída':'não está marcada como concluída'}.`:`${lead}${note}, a prioridade ${request.index+1} não está registrada.`);
   }
-  if(request.field==='focus')return result(context.focus?`${historical?`No focus set for today. On ${context.date}, your saved`:lead} focus ${historical?'was:': 'is:'} ${context.focus}`:`${lead} note doesn't have a current focus saved.`);
-  if(request.field==='schedule')return result(context.schedule.length?`${lead} schedule ${historical?'was:':'is:'} ${context.schedule.map(s=>`${s.time}, ${s.item}`).join('; ')}.${context.scheduleCount>16?` Showing the first 16 of ${context.scheduleCount} saved entries.`:''}`:`${lead} note has no schedule entries saved.`);
+  if(request.field==='focus')return result(context.focus?`${lead}${note}, o foco registrado ${historical?'era':'é'} ${context.focus}`:`${lead}${note}, não há foco registrado.`);
+  if(request.field==='schedule')return result(context.schedule.length?`${lead}${note}, a agenda ${historical?'era':'é'} a seguinte. ${context.schedule.map(s=>`Às ${s.time}, ${s.item}`).join('. ')}.${context.scheduleCount>16?` Estes são os primeiros 16 de ${context.scheduleCount} compromissos registrados.`:''}`:`${lead}${note}, não há compromissos registrados na agenda.`);
   const items=context.priorities.filter(p=>request.state==='open'?!p.done:request.state==='done'?p.done:true);
-  return result(items.length?`${lead} ${request.state==='open'?'remaining ':request.state==='done'?'completed ':''}priorities ${historical?'were:':'are:'} ${items.map((p,i)=>`${i+1}, ${p.text}${p.done&&request.state!=='done'?' (done)':''}`).join('; ')}.`:request.state==='open'&&context.priorities.length?`${lead} priorities are all checked off.`:`${lead} note has no matching priorities saved.`);
+  const priorities=request.state==='open'?'prioridades pendentes':request.state==='done'?'prioridades concluídas':'prioridades registradas';
+  if(items.length)return result(`${lead}${note}, as ${priorities} ${historical?'eram':'são'} as seguintes. ${items.map((p,i)=>`Prioridade ${i+1}, ${p.text}${p.done&&request.state!=='done'?' (concluída)':''}`).join('. ')}.`);
+  return result(request.state==='open'&&context.priorities.length?`${lead}${note}, todas as prioridades estão marcadas como concluídas.`:`${lead}${note}, não há ${priorities}.`);
  }
  if(request.source==='metrics'){
   const m=context.metrics.find(m=>m.platform===request.platform&&m.metric===request.metric);
-  const label=request.metric==='views_28d'?'views over 28 days':request.metric;
-  if(!m||!Number.isFinite(m.value)||!['ok','stale'].includes(m.status))return result(`I don't have a usable saved ${friendly(request.platform)} ${label} reading.`);
-  return result(`${friendly(request.platform)} has ${number(m.value)} ${label} in the saved metrics.${freshMessage(m.status,m.ageHours)}`);
+  const platform=friendly(request.platform);
+  if(!m||!Number.isFinite(m.value)||!['ok','stale'].includes(m.status))return result(`Não tenho um registro válido de ${metricLabel(request.metric)} do ${platform}.`);
+  return result(`As métricas salvas do ${platform} mostram ${number.format(m.value)} ${metricLabel(request.metric,m.value)}.${freshMessage(m.status,m.ageHours)}`);
  }
  if(request.source==='latest-upload'){
-  const v=context.video;if(!v)return result("I don't have a saved latest upload right now.");
-  if(request.field==='title')return result(`Your latest saved upload is ${v.title}.`);
-  if(request.field==='link')return result(/^https?:\/\//i.test(v.url)?`The saved link for ${v.title} is ${v.url}`:"The latest upload doesn't have a saved link.");
-  if(request.field==='published')return result(Number.isFinite(Date.parse(v.published_at))?`${v.title} was published on ${dateAt(new Date(v.published_at))}.`:"The latest upload doesn't have a valid saved publication date.");
+  const v=context.video;if(!v)return result('Ainda não tenho um registro do seu vídeo mais recente.');
+  if(request.field==='title')return result(`O vídeo mais recente que tenho registrado é ${v.title}.`);
+  if(request.field==='link')return result(/^https?:\/\//i.test(v.url)?`O link salvo de ${v.title} é ${v.url}`:'O vídeo mais recente está sem link no registro.');
+  if(request.field==='published')return result(Number.isFinite(Date.parse(v.published_at))?`${v.title} foi publicado em ${dateLabel(new Date(v.published_at))}.`:'O vídeo mais recente está sem uma data de publicação válida no registro.');
   const keys=request.field==='overview'?['views','likes','comments']:[request.field];
   const available=keys.filter(key=>v[key]!==null&&Number.isFinite(v[key]));
-  if(!['ok','stale'].includes(v.status)||!available.length)return result(`I have ${v.title} saved, but its ${request.field==='overview'?'performance':request.field} reading isn't available.`);
-  return result(`${v.title}: ${available.map(key=>`${number(v[key])} ${key}`).join(', ')}.${freshMessage(v.status,context.ageHours)}`);
+  if(!['ok','stale'].includes(v.status)||!available.length)return result(`Não tenho dados de ${request.field==='overview'?'desempenho':metricLabel(request.field)} no registro de ${v.title}.`);
+  return result(`O registro de ${v.title} mostra ${available.map(key=>`${number.format(v[key])} ${metricLabel(key,v[key])}`).join(', ')}.${freshMessage(v.status,context.ageHours)}`);
  }
  if(request.source==='reports'){
   const reports=context.reports.slice(0,request.field==='latest'?1:3);
-  if(!reports.length)return result("I don't have any readable completed reports in the recent saved run records.");
-  const r=result(`${context.truncated?'Among the recent reports I indexed':'Recent saved reports'}: ${reports.map(row=>`${row.title}${row.summary?`: ${row.summary}`:''}`).join('; ')}`);
+  if(!reports.length)return result('Não encontrei nenhum relatório concluído que possa ser lido nos registros recentes de execução.');
+  const heading=context.truncated?'Entre os registros que consegui consultar, encontrei estes relatórios recentes.':'Encontrei estes relatórios recentes salvos.';
+  const r=result(`${heading} ${reports.map(row=>`${row.title}${row.summary?`. ${row.summary}`:''}`).join('. ')}`);
   if(reports.length===1)r.deliverable=reports[0].path;
   return r;
  }

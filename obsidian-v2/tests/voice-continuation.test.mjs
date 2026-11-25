@@ -115,8 +115,8 @@ for(const provider of ['codex','claude']){
   for(const state of ['working','needs input','stopped']){
    const task=f.add({state});await assert.rejects(f.speak('Research RubyGems',task.id,f.output()),/working or needs terminal input|Resume this terminal/);
   }
-  await assert.rejects(f.speak('Research RubyGems',crypto.randomUUID(),f.output()),/conversation is unavailable/);
-  const foreign=f.add({provider:provider==='codex'?'claude':'codex'});await assert.rejects(f.speak('Research RubyGems',foreign.id,f.output()),/different provider/);
+  await assert.rejects(f.speak('Research RubyGems',crypto.randomUUID(),f.output()),/conversa está indisponível/);
+  const foreign=f.add({provider:provider==='codex'?'claude':'codex'});await assert.rejects(f.speak('Research RubyGems',foreign.id,f.output()),/outro provedor/);
   assert.equal(f.calls.length,0);assert.equal(f.updates.length,0);
  });
  test(`${provider}: workflow continuation uses the guarded workflow method and current model`,async t=>{

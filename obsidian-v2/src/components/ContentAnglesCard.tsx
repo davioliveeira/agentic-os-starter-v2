@@ -51,7 +51,7 @@ export function ContentAnglesCard({ app, limit = 4 }: Props) {
 							type="button"
 							className="aos-v2-cc-feed-headlink"
 							onClick={openReport}
-							title={`open ${brief.path}`}
+							title={`Abrir ${brief.path}`}
 						>
 							↗
 						</button>

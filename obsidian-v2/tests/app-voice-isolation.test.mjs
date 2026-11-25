@@ -60,7 +60,7 @@ for(const provider of ['codex','claude']){
   assert.ok(!voiceMemory(f.root,provider,'native').some(item=>item.you==='NATIVE_CONTEXT'));
   assert.equal(voiceMemory(f.root,provider)[0].you,'WEB_CONTEXT');
   const beforeReplay=readCurrentState(f.root,'native');assert.deepEqual(await f.speak('native','Start a new conversation',{id}),result);assert.deepEqual(readCurrentState(f.root,'native'),beforeReplay);
-  await assert.rejects(f.speak('web','Start a new conversation',{id}),/request|app/i);assert.deepEqual(readCurrentState(f.root),webBefore);
+  await assert.rejects(f.speak('web','Start a new conversation',{id}),/identificador de pedido por voz já foi usado/);assert.deepEqual(readCurrentState(f.root),webBefore);
  });
 
  test(`${provider}: an inline fresh task retains only its native request and selects no web terminal`,async t=>{

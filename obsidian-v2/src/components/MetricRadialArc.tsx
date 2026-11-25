@@ -71,7 +71,7 @@ export function MetricRadialArc({ pct, rawValue, budget }: Props) {
 				viewBox="0 0 100 100"
 				width="100%"
 				height="100%"
-				aria-label={`${clamped.toFixed(0)} percent of budget`}
+				aria-label={`${clamped.toFixed(0)}% do limite`}
 			>
 				{/* Track */}
 				<circle

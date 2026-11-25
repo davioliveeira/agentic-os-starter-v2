@@ -20,10 +20,10 @@ const state={generated_at:new Date().toISOString(),vault_root:'.',metrics:[],run
 const rulesReply=t=>{const r=rulesRoute(t,state);return r.fallthrough?null:r.reply};
 
 test('small talk answers only when the whole utterance is small talk',()=>{
- assert.equal(rulesReply('thanks jarvis'),'Anytime.');assert.equal(rulesReply('Thank you so much!'),'Anytime.');
- assert.equal(rulesReply('can you hear me?'),'Loud and clear.');assert.equal(rulesReply("Hey, how's it going?"),'Running smooth — all systems green. What do you need?');
- assert.equal(rulesReply('good night'),"Goodnight. I'll keep watch.");assert.equal(rulesReply('okay cool'),'Standing by.');assert.match(rulesReply("what's up jarvis"),/^Not much/);
- for(const t of ['thanks jarvis, now research jev',"how's it going with the jev explainer",'can you hear me? okay research jev','good night, but first run the morning report',"what's up with the jev task",'how are you getting on with the explainer'])assert.doesNotMatch(String(rulesReply(t)||''),/Anytime|Loud and clear|Running smooth|Goodnight|Not much/,t);
+ assert.equal(rulesReply('thanks jarvis'),'De nada.');assert.equal(rulesReply('Thank you so much!'),'De nada.');
+ assert.equal(rulesReply('can you hear me?'),'Sim, estou te ouvindo bem.');assert.equal(rulesReply("Hey, how's it going?"),'Tudo funcionando bem. Como posso ajudar?');
+ assert.equal(rulesReply('good night'),'Boa noite. Fico de olho por aqui.');assert.equal(rulesReply('okay cool'),'Fico à disposição.');assert.match(rulesReply("what's up jarvis"),/^Por aqui/);
+ for(const t of ['thanks jarvis, now research jev',"how's it going with the jev explainer",'can you hear me? okay research jev','good night, but first run the morning report',"what's up with the jev task",'how are you getting on with the explainer'])assert.notEqual(rulesRoute(t,state).rule,'smalltalk',t);
 });
 
 test('a leading pleasantry is dropped from a request and kept when it is the whole utterance',()=>{
@@ -36,7 +36,7 @@ test('a leading pleasantry is dropped from a request and kept when it is the who
 });
 
 test('the daily-note write rules never swallow a second request',()=>{
- for(const t of ['add record the demo to my tasks and draft an outline for it','check off priority two and then tell me what is left','mark the demo done and open my daily note'])assert.doesNotMatch(String(rulesReply(t)||''),/Added to today|Checked off|checked off|Unchecked|couldn't find/,t);
+ for(const t of ['add record the demo to my tasks and draft an outline for it','check off priority two and then tell me what is left','mark the demo done and open my daily note'])assert.notEqual(rulesRoute(t,state).rule,'vaultWrite',t);
 });
 
 test('stop, supersede and compound intents are recognised narrowly',()=>{
@@ -69,18 +69,18 @@ function fixture(t){
 test('a pleasantry in front of a request no longer eats the request',async t=>{
  const f=fixture(t);
  const research=await f.speak("Thanks. Now can you research Jev's pricing model?");
- assert.equal(research.workIds.length,1);assert.notEqual(research.reply,'Anytime.');
+ assert.equal(research.workIds.length,1);assert.notEqual(research.reply,'De nada.');
  // Routing drops the pleasantry; the worker still sees the words as spoken.
  const started=f.calls.find(c=>c.kind==='start');assert.match(started.prompt,/research Jev's pricing model/);assert.match(started.prompt,/Original voice request: Thanks\. Now can you research/);
  const mic=await f.speak('Can you hear me? Okay, research Jev.');
- assert.equal(mic.workIds.length,1);assert.notEqual(mic.reply,'Loud and clear.');
- const thanks=await f.speak('thanks jarvis',{execute:f.noModel});assert.equal(thanks.reply,'Anytime.');assert.deepEqual(thanks.workIds,[]);
+ assert.equal(mic.workIds.length,1);assert.notEqual(mic.reply,'Sim, estou te ouvindo bem.');
+ const thanks=await f.speak('thanks jarvis',{execute:f.noModel});assert.equal(thanks.reply,'De nada.');assert.deepEqual(thanks.workIds,[]);
 });
 
 test('asking how a selected task is going is a question about the task, not a greeting',async t=>{
  const f=fixture(t);const task=f.task('ready');
  const r=await f.speak("How's it going with the Jev explainer?",{workTarget:task.id});
- assert.notEqual(r.reply,'Running smooth — all systems green. What do you need?');
+ assert.notEqual(r.reply,'Tudo funcionando bem. Como posso ajudar?');
  assert.equal(f.calls.at(-1).kind,'send');assert.equal(f.calls.at(-1).id,task.id);
 });
 
@@ -123,7 +123,7 @@ test('a stop never touches a foreign selection, and a named provider is honoured
  const claude=f.task('working','Claude research',{provider:'claude',model:'sonnet'});
  const web=f.task('working','Web task',{execution:undefined});
  for(const [transcript,foreign] of [['Stop that.',claude],['Stop that.',web],['Instead of that, create a red square.',claude]]){
-  await assert.rejects(f.speak(transcript,{workTarget:foreign.id,execute:f.noModel}),/No task was stopped|belongs to the other app|different provider|unavailable/);
+  await assert.rejects(f.speak(transcript,{workTarget:foreign.id,execute:f.noModel}),/conversa está indisponível|outro aplicativo|outro provedor/);
   assert.equal(f.calls.filter(c=>c.kind==='stop').length,0,transcript);
  }
  const codex=f.task('working','Codex explainer');
@@ -207,6 +207,6 @@ test('a time phrase after this is not a missing reference',async t=>{
 
 test('the add-task rule joins a personal title, never a second sentence or a trailing question',()=>{
  for(const t of ['Add record the demo to my tasks and please can you tell me what is left?','Add record the demo to my tasks and what is left on my list?','Add record the demo to my tasks and how many are left?','Add contact Acme Inc. What should I ask them?','Add review Plan B. Who owns it?'])assert.equal(rulesReply(t),null,t);
- assert.doesNotMatch(String(rulesReply('Add record the demo to my tasks and is the runner up?')||''),/Added to today/);
+ assert.notEqual(rulesRoute('Add record the demo to my tasks and is the runner up?',state).rule,'vaultWrite');
  for(const t of ['Add call Dr. Smith to my tasks.','Add email Mr. Jones to my tasks','Add record the demo to my tasks'])assert.throws(()=>rulesRoute(t,state),/Voice request context is missing/,t);
 });

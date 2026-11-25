@@ -24,8 +24,8 @@ const workAcceptedReply=createWorkAcknowledgments();
 export function health(root){const h=readJson(root,`${ROOT}/runner-status.json`,null);return h&&Date.now()-Date.parse(h.ts)<20000?h:null}
 export function enqueue(root,skill,chosen,id=crypto.randomUUID(),args={},{resolveCli=findCli,beforeWrite}={}){
  const job={version:2,id,...validateSelection(chosen),skill,args,from:'plugin',ts:new Date().toISOString(),...(chosen.provider==='codex'&&modelFamily('codex',chosen.model)==='astra'?{reasoning_effort:'medium'}:{})};validateIntent(job);
- if(!health(root))throw new Error('V2 worker is offline. Start the V2 worker and try again.');
- if(!SKILLS[skill].direct&&!resolveCli(job.provider))throw new Error(`${job.provider} CLI is not installed. Choose an installed provider.`);
+ if(!health(root))throw new Error('O executor V2 está offline. Inicie o serviço e tente novamente.');
+ if(!SKILLS[skill].direct&&!resolveCli(job.provider))throw new Error(`A CLI de ${job.provider} está indisponível. Escolha um provedor instalado.`);
  // Reusing a request ID must never execute another job, even after restart.
  for(const dir of ['queue','processing','runs'])if(fs.existsSync(vaultPath(root,`${ROOT}/${dir}/${id}.json`)))return {id,provider:job.provider,model:job.model};
  beforeWrite?.();
@@ -34,9 +34,9 @@ export function enqueue(root,skill,chosen,id=crypto.randomUUID(),args={},{resolv
 export function parseRoute(text){
  const clean=text.trim().replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,'');
  const r=JSON.parse(clean);
- if(!['task','tasks','status','cockpit','reply'].includes(r.action)||typeof r.reply!=='string'||!r.reply.trim()||r.reply.length>800)throw new Error('Voice router returned an invalid response. Please rephrase.');
- if(r.action==='tasks'&&(!Array.isArray(r.tasks)||!r.tasks.length||r.tasks.length>12||r.tasks.some(t=>typeof t.prompt!=='string'||!t.prompt.trim()||t.prompt.length>4000)))throw new Error('Invalid task breakdown. Please rephrase.');
- if(r.action==='task'&&!Object.hasOwn(SKILLS,r.skill))throw new Error('That workflow is not connected to V2 yet.');
+ if(!['task','tasks','status','cockpit','reply'].includes(r.action)||typeof r.reply!=='string'||!r.reply.trim()||r.reply.length>800)throw new Error('O roteador de voz retornou uma resposta inválida. Reformule o pedido.');
+ if(r.action==='tasks'&&(!Array.isArray(r.tasks)||!r.tasks.length||r.tasks.length>12||r.tasks.some(t=>typeof t.prompt!=='string'||!t.prompt.trim()||t.prompt.length>4000)))throw new Error('A divisão em tarefas é inválida. Reformule o pedido.');
+ if(r.action==='task'&&!Object.hasOwn(SKILLS,r.skill))throw new Error('Esse fluxo ainda está indisponível no V2.');
  return r;
 }
 export function directVoiceRoute(transcript){
@@ -45,21 +45,21 @@ export function directVoiceRoute(transcript){
  if(/^(?:is (?:the )?(?:v2 )?worker online|worker status|check (?:the )?worker status)$/.test(text))return {action:'status',reply:''};
  return null;
 }
-export async function routeVoice(root,{id,transcript,selection:chosen,terminalMode=false,workTarget=null,conversationEpoch:requestEpoch,appScope='web',origin='live',transport:requestTransport='local',liveCallId,liveTurns,liveTaskIds},signal,execute=executeFastVoice,terminals=null,{jev,strict,resolveCli=findCli,updateCurrent=()=>{},onDispatch=()=>{},reopenArtifact=()=>{throw new Error('No connected dashboard can display that file right now.')},guard,phase,plannedAction,beforeCommit,transport=requestTransport,handoffTarget=null,hasSkill=skillExists}={}){
- if(!['web','native'].includes(appScope))throw new Error('Invalid application scope');
+export async function routeVoice(root,{id,transcript,selection:chosen,terminalMode=false,workTarget=null,conversationEpoch:requestEpoch,appScope='web',origin='live',transport:requestTransport='local',liveCallId,liveTurns,liveTaskIds},signal,execute=executeFastVoice,terminals=null,{jev,strict,resolveCli=findCli,updateCurrent=()=>{},onDispatch=()=>{},reopenArtifact=()=>{throw new Error('Abra um painel conectado para exibir esse arquivo.')},guard,phase,plannedAction,beforeCommit,transport=requestTransport,handoffTarget=null,hasSkill=skillExists}={}){
+ if(!['web','native'].includes(appScope))throw new Error('Aplicativo inválido.');
  validateSelection(chosen);
- if(typeof transcript!=='string'||!transcript.trim()||transcript.length>4000)throw new Error('No speech detected, or the request was too long.');
+ if(typeof transcript!=='string'||!transcript.trim()||transcript.length>4000)throw new Error('Fale novamente com um pedido mais curto. O áudio anterior não pôde ser processado.');
  if(signal?.aborted)throw new Error('Voice request cancelled');
- if(!['local','live'].includes(transport))throw new Error('Invalid voice transport');
- if(phase!==undefined&&!['plan','commit'].includes(phase))throw new Error('Invalid voice routing phase');
+ if(!['local','live'].includes(transport))throw new Error('Modo de voz inválido.');
+ if(phase!==undefined&&!['plan','commit'].includes(phase))throw new Error('Etapa de roteamento de voz inválida.');
  const planning=phase==='plan';
  const profile=()=>readJson(root,`${ROOT}/provider.json`,null);
  const request={id,transcript,selection:chosen,terminalMode,workTarget,conversationEpoch:requestEpoch??null,appScope,origin,transport,...(transport==='live'&&liveCallId?{liveCallId}:{})};
- const mutations=voiceEffectRunner(root,terminals,{guard:planning?()=>{throw new Error('Voice planning reached a mutation')}:guard,enqueue,resolveCli,updateCurrent,onDispatch,reopenArtifact});
+ const mutations=voiceEffectRunner(root,terminals,{guard:planning?()=>{throw new Error('O planejamento tentou executar uma alteração.')}:guard,enqueue,resolveCli,updateCurrent,onDispatch,reopenArtifact});
  const receiptPath=`${ROOT}/voice-results/${id}.json`;
  const saved=readJson(root,receiptPath,null);
  if(saved){
-  if(saved.provider!==chosen.provider||saved.transcript!==transcript||(saved.appScope||'web')!==appScope||voiceReceiptTransport(saved)!==transport||transport==='live'&&saved.liveCallId!==liveCallId)throw new Error('Voice request ID already used');
+  if(saved.provider!==chosen.provider||saved.transcript!==transcript||(saved.appScope||'web')!==appScope||voiceReceiptTransport(saved)!==transport||transport==='live'&&saved.liveCallId!==liveCallId)throw new Error('Este identificador de pedido por voz já foi usado.');
   if(saved.conversationResetError)throw new Error(saved.conversationResetError);
   const receipt={...saved,transport:voiceReceiptTransport(saved)};
   return planning?{kind:'read',...receipt}:receipt;
@@ -126,7 +126,7 @@ export async function routeVoice(root,{id,transcript,selection:chosen,terminalMo
  const override=!slash&&/\buse\s+(astra|luna|opus|sonnet|haiku|fable)\b/i.exec(ask);
  if(override){
    const name=override[1].toLowerCase(),names=chosen.provider==='codex'?{astra:'astra',luna:'luna'}:{opus:'opus',sonnet:'sonnet',haiku:'haiku',fable:'fable'};
-  if(!names[name])throw new Error(`${name} is not an enabled ${chosen.provider} worker model. No provider was switched.`);
+  if(!names[name])throw new Error(`O modelo ${name} está indisponível em ${chosen.provider}. Escolha um modelo habilitado para o provedor.`);
    worker.model=names[name];ask=ask.replace(override[0],' ').replace(/\s+/g,' ').replace(/^[\s,;]+|[\s,;]+$/g,'').replace(/^(?:(?:and|then|please)\b[\s,;]*)+/i,'').trim();
  }
  // "Thanks. Now research Jev" is a request with a pleasantry in front of it.
@@ -144,9 +144,9 @@ export async function routeVoice(root,{id,transcript,selection:chosen,terminalMo
  const selectedStopTarget=()=>{
   if(!workTarget)return null;
   let task;try{task=terminals.get(workTarget)}catch{}
-  if(!task)throw new Error('This conversation is unavailable. No task was stopped.');
-  if(!taskInScope(task,appScope))throw new Error('This conversation belongs to the other app. No task was stopped.');
-  if(task.provider!==chosen.provider)throw new Error('This conversation uses a different provider. No task was stopped.');
+  if(!task)throw new Error('A conversa está indisponível. Escolha uma conversa ativa para interrompê-la.');
+  if(!taskInScope(task,appScope))throw new Error('A conversa pertence a outro aplicativo. Selecione uma conversa deste painel para interrompê-la.');
+  if(task.provider!==chosen.provider)throw new Error('A conversa usa outro provedor. Selecione o provedor dela para interrompê-la.');
   return task;
  };
  // "Stop that" / "cancel that": stop the selected running task, or the one
@@ -169,7 +169,7 @@ export async function routeVoice(root,{id,transcript,selection:chosen,terminalMo
  const direct=/[\p{L}\p{N}]/u.test(ask)?(stopping?stopRoute(stopping.provider):slash&&!slash.found?{action:'reply',reply:`Não encontrei a skill /${slash.name} no ${chosen.provider==='claude'?'Claude Code':'Codex'}.`}:directVoiceRoute(ask)):{action:'reply',reply:newTask?'Nova conversa aberta. O que você quer fazer?':"Não entendi o pedido. O que você quer que eu faça?"};
  const routingStarted=performance.now();
  const classified=direct?{tier:2,engine:'rules',...direct,decision:{boundary:'front-door',source:'rules',rule:stopping?'frontdoor.stop':/[\p{L}\p{N}]/u.test(ask)?'frontdoor.direct':'frontdoor.empty'}}:slash?{tier:3,engine:'rules',decision:{boundary:'front-door',source:'rules',rule:'frontdoor.slashSkill'}}:await classifyVoice(root,{id,transcript:ask,chosen,terminals,workTarget,appScope,transport,liveCallId,liveTurns,liveTaskIds,planning,editDaily,separateTasks:!!newTask?.multiple,newConversation:!!newTask,signal,...(jev?{jev}:{}),...(strict?{strict}:{}),execute:async(...args)=>{
-   if(!resolveCli(chosen.provider))throw new Error(`${chosen.provider} CLI is not installed. No other provider was called.`);
+   if(!resolveCli(chosen.provider))throw new Error(`A CLI de ${chosen.provider} está indisponível. Instale-a ou escolha outro provedor.`);
   return execute(...args);
  }});
  const routingMs=Math.round((performance.now()-routingStarted)*10)/10;
@@ -209,12 +209,12 @@ export async function routeVoice(root,{id,transcript,selection:chosen,terminalMo
  }
  if(skill){
    if(terminalMode||slash){
-   if(!terminals)throw new Error('Terminal service is unavailable');
+   if(!terminals)throw new Error('O serviço de terminal está indisponível.');
    if(workTarget&&!SKILLS[skill]?.direct){
     let task;try{task=terminals.get(workTarget)}catch{}
-    if(!task)throw new Error('This conversation is unavailable. Say "start a new conversation" or choose another conversation. No replacement was started.');
-    if(!taskInScope(task,appScope))throw new Error('This conversation belongs to the other app. Select a conversation here.');
-    if(task.provider!==chosen.provider)throw new Error('This conversation uses a different provider. Choose it in voice controls or start a new conversation.');
+    if(!task)throw new Error('A conversa está indisponível. Use Nova conversa ou selecione outra conversa.');
+    if(!taskInScope(task,appScope))throw new Error('A conversa pertence a outro aplicativo. Selecione uma conversa neste painel.');
+    if(task.provider!==chosen.provider)throw new Error('A conversa usa outro provedor. Selecione-o nos controles de voz ou inicie uma nova conversa.');
     if(skill==='voice-ask'){
      // Intervening quick replies never reached this CLI. Supply their recent
      // voice context so "that story" remains meaningful; the CLI already has
@@ -230,7 +230,7 @@ export async function routeVoice(root,{id,transcript,selection:chosen,terminalMo
      effect(site,{taskId:workTarget,prompt,selection:{provider:task.provider,model:task.model},options:{resumeStopped:true,spoken:true,...liveWork,...(openWhenDone?{openWhenDone:true}:{})}},describeWork(site,{taskTitle:existingTitle(task)}));effects.push(site);
     }
     else{
-     if(typeof terminals.continueWorkflow!=='function')throw new Error('This terminal bridge cannot continue a workflow yet. Update it before retrying.');
+     if(typeof terminals.continueWorkflow!=='function')throw new Error('Atualize a ponte do terminal para continuar o fluxo.');
      const job={id,selection:{provider:task.provider,model:task.model},skill,args:classified.args||{}};
      effect('continueWorkflow',{taskId:workTarget,job,options:{resumeStopped:true,...liveWork}},describeWork('continueWorkflow',{job,taskTitle:existingTitle(task)}));effects.push('continueWorkflow');
     }
@@ -260,7 +260,7 @@ export async function routeVoice(root,{id,transcript,selection:chosen,terminalMo
    if(separatedFrom)reply=`Vou executar ${SKILLS[skill].label} em uma tarefa separada enquanto ${shortTitle(separatedFrom)} termina.`;
    if(waitingBehind)reply=`Vou colocar seu pedido na fila até ${shortTitle(waitingBehind)} terminar.`;
   }else{
-   if(newTask?.multiple&&classified.tasks?.length>1)throw new Error('Multiple terminal tasks require the work pane.');
+   if(newTask?.multiple&&classified.tasks?.length>1)throw new Error('Abra o painel Terminais para iniciar várias tarefas.');
    const args=skill==='voice-ask'?{prompt:originalAsk,...(context?{context:context.slice(-12000)}:{})}:classified.args||{};
    const job={id,skill,selection:worker,args};
    queued=effect('enqueue',{job},describeWork('enqueue',{job})).id;effects.push('enqueue');action='task';reply="Pedido na fila. Aviso quando estiver pronto.";
@@ -311,7 +311,7 @@ export async function routeVoice(root,{id,transcript,selection:chosen,terminalMo
  return plan?{kind:'read',...response}:response;
 }
 function failedConversationReset(root,receiptPath,response,cliWork,error){
- response.conversationResetError=cliWork?"The request was submitted, but I couldn't select its new conversation. Choose that conversation in voice controls; don't resubmit the work.":"I couldn't start a fresh conversation. Try New conversation again.";
+ response.conversationResetError=cliWork?"O pedido foi enviado. A seleção da nova conversa falhou. Escolha a conversa criada nos controles de voz para acompanhá-lo.":"Falha ao iniciar a conversa. Tente novamente em Nova conversa.";
  writeJson(root,receiptPath,response);
  throw new Error(response.conversationResetError,{cause:error});
 }

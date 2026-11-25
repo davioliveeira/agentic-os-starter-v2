@@ -41,9 +41,9 @@ test('headlines remain item-bounded and an oversized source gets a whole neutral
  const f=fixture(t,[head,'A second story.','A third story.']);
  withVoiceContext({root:f.root,exchanges:[]},()=>{
   const report=readMorningReport(2);assert.equal(report.heads.length,2);assert.equal(report.links.length,2);
-  assert.match(report.heads[0],/cannot.*reliably/);assert.doesNotMatch(report.heads[0],/confirmed result/);assert.ok(report.heads[0].length<200);
+  assert.match(report.heads[0],/longa demais para resumir com fidelidade/);assert.doesNotMatch(report.heads[0],/confirmed result/);assert.ok(report.heads[0].length<200);
   const reply=rulesRoute('Brief me',state),spoken=speechText(reply.reply);
-  assert.doesNotMatch(reply.reply,/confirmed result/);assert.doesNotMatch(spoken,/confirmed result/);assert.match(spoken,/morning report|written reply/);
+  assert.doesNotMatch(reply.reply,/confirmed result/);assert.doesNotMatch(spoken,/confirmed result/);assert.match(spoken,/relatório da manhã|resposta escrita/);
  });
  assert.equal(fs.readFileSync(f.file,'utf8'),f.raw);
 });

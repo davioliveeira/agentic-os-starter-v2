@@ -723,7 +723,7 @@ export function readMorningReport(max = 4): MorningReport | null {
           // can turn "announced a solution, but unverified" into certainty.
           // Bound malformed oversized bullets with a neutral pointer instead
           // of retaining only an optimistic prefix; the source file is intact.
-          heads.push(clean.length <= 2048 ? clean : "I cannot summarize this headline reliably at this length. Please read it in the morning report.");
+          heads.push(clean.length <= 2048 ? clean : "A manchete é longa demais para resumir com fidelidade. Leia o texto no relatório da manhã.");
           links.push(url);
         }
         if (heads.length >= max) break;

@@ -133,7 +133,7 @@ export function GithubTrendingCard({ app, limit = 6 }: Props) {
 							type="button"
 							className="aos-v2-cc-feed-headlink"
 							onClick={openReport}
-							title={`open ${snap.sourcePath}`}
+							title={`Abrir ${snap.sourcePath}`}
 						>
 							completo ↗
 						</button>

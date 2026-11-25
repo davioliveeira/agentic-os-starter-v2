@@ -40,7 +40,7 @@ export function Top3Priorities({ app, path, items }: Props) {
 
 	const toggle = async (idx: number) => {
 		const ok = await toggleTop3ByIndex(app, path, idx);
-		if (!ok) new Notice(`Slot ${idx + 1} vazio — clique no texto para adicionar`);
+		if (!ok) new Notice(`A prioridade ${idx + 1} está vazia. Clique no texto para preenchê-la.`);
 	};
 
 	return (

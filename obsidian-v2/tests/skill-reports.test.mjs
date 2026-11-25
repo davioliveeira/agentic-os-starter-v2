@@ -21,7 +21,7 @@ test('a job completed before the queue response is observed still opens immediat
  const f=fixture();f.record();await f.track();assert.equal(f.opens.length,1);
 });
 test('a failed or cancelled skill never opens a report and shows its failure only once',async()=>{
- for(const status of ['error','cancelled','stopped']){const f=fixture();f.record({status,summary:'Provider login expired'});await f.track();await f.tracker.check();assert.equal(f.opens.length,0);assert.deepEqual(f.notices,['Intel Brief did not finish: Provider login expired'])}
+ for(const status of ['error','cancelled','stopped']){const f=fixture();f.record({status,summary:'Provider login expired'});await f.track();await f.tracker.check();assert.equal(f.opens.length,0);assert.deepEqual(f.notices,['Intel Brief não terminou: Provider login expired'])}
 });
 test('partial or failed status reads are retried without a false completion',async()=>{
  const f=fixture();f.options.read=async()=>{throw new Error('partial write')};await f.track();assert.deepEqual(f.notices,[]);assert.deepEqual(f.opens,[]);
@@ -29,8 +29,8 @@ test('partial or failed status reads are retried without a false completion',asy
 });
 test('report readiness waits for indexing and missing output is never announced done',async()=>{
  const f=fixture();f.record();f.setReady(false);await f.track();assert.equal(f.opens.length,0);assert.equal(f.notices.length,0);f.setReady(true);await f.tracker.check();assert.equal(f.opens.length,1);
- const g=fixture();g.record();g.setReady(false);await g.track();g.advance(15_001);await g.tracker.check();assert.match(g.notices[0],/not available to open/);assert.doesNotMatch(g.notices[0],/finished|ready/);
- const h=fixture();h.record({deliverable_path:null});await h.track();assert.match(h.notices[0],/no readable report/);
+ const g=fixture();g.record();g.setReady(false);await g.track();g.advance(15_001);await g.tracker.check();assert.match(g.notices[0],/ainda está indisponível/);assert.doesNotMatch(g.notices[0],/terminou|pronto/);
+ const h=fixture();h.record({deliverable_path:null});await h.track();assert.match(h.notices[0],/relatório legível/);
 });
 test('only safe vault-relative markdown paths can be auto-opened',async()=>{
  for(const path of ['../outside.md','C:/outside.md','/outside.md','inbox/../outside.md','inbox\\outside.md','https://example.com/a.md','.obsidian/report.md','inbox//a.md','inbox/a.md#heading','inbox/file.png','inbox/a.md\0']){
@@ -39,10 +39,10 @@ test('only safe vault-relative markdown paths can be auto-opened',async()=>{
  assert.equal(checkedReportPath('inbox/research/a report.md'),'inbox/research/a report.md');
 });
 test('mismatched request results cannot open a different job report',async()=>{
- for(const extra of [{id:'other'},{skill:'another'}]){const f=fixture();f.record(extra);await f.track();assert.equal(f.opens.length,0);assert.match(f.notices[0],/did not match/)}
+ for(const extra of [{id:'other'},{skill:'another'}]){const f=fixture();f.record(extra);await f.track();assert.equal(f.opens.length,0);assert.match(f.notices[0],/outra solicitação/)}
 });
 test('a direct refresh without a report can finish without opening a terminal or tab',async()=>{
- const f=fixture();f.record({skill:'metrics-pull',deliverable_path:null});await f.tracker.track(id,'metrics-pull','Pull Metrics',false);assert.deepEqual(f.opens,[]);assert.deepEqual(f.notices,['Pull Metrics finished.']);
+ const f=fixture();f.record({skill:'metrics-pull',deliverable_path:null});await f.tracker.track(id,'metrics-pull','Pull Metrics',false);assert.deepEqual(f.opens,[]);assert.deepEqual(f.notices,['Pull Metrics terminou.']);
 });
 test('unload while a status read is pending prevents any later tab or notice',async()=>{
  const f=fixture();let release;f.options.read=()=>new Promise(resolve=>release=resolve);const read=f.track();f.tracker.dispose();release({id,skill:'morning-intel',status:'ok',deliverable_path:'inbox/report.md'});await read;assert.deepEqual(f.opens,[]);assert.deepEqual(f.notices,[]);assert.equal(f.changes.at(-1),false);
@@ -52,8 +52,8 @@ test('slow tab opening and reentrant events cannot open duplicate tabs',async()=
  const f=fixture();f.record();let release;f.options.open=async path=>{f.opens.push(path);await new Promise(resolve=>release=resolve)};const check=f.track();await new Promise(resolve=>setImmediate(resolve));await f.tracker.check();release();await check;assert.equal(f.opens.length,1);
 });
 test('unconfirmed old jobs stop polling with an honest status instead of a false success',async()=>{
- const f=fixture();await f.track();f.advance(2*60*60_000+1);await f.tracker.check();assert.match(f.notices[0],/completion could not be confirmed/);assert.equal(f.changes.at(-1),false);
+ const f=fixture();await f.track();f.advance(2*60*60_000+1);await f.tracker.check();assert.match(f.notices[0],/conclusão ainda não foi confirmada/);assert.equal(f.changes.at(-1),false);
 });
 test('an open failure does not retry into duplicate tabs and keeps saved report discoverable',async()=>{
- const f=fixture();f.record();f.options.open=async path=>{f.opens.push(path);throw new Error('workspace closed')};await f.track();await f.tracker.check();assert.equal(f.opens.length,1);assert.match(f.notices[0],/saved, but could not be opened/);
+ const f=fixture();f.record();f.options.open=async path=>{f.opens.push(path);throw new Error('workspace closed')};await f.track();await f.tracker.check();assert.equal(f.opens.length,1);assert.match(f.notices[0],/falha ao abrir o relatório salvo/);
 });

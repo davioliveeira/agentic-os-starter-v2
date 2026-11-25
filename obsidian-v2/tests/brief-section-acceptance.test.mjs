@@ -215,26 +215,26 @@ for(const provider of ['codex','claude']){
   const f=fixture(t);
   f.writeBrief('## Inbox (last 24h)\n### Opportunities / Needs reply\n- MixedOpportunity: a fictional collaboration request.\n\n## Top Story\nPublic unrelated news.');
   const missing=await f.classify(provider,"What sponsor pitches were in today's morning brief?");
-  assert.equal(missing.engine,'rules');absent(missing.reply,['MixedOpportunity','Public unrelated news'],'missing sponsor category');assert.match(missing.reply,/missing|not|no |unavailable|doesn't|couldn't/i);
+  assert.equal(missing.engine,'rules');absent(missing.reply,['MixedOpportunity','Public unrelated news'],'missing sponsor category');assert.match(missing.reply,/não identifica explicitamente mensagens sobre patrocínio/);
   const mixed=await f.classify(provider,"Which messages need a reply in today's morning brief?");
-  assert.equal(mixed.engine,'rules');absent(mixed.reply,['MixedOpportunity'],'mixed opportunities are not all confirmed needs-reply messages');assert.match(mixed.reply,/missing|not|no |unavailable|doesn't|couldn't/i);
+  assert.equal(mixed.engine,'rules');absent(mixed.reply,['MixedOpportunity'],'mixed opportunities are not all confirmed needs-reply messages');assert.match(mixed.reply,/não identifica explicitamente mensagens que precisam de resposta/);
   fs.unlinkSync(path.join(f.root,`inbox/research/morning-intel/${f.today}-intel.md`));
   f.writeBrief(report,'2000-01-01');f.writeBrief(report,'2999-01-01');
   const stale=await f.classify(provider,"What urgent messages were in today's morning brief?");
-  assert.equal(stale.engine,'rules');absent(stale.reply,inboxMarkers,'stale inbox data');assert.match(stale.reply,/don't have|not available|missing|2000-01-01/i);
+  assert.equal(stale.engine,'rules');absent(stale.reply,inboxMarkers,'stale inbox data');assert.match(stale.reply,/Ainda não tenho o boletim da manhã de hoje.*2000-01-01/);
  });
 
  test(`${provider}: fenced headings, duplicate sections and malformed tables cannot manufacture saved facts`,async t=>{
   const f=fixture(t);
   f.writeBrief('## AI News (last 24h)\n### OpenAI\nExample formatting:\n```markdown\n## Inbox\n### Urgent\n- FencedGhost: this is a code example, not an inbox item.\n```\n\n## GitHub Radar\n1. RepoLantern: public content.');
   const result=await f.classify(provider,"What urgent items were in today's morning brief?");
-  assert.equal(result.engine,'rules');absent(result.reply,['FencedGhost','RepoLantern'],'fenced heading boundary');assert.match(result.reply,/missing|not|no |unavailable|doesn't|couldn't/i);
+  assert.equal(result.engine,'rules');absent(result.reply,['FencedGhost','RepoLantern'],'fenced heading boundary');assert.match(result.reply,/não inclui a seção Caixa de entrada/);
   f.writeBrief('## Inbox\n### Urgent\n- DuplicateOne: unresolvable duplicate heading.\n\n## Inbox\n### Urgent\n- DuplicateTwo: unresolvable duplicate heading.');
   const duplicate=await f.classify(provider,"What urgent inbox items were in today's brief?");
-  assert.equal(duplicate.engine,'rules');absent(duplicate.reply,['DuplicateOne','DuplicateTwo'],'duplicate section boundary');assert.match(duplicate.reply,/readable|malformed|unavailable/i);
+  assert.equal(duplicate.engine,'rules');absent(duplicate.reply,['DuplicateOne','DuplicateTwo'],'duplicate section boundary');assert.match(duplicate.reply,/Não foi possível ler a seção/);
   f.writeBrief('## YouTube Radar\n| Title | Channel | Views |\n|---|---|---|\n| InvalidTableVideo | Missing a cell |\n\n### Small-Channel Outliers\n- NeighborOutlier: a separate source.');
   const malformed=await f.classify(provider,"What videos were in today's YouTube radar?");
-  assert.equal(malformed.engine,'rules');absent(malformed.reply,['InvalidTableVideo','NeighborOutlier'],'malformed table isolation');assert.match(malformed.reply,/readable|malformed|unavailable/i);
+  assert.equal(malformed.engine,'rules');absent(malformed.reply,['InvalidTableVideo','NeighborOutlier'],'malformed table isolation');assert.match(malformed.reply,/Não foi possível ler a seção/);
  });
 
  test(`${provider}: numbered section follow-ups require fresh same-provider same-conversation provenance`,async t=>{

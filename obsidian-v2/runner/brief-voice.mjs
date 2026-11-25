@@ -43,7 +43,7 @@ export function parseHackerNews(raw){
   const cells=line.trim().replace(/^\||\|$/g,'').split(/(?<!\\)\|/).map(cell=>cell.trim().replace(/\\\|/g,'|'));
   if(!columns){
    const headers=cells.map(cell=>spoken(cell).toLowerCase());
-   const points=headers.findIndex(h=>/^(?:pts|points|score)$/.test(h)),comments=headers.findIndex(h=>/^(?:comments|replies)$/.test(h)),title=headers.findIndex(h=>/^(?:story|title|item)$/.test(h));
+   const points=headers.findIndex(h=>/^(?:pts|points|score|pontos|pontuação)$/.test(h)),comments=headers.findIndex(h=>/^(?:comments|replies|comentários|respostas)$/.test(h)),title=headers.findIndex(h=>/^(?:story|title|item|notícia|título)$/.test(h));
    if(points>=0&&comments>=0&&title>=0)columns={points,comments,title,count:cells.length};
    continue;
   }
@@ -99,7 +99,7 @@ function storyText(text){
  const lines=[];
  for(const line of clean.split('\n')){
   const bare=line.replace(/[*_~`]/g,'').replace(/^[\s>]*(?:(?:[-+]|\d+[.)])\s+)?[\s>]*/,'');
-  if(/^(?:sources?|references?|citations?|links?)(?:\s*\(\d+\))?(?:\s*[:：]|\s+[—–-]\s|\s*$)/i.test(bare)||/^\s{0,3}(?:(?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})$/.test(line)||/^\s{0,3}#{1,6}(?:\s|$)/.test(line)||/^\s*\|/.test(line))break;
+  if(/^(?:sources?|references?|citations?|links?|fontes?|referências?|citações?)(?:\s*\(\d+\))?(?:\s*[:：]|\s+[—–-]\s|\s*$)/i.test(bare)||/^\s{0,3}(?:(?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})$/.test(line)||/^\s{0,3}#{1,6}(?:\s|$)/.test(line)||/^\s*\|/.test(line))break;
   if(/^\s{0,3}=+\s*$/.test(line)){while(lines.length&&!lines.at(-1).trim())lines.pop();lines.pop();break}
   lines.push(line);
  }
@@ -136,18 +136,18 @@ export function getBriefCatalog(root,now=new Date(),{includeSummary=false,includ
  else{catalogs.delete(root);catalogs.set(root,cache);}
  const source=discovery(root,today,cache);
  const base={date:source?.date||today,briefSource:source?.relative||null,headline:'',topStoryDetail:[],headlines:[],hackerNews:[]};
- if(!source||source.date!==today)return {...base,status:source?'stale':'missing',reply:`I don't have today's morning brief yet.${source?` The latest one is from ${source.date}.`:''} You can ask me to run morning intel.`};
+ if(!source||source.date!==today)return {...base,status:source?'stale':'missing',reply:`Ainda não tenho o boletim da manhã de hoje.${source?` O mais recente é de ${source.date}.`:''} Você pode me pedir para gerar o boletim da manhã.`};
  const key=source.relative+'|'+stamp(source.metadata);
  if(cache.key!==key){
   cache.key=key;
-  if(source.metadata.size>512000)cache.value={...base,status:'too-large',reply:"Today's morning brief is too large for a quick read. Please open it in the dashboard."};
+  if(source.metadata.size>512000)cache.value={...base,status:'too-large',reply:'O boletim da manhã de hoje é longo demais para uma leitura rápida. Abra o boletim no painel.'};
   else{
    try{
     const raw=fs.readFileSync(source.file,'utf8').replace(/\r\n/g,'\n');
     // An edit while reading invalidates the answer rather than serving a mix.
-    if(stamp(stat(vaultPath(root,source.relative)))!==stamp(source.metadata)){cache.key=null;return {...base,status:'unreadable',reply:"Today's morning brief is changing. Please try again in a moment."};}
+    if(stamp(stat(vaultPath(root,source.relative)))!==stamp(source.metadata)){cache.key=null;return {...base,status:'unreadable',reply:'O boletim da manhã de hoje está sendo atualizado. Tente de novo em instantes.'};}
     cache.value={...base,status:'current',...publicFacts(raw),summary:raw.slice(0,3500),summaryLimited:raw.length>3500,parsedSections:parseBriefSections(raw)};
-   }catch(error){cache.key=null;if(!['ENOENT','ENOTDIR'].includes(error.code))throw error;return {...base,status:'unreadable',reply:"Today's morning brief is unavailable right now."};}
+   }catch(error){cache.key=null;if(!['ENOENT','ENOTDIR'].includes(error.code))throw error;return {...base,status:'unreadable',reply:'O boletim da manhã de hoje está indisponível no momento.'};}
   }
  }
  const {summary,summaryLimited,parsedSections,xHighlights,...publicCatalog}=cache.value;
@@ -161,6 +161,7 @@ export function readBriefSectionReply(root,request,now=new Date()){
  return {reply:answer.reply,briefSource:brief.briefSource,lookup};
 }
 function readBrief(root,now){return getBriefCatalog(root,now);}
+const rankingLabels={points:'pontos',comments:'comentários'};
 export function readHackerNewsReply(root,rank='points',now=new Date()){
  if(!['points','comments'].includes(rank))throw new Error('Unsupported Hacker News ranking');
  return hackerNewsReply(readBrief(root,now),rank);
@@ -168,10 +169,11 @@ export function readHackerNewsReply(root,rank='points',now=new Date()){
 function hackerNewsReply(brief,rank,titleLimit=180){
  if('reply' in brief)return brief;
  const stories=[...brief.hackerNews].sort((a,b)=>b[rank]-a[rank]);
- if(!stories.length)return {reply:"Today's saved morning brief doesn't include a readable Hacker News ranking.",briefSource:brief.briefSource};
+ if(!stories.length)return {reply:'O boletim da manhã de hoje não traz um ranking legível do Hacker News.',briefSource:brief.briefSource};
  const top=stories[0],tied=stories[1]?.[rank]===top[rank];
- const label=rank==='comments'?'most comments':'most points';
- return {reply:`From today's saved morning brief, ${shorten(top.title,titleLimit)} ${tied?'was tied for':'had'} the ${label} on Hacker News: ${top.points.toLocaleString('en-US')} points and ${top.comments.toLocaleString('en-US')} comments.`,briefSource:brief.briefSource};
+ const points=`${top.points} ${top.points===1?'ponto':'pontos'}`;
+ const comments=`${top.comments} ${top.comments===1?'comentário':'comentários'}`;
+ return {reply:`No boletim da manhã de hoje, ${shorten(top.title,titleLimit)} ${tied?'empatou na liderança do':'liderou o'} ranking do Hacker News por ${rankingLabels[rank]}, com ${points} e ${comments}.`,briefSource:brief.briefSource};
 }
 export function readBriefReply(root,now=new Date()){
  return editorialReply(readBrief(root,now));
@@ -181,7 +183,7 @@ function editorialReply(brief,limit=650){
  // Prefer the explicitly ranked news story. TL;DR can include private inbox
  // triage, which must not accidentally become the answer to an AI-news query.
  const text=brief.headline;
- if(!text)return {reply:"Today's morning brief doesn't identify a top story. Please open the brief for the full headlines.",briefSource:brief.briefSource};
+ if(!text)return {reply:'O boletim da manhã de hoje não destaca uma notícia principal. Abra o boletim para ver todas as manchetes.',briefSource:brief.briefSource};
  const short=text.length>limit?text.slice(0,limit-3).replace(/\s+\S*$/,'')+'…':text;
  // A headline alone says little. When the brief keeps the story in the paragraphs after it, the first one or two
  // sentences follow, inside the same spoken limit. A headline that already is a paragraph is left alone.
@@ -191,7 +193,7 @@ function editorialReply(brief,limit=650){
   for(const sentence of first.split(/(?<=[.!?])\s+(?=[A-Z0-9"“(])/).slice(0,2)){if((lead+' '+sentence).trim().length>room)break;lead=(lead+' '+sentence).trim()}
   if(!lead)lead=shorten(first,room);
  }
- return {reply:`From today's morning brief: ${short}${lead?`${/[.!?…]$/.test(short)?'':'.'} ${lead}`:''}`,briefSource:brief.briefSource};
+ return {reply:`No boletim da manhã de hoje: ${short}${lead?`${/[.!?…]$/.test(short)?'':'.'} ${lead}`:''}`,briefSource:brief.briefSource};
 }
 export function readBriefLookupReply(root,plan,now=new Date()){
  if(!Array.isArray(plan)||!plan.length||plan.length>4||!plan.every(validPlanItem))throw new Error('Unsupported saved briefing lookup');
@@ -203,12 +205,14 @@ export function readBriefLookupReply(root,plan,now=new Date()){
   if(!p.count&&!p.offset)return p.source==='hn'?hackerNewsReply(brief,p.rank,Math.min(180,perPlanLimit-155)).reply:editorialReply(brief,Math.min(650,perPlanLimit-40)).reply;
   const count=p.count||1,offset=p.offset||0,all=p.source==='hn'?[...brief.hackerNews].sort((a,b)=>b[p.rank]-a[p.rank]):brief.headlines;
   const items=all.slice(offset,offset+count);
-  if(items.length<count)return `Today's saved morning brief doesn't include ${count>1?`that many ${p.source==='hn'?'Hacker News stories':'public headlines'}`:'that numbered story'}.`;
+  if(items.length<count)return count>1
+   ?`O boletim da manhã de hoje tem menos ${p.source==='hn'?'notícias do Hacker News':'manchetes públicas'} do que você pediu.`
+   :'O boletim da manhã de hoje não tem uma notícia nessa posição.';
   // All requested items must fit the shared speech budget. Numeric detail is
   // useful for a winner; a list gets concise titles instead of five full stats.
   const titleLimit=Math.floor((perPlanLimit-80)/count)-6;
-  return p.source==='hn'?`From today's saved morning brief, Hacker News by ${p.rank}: ${items.map((item,i)=>`${offset+i+1}. ${shorten(item.title,titleLimit)}`).join('; ')}.`:
-   `From today's saved morning brief, the listed headlines: ${items.map((item,i)=>`${offset+i+1}. ${shorten(item,titleLimit)}`).join('; ')}.`;
+  return p.source==='hn'?`No boletim da manhã de hoje, Hacker News por ${rankingLabels[p.rank]}: ${items.map((item,i)=>`${offset+i+1}. ${shorten(item.title,titleLimit)}`).join('; ')}.`:
+   `Manchetes do boletim da manhã de hoje: ${items.map((item,i)=>`${offset+i+1}. ${shorten(item,titleLimit)}`).join('; ')}.`;
  });
  return {reply:[...new Set(replies)].join(' '),briefSource:brief.briefSource,lookup};
 }

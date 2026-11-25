@@ -140,7 +140,7 @@ test('T2c a wrong confident Jev is attributable, and downstream guards still hol
  const attempt=async(useJev,answer)=>{const fx=fixture(t,'codex'),other=fx.add({provider:'claude',model:'sonnet',title:'Claude conversation',turns:[{text:'PRIVATE CLAUDE RESULT',ts:Date.now()}]});const sent=[];
   const error=await speak(fx,'How many revised mockups did I say were ready?',{workTarget:other.id,execute:model(answer),jev:useJev?jevOptions(fx,state=>{sent.push(state);return tier3(0.99)}):offConfig}).then(()=>null,failure=>failure);return {fx,error,sent}};
  const baseline=await attempt(false,{tier:3,reply:'Working.'}),fast=await attempt(true,{tier:2,reply:'Three.'});
- assert.match(baseline.error?.message||'',/different provider/);assert.equal(fast.error?.message,baseline.error.message);
+ assert.match(baseline.error?.message||'',/outro provedor/);assert.equal(fast.error?.message,baseline.error.message);
  assert.deepEqual(baseline.fx.calls,[]);assert.deepEqual(fast.fx.calls,[]);
  // (3) its content never reaches Jev, only that a conversation is selected.
  assert.equal(fast.sent.length,1);assert.equal(JSON.stringify(fast.sent[0]).includes('PRIVATE CLAUDE RESULT'),false);assert.equal(fast.sent[0].selected_task.title,'Claude conversation');

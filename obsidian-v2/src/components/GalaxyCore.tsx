@@ -180,7 +180,7 @@ export default function GalaxyCore({ mode = "idle", paused = false, variant = "t
 
   return <div className="galaxy-core" data-variant={variant} aria-hidden={!unavailable}>
     <div ref={mount} className="galaxy-canvas" />
-    {unavailable && <div className="galaxy-fallback"><span />Galaxy animation unavailable. Dashboard controls remain available.</div>}
+    {unavailable && <div className="galaxy-fallback"><span />A animação da galáxia está indisponível.</div>}
   </div>;
 }
 

@@ -1,17 +1,17 @@
 // Saved Markdown is data. This parser never runs instructions, resolves links,
 // or reads any other document. Section boundaries protect adjacent private data.
 const definitions={
- inbox:{label:'Inbox',parent:/^inbox(?:\b|\s*\()/i},
- 'ai-claude':{label:'Claude and Anthropic news',parent:/^ai news\b/i,child:/^(?:anthropic|claude)\b/i},
- 'ai-codex':{label:'Codex and OpenAI news',parent:/^ai news\b/i,child:/^(?:openai|codex)\b/i},
- 'ai-other':{label:'Other AI news',parent:/^ai news\b/i,child:/^(?:everyone else|other(?:s| ai)?(?: news)?)\b/i},
- youtube:{label:'YouTube radar',parent:/^youtube radar\b/i,ownBody:true},
- outliers:{label:'Small-channel outliers',parent:/^youtube radar\b/i,child:/^(?:small[- ]channel )?outliers\b/i},
- github:{label:'GitHub radar',parent:/^github (?:radar|trending)\b/i},
- 'content-youtube':{label:'YouTube content plan',parent:/^(?:so what\b.*content plan|content plan\b)/i,child:/^youtube\b/i},
- 'content-linkedin':{label:'LinkedIn content plan',parent:/^(?:so what\b.*content plan|content plan\b)/i,child:/^linkedin\b/i},
- 'content-shorts':{label:'Shorts and carousels content plan',parent:/^(?:so what\b.*content plan|content plan\b)/i,child:/^(?:shorts?|carousels?)\b/i},
- 'source-status':{label:'Source status',parent:/^source status\b/i},
+ inbox:{label:'Caixa de entrada',parent:/^inbox(?:\b|\s*\()/i},
+ 'ai-claude':{label:'Notícias sobre Claude e Anthropic',parent:/^ai news\b/i,child:/^(?:anthropic|claude)\b/i},
+ 'ai-codex':{label:'Notícias sobre Codex e OpenAI',parent:/^ai news\b/i,child:/^(?:openai|codex)\b/i},
+ 'ai-other':{label:'Outras notícias de IA',parent:/^ai news\b/i,child:/^(?:everyone else|other(?:s| ai)?(?: news)?)\b/i},
+ youtube:{label:'Radar do YouTube',parent:/^youtube radar\b/i,ownBody:true},
+ outliers:{label:'Destaques de canais pequenos',parent:/^youtube radar\b/i,child:/^(?:small[- ]channel )?outliers\b/i},
+ github:{label:'Radar do GitHub',parent:/^github (?:radar|trending)\b/i},
+ 'content-youtube':{label:'Plano de conteúdo para o YouTube',parent:/^(?:so what\b.*content plan|content plan\b)/i,child:/^youtube\b/i},
+ 'content-linkedin':{label:'Plano de conteúdo para o LinkedIn',parent:/^(?:so what\b.*content plan|content plan\b)/i,child:/^linkedin\b/i},
+ 'content-shorts':{label:'Plano de conteúdo para vídeos curtos e carrosséis',parent:/^(?:so what\b.*content plan|content plan\b)/i,child:/^(?:shorts?|carousels?)\b/i},
+ 'source-status':{label:'Situação das fontes',parent:/^source status\b/i},
 };
 export const BRIEF_SECTION_IDS=Object.freeze(Object.keys(definitions));
 const MAX_ITEMS=24,MAX_ITEM=1000,MAX_TEXT=4500;
@@ -116,22 +116,25 @@ export function parseBriefSections(raw){
  }
  return result;
 }
+const inboxCategoryLabels={urgent:'mensagens urgentes',reply:'mensagens que precisam de resposta',sponsor:'mensagens sobre patrocínio'};
 export function briefSectionAnswer(section,request){
- const category=request.category;
- if(section.status!=='available')return {reply:`Today's saved morning brief ${section.status==='malformed'?'does not have a readable':section.status==='empty'?'has an empty':'does not include a'} ${section.label} section.`,count:0};
+ const category=request.category,categoryLabel=inboxCategoryLabels[category];
+ if(section.status==='malformed')return {reply:`Não foi possível ler a seção ${section.label} do boletim da manhã de hoje.`,count:0};
+ if(section.status==='empty')return {reply:`A seção ${section.label} do boletim da manhã de hoje está vazia.`,count:0};
+ if(section.status!=='available')return {reply:`O boletim da manhã de hoje não inclui a seção ${section.label}.`,count:0};
  let items=section.items;
  if(request.section==='inbox'&&category&&category!=='summary'){
   items=items.filter(i=>i.category===category||i.categories?.includes(category));
-  if(!items.length)return {reply:`Today's saved morning brief does not explicitly label any ${category==='reply'?'needs-reply':category} items. I can't tell from this saved section whether there are none.`,count:0};
+  if(!items.length)return {reply:`O boletim da manhã de hoje não identifica explicitamente ${categoryLabel}. A seção salva não permite confirmar se há alguma.`,count:0};
  }else if(request.section==='inbox'){
   // Overview preserves the report's named groups instead of reading three
   // entries from the first category and hiding the other categories entirely.
-  const grouped=new Map();for(const item of items){const label=item.categoryLabel||'Inbox summary';if(!grouped.has(label))grouped.set(label,[]);grouped.get(label).push(item);}
+  const grouped=new Map();for(const item of items){const label=item.categoryLabel||'Resumo da caixa de entrada';if(!grouped.has(label))grouped.set(label,[]);grouped.get(label).push(item);}
   items=[...grouped].map(([label,group])=>({text:`${label}: ${group.map(i=>i.text).join(' ')}`}));
  }
  const offset=request.offset||0,count=request.count??Math.min(3,Math.max(0,items.length-offset),5-offset),selected=items.slice(offset,offset+count);
- if(!selected.length||request.count!==undefined&&selected.length<count)return {reply:`Today's saved ${section.label} section does not include ${request.count>1?'that many entries':'that numbered entry'}.`,count:0};
- const prefix=`From today's saved morning brief, ${section.label}${category&&category!=='summary'?' — '+(category==='reply'?'needs reply':category):''}: `;
+ if(!selected.length||request.count!==undefined&&selected.length<count)return {reply:`A seção ${section.label} do boletim da manhã de hoje ${request.count>1?'tem menos itens do que você pediu':'não tem um item nessa posição'}.`,count:0};
+ const prefix=`No boletim da manhã de hoje, ${section.label}${categoryLabel?' — '+categoryLabel:''}: `;
  const limit=Math.floor((840-prefix.length)/selected.length)-5;
  return {reply:prefix+selected.map((item,index)=>`${offset+index+1}. ${shorten(item.text,limit)}`).join('; ')+'.',count:selected.length};
 }

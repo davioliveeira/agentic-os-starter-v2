@@ -6,7 +6,7 @@ export function showWorkNotice(message:string,open:()=>void,persistent=false){
  const content=document.createDocumentFragment();
  content.append(message+' ');
  const view=document.createElement('button');
- view.textContent='View';content.append(view);
+ view.textContent='Abrir';content.append(view);
  const notice=new Notice(content,persistent?0:5000);
  view.addEventListener('click',event=>{event.stopPropagation();notice.hide();open()});
  return notice;

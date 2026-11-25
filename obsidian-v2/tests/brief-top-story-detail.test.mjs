@@ -46,18 +46,18 @@ test('the detail is bounded: at most eight paragraphs, 700 characters each, 3,00
 
 test('the quick answer is the headline plus the first one or two sentences of the story, inside the spoken limit',t=>{
  const reply=ask(fixture(t,brief(story)));
- assert.equal(reply,"From today's morning brief: The model that refuses to write text. The lab came out of stealth on Monday with $40M in funding and a model that does not generate tokens at all. You hand it program state plus typed questions; it answers them in one parallel pass.");
+ assert.equal(reply,"No boletim da manhã de hoje: The model that refuses to write text. The lab came out of stealth on Monday with $40M in funding and a model that does not generate tokens at all. You hand it program state plus typed questions; it answers them in one parallel pass.");
  assert.ok(reply.length<=650);assert.doesNotMatch(reply,/third sentence/i);
  assert.equal(readBriefReply(fixture(t,brief(story)),now).reply,reply);
  // A headline without closing punctuation gets a full stop before the story continues.
- assert.match(ask(fixture(t,brief('**A bare headline**\n\nThe story starts here. And goes on.'))),/^From today's morning brief: A bare headline\. The story starts here\. And goes on\.$/);
+ assert.match(ask(fixture(t,brief('**A bare headline**\n\nThe story starts here. And goes on.'))),/^No boletim da manhã de hoje: A bare headline\. The story starts here\. And goes on\.$/);
 });
 
 test('a brief without story paragraphs, or whose headline already is a paragraph, answers exactly as before',t=>{
- assert.equal(ask(fixture(t,brief('Public lead.'))),"From today's morning brief: Public lead.");
+ assert.equal(ask(fixture(t,brief('Public lead.'))),"No boletim da manhã de hoje: Public lead.");
  const paragraph='A lead that is already a paragraph. '+'It keeps going with detail. '.repeat(12);
  const reply=ask(fixture(t,brief(paragraph.trim()+'\n\nSecond paragraph that stays out of the quick answer.')));
- assert.equal(reply,`From today's morning brief: ${paragraph.trim()}`);assert.doesNotMatch(reply,/Second paragraph/);
+ assert.equal(reply,`No boletim da manhã de hoje: ${paragraph.trim()}`);assert.doesNotMatch(reply,/Second paragraph/);
  // Two lookups in one sentence share the speech budget; the story's lead only appears when it fits.
  const both=readBriefLookupReply(fixture(t,brief(story)),[{source:'brief',rank:'points'},{source:'hn',rank:'points'}],now).reply;
  assert.ok(both.length<=820,String(both.length));assert.match(both,/The model that refuses to write text\./);assert.match(both,/Points leader/);
@@ -66,7 +66,7 @@ test('a brief without story paragraphs, or whose headline already is a paragraph
 test('a missing or stale brief carries an empty detail list and the same reply as before',t=>{
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'aos-brief-detail-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
  const catalog=getBriefCatalog(root,now);
- assert.deepEqual(catalog.topStoryDetail,[]);assert.match(catalog.reply,/I don't have today's morning brief yet\./);
+ assert.deepEqual(catalog.topStoryDetail,[]);assert.match(catalog.reply,/Ainda não tenho o boletim da manhã de hoje\./);
 });
 
 test('nothing private rides along: comments across paragraphs, text after Sources or a rule inside a paragraph, deeper headings',t=>{
@@ -132,7 +132,7 @@ test('round 3: a headline that merely starts with the word Source is a headline,
  // A Top Story section that cleans to nothing: no headline, and TL;DR is NOT consulted.
  for(const emptied of ['<!-- PRIVATE note only -->','---','Sources: x\n\nPRIVATE','| a | b |']){
   const result=getBriefCatalog(write(emptied),now);assert.equal(result.headline,'',emptied);assert.doesNotMatch(JSON.stringify(result),/PRIVATE/,emptied);
-  assert.equal(ask(write(emptied)),"Today's morning brief doesn't identify a top story. Please open the brief for the full headlines.",emptied);
+  assert.equal(ask(write(emptied)),"O boletim da manhã de hoje não destaca uma notícia principal. Abra o boletim para ver todas as manchetes.",emptied);
  }
  // A brief with NO Top Story section keeps today's TL;DR fallback, unchanged.
  const none=fixture(t,'## TL;DR\n\n- **Top story:** A public lead from the summary.\n\n## AI News\n\n- Other.');
@@ -142,7 +142,7 @@ test('round 3: a headline that merely starts with the word Source is a headline,
 test('round 4: emphasis closed before the colon, other label words, and an empty Top Story heading',t=>{
  const tldr='# Morning Intel\n\n## TL;DR\n\n- **Top story:** PRIVATE sponsor payout.\n\n';
  const write=section=>fixture(t,tldr+section+'\n\n## AI News\n\n- Other.');
- for(const label of ['**Sources**: x','*Sources*: x','__Sources__: x','`Sources`: x','**Sources** : x','* **Sources**: x','> *Source*: x','References: x','**Links:** x','Citations (3): x','Sources (12): x']){
+ for(const label of ['**Sources**: x','*Sources*: x','__Sources__: x','`Sources`: x','**Sources** : x','* **Sources**: x','> *Source*: x','References: x','**Fontes:** x','Referências: x','**Links:** x','Citations (3): x','Sources (12): x']){
   const root=write('## Top Story\n\n**Headline.**\n\nPublic prose.\n'+label+'\nPRIVATE after the label'),result=getBriefCatalog(root,now);
   assert.deepEqual(result.topStoryDetail,['Public prose.'],label);assert.equal(result.headline,'Headline.',label);assert.doesNotMatch(JSON.stringify(result),/PRIVATE/,label);assert.doesNotMatch(ask(root),/PRIVATE/,label);
  }
@@ -152,6 +152,6 @@ test('round 4: emphasis closed before the colon, other label words, and an empty
  // An EMPTY Top Story heading also blocks the TL;DR fallback.
  for(const empty of ['## Top Story','## Top Story\n','### Top Story\n\n']){
   const root=write(empty),result=getBriefCatalog(root,now);
-  assert.equal(result.headline,'',JSON.stringify(empty));assert.doesNotMatch(JSON.stringify(result),/PRIVATE/);assert.match(ask(root),/doesn't identify a top story/);
+  assert.equal(result.headline,'',JSON.stringify(empty));assert.doesNotMatch(JSON.stringify(result),/PRIVATE/);assert.match(ask(root),/não destaca uma notícia principal/);
  }
 });

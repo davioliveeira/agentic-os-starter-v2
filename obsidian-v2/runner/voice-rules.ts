@@ -76,13 +76,13 @@ export const REPORT_TARGETS: Record<
   "morning-intel": {
     dirs: ["inbox/research/morning-intel", "inbox/reports/morning"],
     filter: /-intel/,
-    label: "morning intel",
+    label: "boletim de IA",
   },
-  "github-trending": { dirs: ["inbox/research/github-trending"], label: "github trending" },
-  "outlier-radar": { dirs: ["inbox/research/outlier-radar"], label: "outlier radar" },
-  "inbox-brief": { dirs: ["inbox/reports/inbox-briefs"], label: "inbox brief" },
-  "weekly-review": { dirs: ["inbox/reports/weekly"], label: "weekly review" },
-  "yt-week-review": { dirs: ["inbox/reports/yt-reviews"], label: "YouTube weekly review" },
+  "github-trending": { dirs: ["inbox/research/github-trending"], label: "tendências do GitHub" },
+  "outlier-radar": { dirs: ["inbox/research/outlier-radar"], label: "radar de vídeos em destaque" },
+  "inbox-brief": { dirs: ["inbox/reports/inbox-briefs"], label: "resumo da caixa de entrada" },
+  "weekly-review": { dirs: ["inbox/reports/weekly"], label: "revisão semanal" },
+  "yt-week-review": { dirs: ["inbox/reports/yt-reviews"], label: "análise semanal do YouTube" },
 };
 
 export function resolveReport(name: string, date?: string): string | null {
@@ -128,7 +128,7 @@ const SKILL_ALIASES: [RegExp, string][] = [
   [/inbox/, "inbox-brief"],
   [/clean ?up/, "vault-cleanup"],
   [/week review|youtube week|yt week/, "yt-week-review"],
-  [/plan today|plan the day|plan my day/, "plan-today"],
+  [/plan today|plan the day|plan my day|^planejar hoje$/, "plan-today"],
   [/plan tomorrow/, "plan-tomorrow"],
   [/weekly review/, "weekly-review"],
   [/morning intel|intel brief|intel sweep/, "morning-intel"],
@@ -143,29 +143,35 @@ const QUESTION_START = /^(what|how|is|are|was|did|when|who|where|why|any|do i|do
 // github trending report today" got the whole daily spiel). Specific asks
 // now fall through to the model engines, which answer about the THING asked.
 const BRIEFING_RE =
-  /^(?:hey |ok |okay |so )*(?:jarvis,? )?(?:(?:can you |could you |what'?s |whats )?(?:give me |read me |run )?(?:the |my )?(?:daily |morning |full )?(?:rundown|briefing)|brief me|catch me up|good morning|morning,? jarvis)(?: for today| on today| today)?(?: please)?(?:,? jarvis)?$/;
+  /^(?:hey |ok |okay |so )*(?:jarvis,? )?(?:(?:can you |could you |what'?s |whats )?(?:give me |read me |run )?(?:the |my )?(?:daily |morning |full )?(?:rundown|briefing)|brief me|catch me up|good morning|morning,? jarvis|resumo do dia)(?: for today| on today| today)?(?: please)?(?:,? jarvis)?$/;
+
+const NO_DAILY_NOTE = "Ainda não há uma nota para hoje. Diga “planejar hoje” para criar uma.";
+
+function workflowLabel(skill: string): string {
+  return SKILLS[skill]?.label ?? skill;
+}
 
 export function performWrite(w: VaultWrite, state: VaultState): string {
   if (!state.daily?.isToday) {
-    return "There's no daily note for today yet — say plan today first.";
+    return NO_DAILY_NOTE;
   }
   if (w.kind === "top3") {
     const ok = toggleTop3(w.index, !w.undo);
-    if (!ok) return "I couldn't find that slot on today's board.";
+    if (!ok) return "Não encontrei essa prioridade no plano de hoje.";
     const item = state.daily.top3[w.index]?.text;
-    const tail = item ? `: ${stripParens(item).slice(0, 60)}` : ".";
+    const tail = item ? ` (${stripParens(item).slice(0, 60)}).` : ".";
     return w.undo
-      ? `Unchecked priority ${SPOKEN_IDX[w.index]}${tail}`
-      : `Done — priority ${SPOKEN_IDX[w.index]} checked off${tail}`;
+      ? `Reabri a prioridade ${w.index + 1}${tail}`
+      : `Concluí a prioridade ${w.index + 1}${tail}`;
   }
   if (w.kind === "task") {
     const res = toggleTaskFuzzy(w.target);
-    if (!res.ok) return `I couldn't find a task matching "${w.target}" on today's board.`;
-    return `${res.done ? "Checked off" : "Unchecked"}: ${res.item}.`;
+    if (!res.ok) return `Não encontrei uma tarefa que corresponda a “${w.target}” no plano de hoje.`;
+    return `${res.done ? "Marquei como concluída" : "Reabri"} a tarefa “${res.item}”.`;
   }
   return addDriver(w.text)
-    ? `Added to today's drivers: ${w.text}.`
-    : "I couldn't find the Daily Drivers section in today's note.";
+    ? `Adicionei “${w.text}” às tarefas de hoje.`
+    : "Não encontrei a seção “Daily Drivers” na nota de hoje.";
 }
 
 const RERUN_RE = /\b(again|another|re-?run|one more|fresh|new one)\b/;
@@ -185,7 +191,7 @@ export function inFlightGuard(r: RouteResult, transcript: string, state: VaultSt
   if (r.tier !== 1 || !r.skill || !skillInFlight(r.skill, state)) return r;
   const t = transcript.toLowerCase();
   if (RERUN_RE.test(t)) return r; // explicit repeat — let it through
-  const name = r.skill.replace(/-/g, " ");
+  const name = workflowLabel(r.skill);
   const alias = SKILL_ALIASES.find(([re]) => re.test(t))?.[0];
   const residue = t
     .replace(alias ?? /$^/, " ")
@@ -198,14 +204,14 @@ export function inFlightGuard(r: RouteResult, transcript: string, state: VaultSt
     // there's a real ask riding along with the reference — background it
     return {
       tier: 3,
-      reply: `The ${name} is already in the works — I'll dig into the rest of that and get back to you.`,
+      reply: `O fluxo ${name} já está em execução. Vou investigar o restante e te aviso quando tiver uma resposta.`,
       engine: r.engine,
       panels: ["pipeline"],
     };
   }
   return {
     tier: 2,
-    reply: `The ${name} is already running — I'll let you know the moment it lands.`,
+    reply: `O fluxo ${name} já está em execução. Te aviso assim que terminar.`,
     engine: r.engine,
     panels: ["pipeline"],
   };
@@ -219,7 +225,7 @@ export function inFlightGuard(r: RouteResult, transcript: string, state: VaultSt
 // convo memory (fresh within 3 min), so this stays stateless per-request.
 
 const AFFIRM_RE =
-  /^(yes|yeah|yep|sure|absolutely|go ahead|do it|let'?s do it|please do|yes please|go for it|sounds good)( please)?,?( jarvis)?$/;
+  /^(yes|yeah|yep|sure|absolutely|go ahead|do it|let'?s do it|please do|yes please|go for it|sounds good|sim(?: por favor)?)( please)?,?( jarvis)?$/;
 const DECLINE_RE =
   /^(no|nope|nah|not (right )?now|not yet|later|maybe later|hold off|skip it)( thanks| thank you)?,?( jarvis)?$/;
 const OFFER_SKILLS: Record<string, string> = {
@@ -228,10 +234,20 @@ const OFFER_SKILLS: Record<string, string> = {
   "fresh metrics": "metrics-pull",
   "a trend scan": "ai-trend-scan",
 };
+const BRIEFING_OFFER_QUESTIONS = {
+  "morning-report": "Quer que eu pesquise as novidades para o relatório da manhã?",
+  "inbox-brief": "Quer que eu verifique a caixa de entrada?",
+  "metrics-pull": "Quer que eu atualize as métricas?",
+  "ai-trend-scan": "Quer que eu pesquise tendências de IA para sugerir ideias de conteúdo?",
+};
+const BRIEFING_OFFER_TAIL = "Se preferir, pode me pedir outra coisa.";
 
 function pendingOffer(): string | null {
   const last = recentExchanges(1)[0];
   if (!last || Date.now() - Date.parse(last.ts) > 3 * 60 * 1000) return null;
+  const localized = Object.entries(BRIEFING_OFFER_QUESTIONS)
+    .find(([, question]) => last.jarvis.endsWith(`${question} ${BRIEFING_OFFER_TAIL}`));
+  if (localized) return localized[0];
   const m = last.jarvis
     .toLowerCase()
     .match(/want me to (?:run|pull) (?:the )?(?:daily )?(morning report|inbox audit|fresh metrics|a trend scan)/);
@@ -244,13 +260,13 @@ function pendingOffer(): string | null {
 function runnerDownNote(state: VaultState): string | null {
   return state.runner?.alive
     ? null
-    : "but heads up — the runner daemon looks down, so it'll sit in the queue until that's restarted.";
+    : "O serviço de execução parece estar offline. O pedido fica na fila até que o serviço seja reiniciado.";
 }
 
 // exported for tests — route() applies it internally
 export function rulesRoute(transcript: string, state: VaultState): RouteResult {
   const t = transcript.toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z0-9$:'\s]/g, " ").replace(/\s+/g, " ").trim();
-  if (!t) return { tier: 2, reply: "I didn't catch that.", engine: "rules" };
+  if (!t) return { tier: 2, reply: "Não consegui entender.", engine: "rules" };
 
   // answer to a standing offer beats everything else
   if (AFFIRM_RE.test(t) || DECLINE_RE.test(t)) {
@@ -259,13 +275,13 @@ export function rulesRoute(transcript: string, state: VaultState): RouteResult {
       return {
         tier: 1,
         skill: offered,
-        reply: `On it — ${offered.replace(/-/g, " ")} ${runnerDownNote(state) ?? "running now."}`,
+        reply: `${workflowLabel(offered)}. ${runnerDownNote(state) ?? "Vou iniciar agora."}`,
         engine: "rules",
         rule: "standingOfferAccepted",
         panels: ["pipeline"],
       };
     }
-    if (offered) return { tier: 2, reply: "Standing by.", engine: "rules", rule: "standingOfferDeclined" };
+    if (offered) return { tier: 2, reply: "Fico à disposição.", engine: "rules", rule: "standingOfferDeclined" };
   }
 
   // Obsidian UI control — "open my daily note", "go back", "split right".
@@ -356,7 +372,7 @@ export function rulesRoute(transcript: string, state: VaultState): RouteResult {
     return {
       tier: 1,
       skill,
-      reply: `On it — ${skill.replace(/-/g, " ")} ${runnerDownNote(state) ?? "coming up."}`,
+      reply: `${workflowLabel(skill)}. ${runnerDownNote(state) ?? "Vou iniciar agora."}`,
       engine: "rules",
       rule: "bareWorkflowAlias",
       panels: ["pipeline"],
@@ -365,9 +381,7 @@ export function rulesRoute(transcript: string, state: VaultState): RouteResult {
 
   return {
     tier: 3,
-    reply: runnerDownNote(state)
-      ? "I've queued that, but heads up — the runner daemon looks down, so it'll wait until that's restarted."
-      : "Working on it — I'll speak up when it lands.",
+    reply: runnerDownNote(state) ?? "Vou trabalhar nisso e te aviso quando terminar.",
     engine: "rules",
     fallthrough: true,
   };
@@ -389,14 +403,14 @@ const SMALLTALK_HOW = wholeSmalltalk("how are you|how'?s it going|how is it goin
 const SMALLTALK_HEY = wholeSmalltalk("what'?s up|whats up|wassup|what is up|hey|hi|hello|yo|sup|hey there|good (?:morning|afternoon|evening)");
 
 function smalltalk(t: string, state: VaultState): string | null {
-  if (SMALLTALK_MIC.test(t)) return "Loud and clear.";
-  if (SMALLTALK_THANKS.test(t)) return "Anytime.";
-  if (SMALLTALK_BYE.test(t)) return "Goodnight. I'll keep watch.";
+  if (SMALLTALK_MIC.test(t)) return "Sim, estou te ouvindo bem.";
+  if (SMALLTALK_THANKS.test(t)) return "De nada.";
+  if (SMALLTALK_BYE.test(t)) return "Boa noite. Fico de olho por aqui.";
   // bare acks in any short combo: "ok", "okay cool", "nice one jarvis"
   if (/^((ok(ay)?|cool|nice|got it|sounds good|great|perfect|alright|sweet|then|one|man|jarvis)\s*){1,4}$/.test(t)) {
-    return "Standing by.";
+    return "Fico à disposição.";
   }
-  if (SMALLTALK_HOW.test(t)) return "Running smooth — all systems green. What do you need?";
+  if (SMALLTALK_HOW.test(t)) return "Tudo funcionando bem. Como posso ajudar?";
   if (SMALLTALK_HEY.test(t)) return greetingReply(state);
   return null;
 }
@@ -405,11 +419,11 @@ function smalltalk(t: string, state: VaultState): string | null {
 // question — and points at the briefing for the long version
 function greetingReply(state: VaultState): string {
   const bits: string[] = [];
-  if (state.runner?.busy) bits.push("the runner's mid-job");
+  if (state.runner?.busy) bits.push("há trabalho em andamento");
   const open = state.daily?.isToday ? state.daily.top3.filter((p) => !p.done).length : 0;
-  if (open > 0) bits.push(`${open === 1 ? "one directive" : `${open} directives`} still open`);
-  const status = bits.length > 0 ? bits.join(" and ") : "all quiet on my end";
-  return `Not much — ${status}. Say brief me if you want the rundown.`;
+  if (open > 0) bits.push(open === 1 ? "há uma prioridade pendente" : `há ${open} prioridades pendentes`);
+  const status = bits.length > 0 ? bits.join(" e ") : "está tudo tranquilo";
+  return `Por aqui, ${status}. Se quiser, diga “resumo do dia”.`;
 }
 
 function matchSkill(t: string): string | null {
@@ -553,7 +567,7 @@ export function routeNamedReportOpen(transcript: string): RouteResult | null {
     if (!rel) {
       return {
         tier: 2, engine: "rules",
-        reply: today ? `I don't have today's ${target.label} report on file yet.` : `I don't have a ${target.label} report on file yet.`,
+        reply: `Ainda não há um arquivo de ${target.label}${today ? " para hoje" : ""}.`,
         panels: ["documents"],
       };
     }
@@ -663,7 +677,7 @@ function repoAnswer(t: string, state: VaultState): ObsidianAction | string | nul
   }
   if (best && bestScore > 0) return { op: "repo", slug: best, where };
 
-  return "Which repo? Give me the owner slash name and I'll pull it up.";
+  return "Qual repositório? Diga o nome do proprietário, barra, o nome do repositório, que eu abro para você.";
 }
 
 const OPEN_VERB_ANY = /\b(bring up|pull up|open|show me|show us|put up|display|go to)\b/;
@@ -684,7 +698,6 @@ const TASK_WRITE_RE = new RegExp(
 const ADD_TASK_RE =
   /^(?:hey |ok |okay )*(?:jarvis,? )?add\s+(?:a\s+)?(?:task\s+|driver\s+)?(.+?)(?:\s+to\s+(?:my\s+|the\s+)?(?:tasks?|drivers?|daily drivers?|list|board|today))?$/;
 const IDX: Record<string, number> = { one: 0, "1": 0, two: 1, "2": 1, three: 2, "3": 2 };
-const SPOKEN_IDX = ["one", "two", "three"];
 // "add X to my tasks and draft an outline" is two requests; the second one is
 // never written into the note as task text, whether it is an order or a
 // question ("and please can you tell me what is left?").
@@ -703,40 +716,22 @@ function vaultWriteAnswer(
   original: string = t
 ): { text: string; panels: PanelId[] } | null {
   const panels: PanelId[] = ["priorities"];
-  const noNote = !state.daily?.isToday;
   // A second sentence is a second request; the normaliser above has already
   // erased the boundary, so judge the original words.
   if (/[.!?;]\s+\S/.test(original.trim().replace(ABBREVIATION, (m) => m.slice(0, -1)))) return null;
 
   const top3 = TOP3_WRITE_RE.exec(t);
   if (top3) {
-    if (noNote) {
-      return { text: "There's no daily note for today yet — say plan today first.", panels };
-    }
-    const idx = IDX[top3[1]] ?? 0;
+    const index = IDX[top3[1]] ?? 0;
     const undo = /\bun(?:check|tick)\b/.test(t);
-    const ok = toggleTop3(idx, !undo);
-    if (!ok) return { text: "I couldn't find that slot on today's board.", panels };
-    const item = state.daily?.top3[idx]?.text;
-    const tail = item ? `: ${stripParens(item).slice(0, 60)}` : ".";
-    return {
-      text: undo
-        ? `Unchecked priority ${SPOKEN_IDX[idx]}${tail}`
-        : `Done — priority ${SPOKEN_IDX[idx]} checked off${tail}`,
-      panels,
-    };
+    return { text: performWrite({ kind: "top3", index, undo }, state), panels };
   }
 
   const add = ADD_TASK_RE.exec(t);
   if (add && add[1] && !matchSkill(add[1])) {
     if (COMPOUND_WRITE.test(add[1])) return null;
-    if (noNote) {
-      return { text: "There's no daily note for today yet — say plan today first.", panels };
-    }
     const text = add[1].trim();
-    return addDriver(text)
-      ? { text: `Added to today's drivers: ${text}.`, panels }
-      : { text: "I couldn't find the Daily Drivers section in today's note.", panels };
+    return { text: performWrite({ kind: "add", text }, state), panels };
   }
 
   const task = TASK_WRITE_RE.exec(t);
@@ -745,20 +740,7 @@ function vaultWriteAnswer(
     // "check my inbox" = inbox-brief, "check the queue" = state answer, etc.
     if (matchSkill(target) || WRITE_SKIP.test(target)) return null;
     if (COMPOUND_WRITE.test(target)) return null;
-    if (noNote) {
-      return { text: "There's no daily note for today yet — say plan today first.", panels };
-    }
-    const res = toggleTaskFuzzy(target);
-    if (!res.ok) {
-      return {
-        text: `I couldn't find a task matching "${target}" on today's board.`,
-        panels,
-      };
-    }
-    return {
-      text: `${res.done ? "Checked off" : "Unchecked"}: ${res.item}.`,
-      panels,
-    };
+    return { text: performWrite({ kind: "task", target }, state), panels };
   }
 
   return null;
@@ -794,25 +776,25 @@ function readAloudAnswer(t: string, state: VaultState): StateAnswer | null {
   let name = "";
   if (bestScore > 0 && best) {
     rel = best.deliverable_path;
-    name = best.skill.replace(/-/g, " ");
+    name = workflowLabel(best.skill);
   } else if (/morning|headline|news/.test(t) && state.morning) {
     rel = state.morning.rel;
-    name = "morning report";
+    name = "relatório da manhã";
   } else if (/outlier|radar/.test(t) && state.outliers) {
     rel = state.outliers.rel;
-    name = "outlier radar";
+    name = "radar de vídeos em destaque";
   } else if (words.length === 0 && best) {
     // bare "read it" — newest doc
     rel = best.deliverable_path;
-    name = best.skill.replace(/-/g, " ");
+    name = workflowLabel(best.skill);
   }
   if (!rel) {
-    return { text: "I don't have a report like that on file yet.", panels: ["documents"] };
+    return { text: "Ainda não encontrei um relatório assim nos arquivos salvos.", panels: ["documents"] };
   }
   const raw = readVaultMarkdown(rel);
-  if (!raw) return { text: "I couldn't open that file.", panels: ["documents"] };
+  if (!raw) return { text: "Não consegui abrir esse arquivo.", panels: ["documents"] };
   return {
-    text: `From the ${name}: ${speakable(raw)}`,
+    text: `O relatório “${name}” diz o seguinte — ${speakable(raw)}`,
     panels: ["documents"],
     deliverable: rel,
   };
@@ -871,8 +853,8 @@ function spokenTime(t: string): string {
 function weekDelta(m: Metric): string {
   if (m.deltaWeek === null || m.deltaWeek === 0) return "";
   return m.deltaWeek > 0
-    ? ` — up about ${spokenNum(m.deltaWeek)} this week`
-    : ` — down about ${spokenNum(m.deltaWeek)} this week`;
+    ? `, cerca de ${spokenNum(m.deltaWeek)} a mais nesta semana`
+    : `, cerca de ${spokenNum(m.deltaWeek)} a menos nesta semana`;
 }
 
 // --- daily briefing ----------------------------------------------------------
@@ -937,11 +919,11 @@ function briefing(state: VaultState): {
 
   const h = localHour();
   const opener =
-    h < 5 ? "Burning the midnight oil." : h < 12 ? "Good morning." : h < 17 ? "Good afternoon." : "Good evening.";
+    h < 5 ? "Olá. A madrugada está rendendo." : h < 12 ? "Bom dia." : h < 17 ? "Boa tarde." : "Boa noite.";
   if (reach > 0) {
     parts.push(
-      `${opener} You're at about ${spokenNum(reach)} followers across all platforms${
-        reachDelta > 0 ? ` — up about ${spokenNum(reachDelta)} this week` : ""
+      `${opener} Você tem cerca de ${spokenNum(reach)} seguidores somando todas as plataformas${
+        reachDelta > 0 ? `, com cerca de ${spokenNum(reachDelta)} a mais nesta semana` : ""
       }.`
     );
   } else {
@@ -950,50 +932,50 @@ function briefing(state: VaultState): {
 
   const v = state.latestVideo;
   if (v) {
-    if (v.url) reveals.push({ kind: "link", target: v.url, label: "latest deploy", at: mark() });
+    if (v.url) reveals.push({ kind: "link", target: v.url, label: "Vídeo mais recente", at: mark() });
     const days = Math.max((Date.now() - Date.parse(v.published_at)) / 86_400_000, 0.25);
     parts.push(
-      `The latest video's pulling about ${spokenNum(Math.round(v.views / days))} views a day — ${spokenNum(v.views)} so far.`
+      `O vídeo mais recente tem cerca de ${spokenNum(Math.round(v.views / days))} visualizações por dia e ${spokenNum(v.views)} no total.`
     );
   }
 
   const report = readMorningReport(2);
   const heads = report?.heads ?? [];
   if (heads[0]) {
-    if (report?.rel) reveals.push({ kind: "doc", target: report.rel, label: "morning report", at: mark() });
+    if (report?.rel) reveals.push({ kind: "doc", target: report.rel, label: "Relatório da manhã", at: mark() });
     const src = report?.links?.[0];
-    if (src) reveals.push({ kind: "link", target: src, label: "source", at: mark() });
+    if (src) reveals.push({ kind: "link", target: src, label: "Fonte", at: mark() });
     // Clause and parenthetical tails can contain the fact that a claim is
     // disputed. Preserve them here; the shared speech budget handles length.
     const headline = heads[0].trim();
-    parts.push(`Big story in AI today: ${headline}${/[.!?][)\]"'”’]*$/.test(headline) ? "" : "."}`);
+    parts.push(`O destaque de IA de hoje — ${headline}${/[.!?][)\]"'”’]*$/.test(headline) ? "" : "."}`);
   }
 
   // real revenue only — mock numbers stay off the spoken brief
   const mrr = metric(state, "stripe", "mrr");
-  if (mrr && mrr.status !== "mock") parts.push(`Revenue's at ${spokenMoney(mrr.value)} monthly.`);
+  if (mrr && mrr.status !== "mock") parts.push(`A receita recorrente está em ${spokenMoney(mrr.value)} por mês.`);
 
   if (d?.isToday) {
     const open = d.top3.filter((p) => !p.done);
     if (open.length > 0) {
-      parts.push(`Biggest thing on today's board: ${stripParens(open[0].text).slice(0, 80)}.`);
+      parts.push(`O mais importante no plano de hoje é ${stripParens(open[0].text).slice(0, 80)}.`);
     } else if (d.top3.length > 0) {
-      parts.push("The board's clear — all three directives done.");
+      parts.push("As três prioridades de hoje estão concluídas.");
     }
   } else {
-    parts.push("No daily note yet — say plan today and I'll set one up.");
+    parts.push(NO_DAILY_NOTE);
   }
 
   const r = state.runner;
-  if (r && !r.alive) parts.push("Heads-up — the background runner looks offline.");
+  if (r && !r.alive) parts.push("O serviço de execução em segundo plano parece estar offline.");
 
-  // hand the mic back with a CONCRETE offer — "yes" dispatches it (see
-  // pendingOffer / AFFIRM_RE). Phrasing must match OFFER_SKILLS keys.
-  const offer = briefingOffer(state, heads.length > 0);
-  if (/inbox audit/.test(offer)) {
-    reveals.push({ kind: "link", target: "https://mail.google.com", label: "inbox", at: mark() });
+  // The question names one action. Keep the open-ended tail separate so an
+  // affirmation accepts just that action.
+  const offer = briefingOfferSkill(state, heads.length > 0);
+  if (offer === "inbox-brief") {
+    reveals.push({ kind: "link", target: "https://mail.google.com", label: "Caixa de entrada", at: mark() });
   }
-  parts.push(offer);
+  parts.push(BRIEFING_OFFER_QUESTIONS[offer], BRIEFING_OFFER_TAIL);
 
   // Keep the written briefing complete. The shared speech budget preserves
   // late caveats instead of silently clipping them before normalization.
@@ -1005,20 +987,15 @@ function briefing(state: VaultState): {
   };
 }
 
-// state-picked closing offer — wording is load-bearing: pendingOffer() parses
-// it back out of convo memory when the user answers "yes"
-function briefingOffer(state: VaultState, hasReport: boolean): string {
-  // the offer phrase must stay verbatim-matchable by pendingOffer()'s regex;
-  // the open-ended tail rides AFTER it and never reaches the capture group
-  const TAIL = ", or do you have anything else in mind?";
+function briefingOfferSkill(state: VaultState, hasReport: boolean): keyof typeof BRIEFING_OFFER_QUESTIONS {
   const h = localHour();
-  if (!hasReport && h < 16) return `Want me to run the morning report${TAIL}`;
-  if (h < 15) return `Want me to run the daily inbox audit${TAIL}`;
+  if (!hasReport && h < 16) return "morning-report";
+  if (h < 15) return "inbox-brief";
   const stale = state.metrics.some(
     (m) => !m.timestamp || Date.now() - Date.parse(m.timestamp) > 13 * 3600 * 1000
   );
-  if (stale) return `Want me to pull fresh metrics${TAIL}`;
-  return `Want me to run a trend scan for content leads${TAIL}`;
+  if (stale) return "metrics-pull";
+  return "ai-trend-scan";
 }
 
 interface StateAnswer {
@@ -1103,7 +1080,7 @@ function openDocAnswer(t: string, state: VaultState, original: string = t): Stat
   // the morning report lives outside the runs list — resolve it directly
   if (bestScore === 0 && /\bmorning\b/.test(t) && state.morning) {
     return {
-      text: "Here's this morning's report. On screen now.",
+      text: "Abri o relatório da manhã na tela.",
       panels: ["documents"],
       deliverable: state.morning.rel,
       reveal: "open",
@@ -1115,10 +1092,10 @@ function openDocAnswer(t: string, state: VaultState, original: string = t): Stat
   // mentioned" resolves with context instead of fuzzy-matching filenames.
   if (bestScore === 0 && words.length > 0) return null;
   if (!best) {
-    return { text: "I don't have any documents on file yet.", panels: ["documents"] };
+    return { text: "Ainda não tenho documentos salvos.", panels: ["documents"] };
   }
   return {
-    text: `Here it is — the ${best.skill.replace(/-/g, " ")} from earlier. On screen now.`,
+    text: `Abri na tela o resultado anterior de ${workflowLabel(best.skill)}.`,
     panels: ["documents"],
     deliverable: best.deliverable_path!,
     reveal: "open",
@@ -1151,13 +1128,13 @@ function stateAnswer(t: string, state: VaultState, original: string = t): StateA
     const o = state.outliers;
     if (!o) {
       return {
-        text: "No outlier radar data yet — say outlier radar and I'll run a sweep.",
+        text: "Ainda não há dados do radar de vídeos em destaque. Diga “radar de destaques” para iniciar uma busca.",
         panels: ["documents"],
       };
     }
-    const tops = o.top.map((x) => `${x.title.slice(0, 60)} at ${x.mult}`);
+    const tops = o.top.map((x) => `“${x.title.slice(0, 60)}” (${x.mult})`);
     return {
-      text: `The latest radar sweep from ${o.date} flagged ${o.count} outlier${o.count === 1 ? "" : "s"}. Top of the board: ${listOut(tops)}.`,
+      text: `A última busca, de ${o.date}, encontrou ${o.count} ${o.count === 1 ? "vídeo em destaque" : "vídeos em destaque"}.${tops.length ? ` No topo da lista, ${listOut(tops)}.` : ""}`,
       panels: ["documents"],
       deliverable: o.rel,
     };
@@ -1167,21 +1144,21 @@ function stateAnswer(t: string, state: VaultState, original: string = t): StateA
   // normalizer strips dots ("M.R.R." → "m r r")
   if (/mrr|\bm r r\b|\bm r are\b|revenue|recurring|money/.test(t)) {
     const m = metric(state, "stripe", "mrr");
-    if (!m) return { text: "I don't have an MRR reading yet.", panels: ["objective"] };
+    if (!m) return { text: "Ainda não tenho dados da receita recorrente mensal.", panels: ["objective"] };
     const pct = Math.round((m.value / 10_000) * 100);
-    const sim = m.status === "mock" ? " Fair warning — that's still a simulated number." : "";
+    const sim = m.status === "mock" ? " Esse valor é simulado." : "";
     return {
-      text: `Revenue's sitting at ${spokenMoney(m.value)} a month — ${pct} percent of the way to ten K.${sim}`,
+      text: `A receita recorrente está em ${spokenMoney(m.value)} por mês, o equivalente a ${pct} por cento da meta de 10 mil.${sim}`,
       panels: ["objective"],
     };
   }
   if (/runner|daemon/.test(t)) {
     const r = state.runner;
-    if (!r) return { text: "The runner looks down — I'm not seeing a status file.", panels: ["diagnostics"] };
+    if (!r) return { text: "O serviço de execução parece estar offline. O arquivo de status está ausente.", panels: ["diagnostics"] };
     return {
       text: r.alive
-        ? `Runner's alive and ${r.busy ? `working — ${r.active} job${r.active === 1 ? "" : "s"} active` : "idle"}${r.pending > 0 ? `, ${r.pending} waiting in the queue` : ""}.`
-        : "The runner's heartbeat has gone stale — it looks down.",
+        ? `O serviço de execução está online, ${r.busy ? `com ${r.active} ${r.active === 1 ? "tarefa ativa" : "tarefas ativas"}` : "sem tarefas ativas"}${r.pending > 0 ? ` e ${r.pending} na fila` : ""}.`
+        : "O serviço de execução deixou de enviar sinais de atividade e parece estar offline.",
       panels: ["diagnostics", "pipeline"],
     };
   }
@@ -1189,8 +1166,8 @@ function stateAnswer(t: string, state: VaultState, original: string = t): StateA
     const m = metric(state, "youtube", "subscribers");
     return {
       text: m
-        ? `You're at ${spokenNum(m.value)} YouTube subscribers${weekDelta(m)}.`
-        : "I don't have a subscriber reading.",
+        ? `Você tem ${spokenNum(m.value)} inscritos no YouTube${weekDelta(m)}.`
+        : "Ainda não tenho a contagem de inscritos.",
       panels: ["vitals"],
     };
   }
@@ -1198,8 +1175,8 @@ function stateAnswer(t: string, state: VaultState, original: string = t): StateA
     const m = metric(state, "youtube", "views_28d");
     return {
       text: m
-        ? `${spokenNum(m.value)} YouTube views over the last 28 days${weekDelta(m)}.`
-        : "I don't have a views reading.",
+        ? `O YouTube registrou ${spokenNum(m.value)} visualizações nos últimos 28 dias${weekDelta(m)}.`
+        : "Ainda não tenho a contagem de visualizações.",
       panels: ["vitals"],
     };
   }
@@ -1207,8 +1184,8 @@ function stateAnswer(t: string, state: VaultState, original: string = t): StateA
     const m = metric(state, "instagram", "followers");
     return {
       text: m
-        ? `Instagram's at ${spokenNum(m.value)} followers${weekDelta(m)}.`
-        : "I don't have an Instagram reading.",
+        ? `Você tem ${spokenNum(m.value)} seguidores no Instagram${weekDelta(m)}.`
+        : "Ainda não tenho dados do Instagram.",
       panels: ["vitals"],
     };
   }
@@ -1216,8 +1193,8 @@ function stateAnswer(t: string, state: VaultState, original: string = t): StateA
     const m = metric(state, "tiktok", "followers");
     return {
       text: m
-        ? `TikTok's at ${spokenNum(m.value)} followers${weekDelta(m)}.`
-        : "I don't have a TikTok reading.",
+        ? `Você tem ${spokenNum(m.value)} seguidores no TikTok${weekDelta(m)}.`
+        : "Ainda não tenho dados do TikTok.",
       panels: ["vitals"],
     };
   }
@@ -1225,8 +1202,8 @@ function stateAnswer(t: string, state: VaultState, original: string = t): StateA
     const v = state.latestVideo;
     return {
       text: v
-        ? `The latest video — ${v.title} — is at ${spokenNum(v.views)} views and ${spokenNum(v.likes)} likes.`
-        : "I don't have video data yet.",
+        ? `O vídeo mais recente, “${v.title}”, tem ${spokenNum(v.views)} visualizações e ${spokenNum(v.likes)} curtidas.`
+        : "Ainda não tenho dados sobre o vídeo mais recente.",
       panels: ["vitals", "objective"],
     };
   }
@@ -1234,71 +1211,70 @@ function stateAnswer(t: string, state: VaultState, original: string = t): StateA
     const m = metric(state, "claude_code", "tokens_5h");
     return {
       text: m
-        ? `You've used ${spokenNum(m.value)} Claude tokens in the current five-hour window.`
-        : "I don't have a token reading.",
+        ? `Você usou ${spokenNum(m.value)} tokens do Claude na janela atual de cinco horas.`
+        : "Ainda não tenho os dados de uso de tokens.",
       panels: ["vitals"],
     };
   }
   if (/queue/.test(t)) {
-    if (state.queue.length === 0) return { text: "The queue's empty.", panels: ["pipeline"] };
-    const names = state.queue.map((q) => q.skill.replace(/-/g, " ")).join(", ");
+    if (state.queue.length === 0) return { text: "A fila está vazia.", panels: ["pipeline"] };
+    const names = listOut(state.queue.map((q) => workflowLabel(q.skill)));
     return {
-      text: `${state.queue.length === 1 ? "One thing" : `${state.queue.length} things`} in the queue: ${names}.`,
+      text: `${state.queue.length === 1 ? "Há uma tarefa" : `Há ${state.queue.length} tarefas`} na fila. ${names}.`,
       panels: ["pipeline"],
     };
   }
   if (/top 3|top three|priorit|directive/.test(t)) {
     const d = state.daily;
     if (!d?.isToday) return {
-      text: `There's no daily note for today yet.${d ? ` The last plan is from ${d.date}${d.top3.length ? `; its saved priorities were ${listOut(d.top3.map((p) => p.text))}` : ''}.` : ''} Say plan today to set up today's board.`,
+      text: `Ainda não há uma nota para hoje.${d ? ` O último plano é de ${d.date}.${d.top3.length ? ` As prioridades salvas eram ${listOut(d.top3.map((p) => p.text))}.` : ""}` : ""} Diga “planejar hoje” para criar uma.`,
       panels: ["priorities"],
     };
-    if (!d || d.top3.length === 0) return { text: "Nothing's on the board yet.", panels: ["priorities"] };
+    if (!d || d.top3.length === 0) return { text: "Ainda não há prioridades no plano.", panels: ["priorities"] };
     const open = d.top3.filter((p) => !p.done);
     return {
       text:
         open.length === 0
-          ? "You've cleared all three priorities. Strong day."
-          : `${open.length === 1 ? "One left" : `${open.length} still open`}: ${listOut(open.map((p) => p.text))}.`,
+          ? "Você concluiu as três prioridades."
+          : `${open.length === 1 ? "Resta uma prioridade" : `Restam ${open.length} prioridades`} — ${listOut(open.map((p) => p.text))}.`,
       panels: ["priorities"],
     };
   }
   if (/schedule|next today|what s next|whats next|next up/.test(t)) {
     const d = state.daily;
-    if (!d?.isToday) return { text: "No schedule for today yet — say plan today and I'll set one up.", panels: ["schedule"] };
-    if (!d || d.schedule.length === 0) return { text: "Nothing's on the schedule.", panels: ["schedule"] };
+    if (!d?.isToday) return { text: "Ainda não há uma agenda para hoje. Diga “planejar hoje” para criar uma.", panels: ["schedule"] };
+    if (!d || d.schedule.length === 0) return { text: "A agenda está vazia.", panels: ["schedule"] };
     const next = d.isToday ? nextScheduleItem(state) : null;
     return {
       text: next
-        ? `Coming up at ${spokenTime(next.time)} — ${next.item}.`
+        ? `O próximo compromisso é às ${spokenTime(next.time)} — ${next.item}.`
         : d.isToday
-          ? "You're clear for the rest of the day."
-          : "No schedule for today yet — say plan today and I'll set one up.",
+          ? "Você tem o resto do dia livre."
+          : "Ainda não há uma agenda para hoje. Diga “planejar hoje” para criar uma.",
       panels: ["schedule"],
     };
   }
   if (/focus/.test(t)) {
     const d = state.daily;
     return {
-      text: d?.isToday && d.focus ? `Today's focus is ${d.focus}.` : `No focus set for today.${d && !d.isToday && d.focus ? ` The last saved focus, from ${d.date}, was ${d.focus}.` : ''}`,
+      text: d?.isToday && d.focus ? `O foco de hoje é ${d.focus}.` : `Ainda não há um foco definido para hoje.${d && !d.isToday && d.focus ? ` O último foco salvo, de ${d.date}, foi ${d.focus}.` : ""}`,
       panels: ["schedule"],
     };
   }
   if (/last run|last fail|recent run/.test(t)) {
     const r = state.runs.find((x) => x.status === "ok" || x.status === "error");
-    if (!r) return { text: "No recent runs.", panels: ["pipeline"] };
+    if (!r) return { text: "Não há execuções recentes.", panels: ["pipeline"] };
     return {
-      text: `The last run was ${r.skill.replace(/-/g, " ")} — it ${r.status === "ok" ? "finished fine" : "failed"}. ${r.summary.slice(0, 120)}`,
+      text: `A última execução foi de ${workflowLabel(r.skill)} e ${r.status === "ok" ? "terminou com sucesso" : "falhou"}. ${r.summary.slice(0, 120)}`,
       panels: ["pipeline", "diagnostics"],
     };
   }
   return null;
 }
 
-// "A, B, and C" — spoken list with a natural and-join
 function listOut(items: string[]): string {
   if (items.length <= 1) return items.join("");
-  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+  return `${items.slice(0, -1).join(", ")} e ${items[items.length - 1]}`;
 }
 
 // --- Haiku engine -----------------------------------------------------------
@@ -1514,6 +1490,6 @@ export function validateRouted(
   const skill =
     tier === 1 && parsed.skill && ALLOWED_SKILLS.has(parsed.skill) ? parsed.skill : undefined;
   if (tier === 1 && !skill) return null;
-  return { tier, skill, reply: String(parsed.reply ?? "Done."), engine, panels };
+  return { tier, skill, reply: String(parsed.reply), engine, panels };
 }
 

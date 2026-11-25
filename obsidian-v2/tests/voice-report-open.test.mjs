@@ -100,7 +100,7 @@ test('missing named reports answer locally and become openable on the next reque
  const f=fixture(t);
  for(const [key,name,folder] of targets){
   const missing=await f.speak('claude','native',`Would you mind displaying the ${name} in Obsidian?`);
-  assert.match(missing.reply,/don't have .* on file yet/);assert.equal(missing.reveal,null);assert.equal(missing.deliverable,null);assert.equal(missing.model,null);assert.deepEqual(missing.workIds,[]);
+  assert.match(missing.reply,/Ainda não há um arquivo de/);assert.equal(missing.reveal,null);assert.equal(missing.deliverable,null);assert.equal(missing.model,null);assert.deepEqual(missing.workIds,[]);
   const expected=f.write(`${folder}/${localDate()}-${key}.md`);
   assert.equal((await f.speak('claude','native',`Pull up the ${name} for me`)).deliverable,expected);
  }
@@ -112,10 +112,10 @@ test("today's named reports never silently open an older saved file",async t=>{
  for(const [key,name,folder] of targets){
   f.write(`${folder}/2020-01-01-${key}.md`);
   const missing=await f.speak('claude','native',`Can you pull up today's ${name} for me?`);
-  assert.match(missing.reply,/don't have today's/);assert.equal(missing.deliverable,null);assert.equal(missing.reveal,null);assert.equal(missing.model,null);
+  assert.match(missing.reply,/Ainda não há um arquivo de .* para hoje/);assert.equal(missing.deliverable,null);assert.equal(missing.reveal,null);assert.equal(missing.model,null);
   for(const suffix of ['from today','for today']){
    const currentMissing=await f.speak('codex','web',`Display the ${name} ${suffix}`);
-   assert.match(currentMissing.reply,/don't have today's/);assert.equal(currentMissing.deliverable,null);assert.equal(currentMissing.reveal,null);
+   assert.match(currentMissing.reply,/Ainda não há um arquivo de .* para hoje/);assert.equal(currentMissing.deliverable,null);assert.equal(currentMissing.reveal,null);
   }
   const expected=f.write(`${folder}/${localDate()}-${key}.md`);
   f.write(`${folder}/2099-01-01-${key}.md`);
@@ -187,7 +187,7 @@ test('report discovery excludes markdown directories, index notes and linked rep
  fs.symlinkSync(outside,link,process.platform==='win32'?'junction':'dir');
  try{
   const result=await f.speak('codex','native','Open github trending');
-  assert.equal(result.deliverable,null);assert.equal(result.reveal,null);assert.match(result.reply,/don't have/);
+  assert.equal(result.deliverable,null);assert.equal(result.reveal,null);assert.match(result.reply,/Ainda não há um arquivo de/);
  }finally{fs.unlinkSync(link)}
 });
 

@@ -51,7 +51,7 @@ export function MorningHeadlinesCard({ app, limit = 3 }: Props) {
 							type="button"
 							className="aos-v2-cc-feed-headlink"
 							onClick={openReport}
-							title={`open ${snap.sourcePath}`}
+							title={`Abrir ${snap.sourcePath}`}
 						>
 							↗
 						</button>

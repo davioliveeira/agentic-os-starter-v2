@@ -26,8 +26,13 @@ Use `--provider claude` se quiser usar Claude Code. Para um cofre existente, def
 
 Se você já tem o original rodando, ele precisa liberar as portas antes que outra instalação possa iniciar. Use `node aos.mjs stop` na pasta da instalação original quando suas tarefas estiverem concluídas.
 
+## Guias em português
+
+- [Personalizar o painel](docs/DASHBOARD.md)
+- [Testar o atalho de voz no Mac](docs/MAC-VOICE.md)
+
 ## Tradução e compatibilidade
 
-Os painéis, o catálogo de fluxos e a configuração inicial da voz usam português brasileiro. Comandos do instalador, IDs dos fluxos, seções estruturais das notas e atalhos de voz instantâneos seguem as convenções do projeto original. As respostas e os relatórios gerados pelo agente podem incluir termos de fontes e ferramentas externas.
+Os painéis, o catálogo de fluxos e a configuração inicial da voz usam português brasileiro. Comandos do instalador, IDs dos fluxos e seções estruturais das notas seguem as convenções do projeto original. A voz reconhece algumas frases diretas em português, como “planejar hoje” e “a segunda” após uma lista de opções. As respostas e os relatórios gerados pelo agente podem incluir termos de fontes e ferramentas externas.
 
 A base do fork é o [Agentic OS V2 da Chase AI](https://github.com/ctskool/agentic-os-starter-v2), com [licença MIT](LICENSE) e [avisos de terceiros](THIRD_PARTY_NOTICES.md). Veja também a [documentação original em inglês](README.en.md).

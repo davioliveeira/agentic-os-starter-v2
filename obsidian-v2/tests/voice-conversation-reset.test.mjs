@@ -75,8 +75,8 @@ for(const provider of ['codex','claude']){
   for(const transcript of ['Start a new conversation','Start a new conversation: create a diagram of a solar panel']){
    const f=fixture(t,provider),id=crypto.randomUUID(),request={id,transcript,selection:f.selection,terminalMode:true};f.receipt('old');
    const run=()=>routeVoice(f.root,request,undefined,()=>assert.fail('No model expected'),f.terminals,{resolveCli:()=>({command:'fixture-cli',prefix:[]}),updateCurrent:()=>{throw Error('Disk write failed')}});
-   await assert.rejects(run(),/couldn't (?:start|select)/);const calls=f.calls.length;
-   await assert.rejects(run(),/couldn't (?:start|select)/);assert.equal(f.calls.length,calls);assert.equal(readConversationEpoch(f.root,provider),0);assert.equal(voiceMemory(f.root,provider)[0].you,'OLD_VOICE_TOPIC');
+   await assert.rejects(run(),/Falha ao iniciar a conversa|seleção da nova conversa falhou/);const calls=f.calls.length;
+   await assert.rejects(run(),/Falha ao iniciar a conversa|seleção da nova conversa falhou/);assert.equal(f.calls.length,calls);assert.equal(readConversationEpoch(f.root,provider),0);assert.equal(voiceMemory(f.root,provider)[0].you,'OLD_VOICE_TOPIC');
   }
  });
 }

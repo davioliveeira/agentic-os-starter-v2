@@ -62,7 +62,7 @@ export function LatestVideoCard({ video }: Props) {
 		<div
 			className={`aos-v2-cc-card aos-v2-cc-latest-video aos-v2-cc-latest-video-clickable ${isStaleish ? "aos-v2-cc-card-dim" : ""}`}
 			onClick={open}
-			title={`open ${video.url}`}
+			title={`Abrir ${video.url}`}
 		>
 			<div className="aos-v2-cc-card-head">
 				<span className="aos-v2-cc-card-label">Último vídeo publicado</span>
