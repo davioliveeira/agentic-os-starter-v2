@@ -78,8 +78,8 @@ test('the eight missing rubrics and their dependencies are available inline',t=>
 
 test('research and draft references retain evidence and editorial requirements without remote mutation recipes',t=>{
  const cascade=setup(t,'content-cascade').instructions;
- assert.match(cascade,/1,500–2,500/);assert.match(cascade,/=== FIRST COMMENT ===/);
- assert.match(cascade,/STAT NEEDED/);assert.match(cascade,/actual transcript/);
+ assert.match(cascade,/1\.500 a 2\.500/);assert.match(cascade,/=== FIRST COMMENT ===/);
+ assert.match(cascade,/STAT NEEDED/);assert.match(cascade,/transcrição real/);
  assert.doesNotMatch(cascade,/PATCH|social_content|post-leadshark|cascade-pending\.json/);
  const pipeline=setup(t,'yt-pipeline').instructions;
  assert.match(pipeline,/analise as transcrições locais/);
@@ -138,13 +138,13 @@ test('restored shared rubrics retain sources, labels, handoff data and user sele
   const trend=setup(t,'ai-trend-scan',provider).instructions;
   for(const term of ['AI Explained','Matthew Berman','David Ondrej','Yannic Kilcher','Wes Roth','@AnthropicAI','@alexalbert__','@simonw','@karpathy','@swyx','tolerância de 12 horas'])assert.ok(trend.includes(term),term);
   const intel=setup(t,'morning-intel',provider).instructions;
-  for(const term of ['bcherny OR _catwu OR alexalbert__','sama OR gdb OR OpenAIDevs OR Codex_Changelog','newsletter-worth-reading','Never click tracking links','Reddit/Discord discussion proxy','Steal my X for Y'])assert.ok(intel.includes(term),term);
+  for(const term of ['bcherny OR _catwu OR alexalbert__','sama OR gdb OR OpenAIDevs OR Codex_Changelog','newsletter-worth-reading','Evite links de rastreamento','fonte indireta de discussões de Reddit e Discord','Steal my X for Y'])assert.ok(intel.includes(term),term);
   const morning=setup(t,'morning',provider).instructions;
   const sponsor=JSON.parse(morning.match(/### SPONSOR_PITCHES\s+```json\s+([\s\S]*?)```/)[1])[0];
   const prospect=JSON.parse(morning.match(/### LEADS\s+```json\s+([\s\S]*?)```/)[1])[0];
   assert.deepEqual(Object.keys(sponsor),['number','id','from','subject','firstName','messageIdHeader']);
   assert.deepEqual(Object.keys(prospect),['number','source','name','firstName','email','formAnswers','verdict','rationale','researchNote']);
-  for(const term of ['pursue all','pursue 1,3','draft except 3,7','pass','skip','creates no drafts or remote mutations','No drafting request implies sending'])assert.ok(morning.includes(term),term);
+  for(const term of ['pursue all','pursue 1,3','draft except 3,7','pass','skip','sem efeito remoto','Envio exige autorização própria'])assert.ok(morning.includes(term),term);
   const cleanup=setup(t,'vault-cleanup',provider).instructions;
   for(const term of ['nome de arquivo único','links com caminho','Temp Files to Delete','content/temp/','A proposta inicial apenas lista','releia a origem'])assert.ok(cleanup.includes(term),term);
   const research=setup(t,'deep-research-chase',provider).instructions;

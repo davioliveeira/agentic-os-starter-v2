@@ -1,48 +1,44 @@
-# Content Cascade — transcript to complete drafts
+# Reaproveitar a transcrição em rascunhos completos
 
-Ported from the content-cascade skill and its blog/LinkedIn editorial prompts. These are content requirements, not publishing or database instructions. The initial workflow returns one complete Markdown draft bundle; the bridge owns its persistence. No remote posts, schedules, database writes, pending-marker deletion or status updates occur in this run. Those capabilities are not established by this port and require a separately requested follow-up.
+Gere um pacote de rascunhos em Markdown. A ponte grava o resultado. Publicação, agendamento e alterações remotas exigem pedido separado.
 
-## Verify the source
+## Conferir a fonte
 
-Use the supplied video URL to obtain its actual transcript and metadata. Try available transcript connectors/helpers, then an installed YouTube transcript reader or caption download tool; prefer original captions before generated captions. Check the opening sentences against the video title and identify the transcript method and coverage. A title, thumbnail or description is not a transcript. If all methods fail, return BLOCKED: and the source failure; never invent the video content.
+Use a URL para obter a transcrição real e os metadados. Tente o conector, leitor ou downloader de legendas disponível. Prefira legendas originais. Confira as primeiras frases contra o título e informe método e cobertura. Se todos os meios falharem, use `BLOCKED:` e informe a causa.
 
-Preserve product, model, tool and version names as spoken; verify unfamiliar names through primary sources instead of replacing them with familiar names. Extract the teaching, real demonstrations, examples and outcomes. Remove filler, repetition and sponsor reads. Describe visual steps only when supported by the transcript or inspected video. Never invent personal experiences, claims or statistics.
+Preserve nomes de produtos, modelos, ferramentas e versões como falados. Verifique nomes desconhecidos em fontes primárias. Extraia ensinamentos, demonstrações, exemplos e resultados. Retire repetições, enchimento e publicidade. Descreva etapas visuais apenas com evidência. Preserve a voz direta, prática e conversacional da pessoa criadora. Use experiências em primeira pessoa só quando existirem na fonte.
 
-## Voice
+## Blog
 
-Write in the creator's direct, conversational, practical voice, with contractions and concrete details. Use first-person experiences only when they appear in the source. Talk to the reader. Avoid corporate filler such as “game-changer”, “unlock”, “leverage”, “deep dive”, “in today's landscape” and generic motivational content. Do not imitate a claim of personal experience the source never made.
+- Abra com um H1. O corpo fica em texto, sem imagens ou citações em bloco. Use rótulos em negrito para etapas e conceitos em listas. Indique a linguagem em blocos de código.
+- Use 1.500 a 2.500 palavras quando houver conteúdo para isso. Reorganize o material para leitura e desenvolva os trechos comprimidos.
+- Responda à pergunta principal nos primeiros 40 a 60 termos, depois introduza a história com base na fonte. Use perguntas naturais em H2, parágrafos de duas a quatro frases, passos práticos e duas ou mais definições úteis em negrito.
+- Inclua um exemplo de Problema → Ação → Resultado. Busque um dado real a cada 150 a 200 palavras quando houver evidência. Anote `[STAT NEEDED: tema]` em Review notes se faltar um número.
+- Termine com três a cinco perguntas frequentes em H3 e respostas curtas. Use `cta` de `system/v2/profile.json` se disponível, adaptando só o tema. Sem configuração, conclua sem oferta de comunidade.
+- Entregue título e metatítulo com menos de 60 caracteres quando possível, metadescrição de 150 a 160, palavra-chave principal, três a cinco secundárias, slug em minúsculas com hífens e menos de 60 caracteres, resumo de uma ou duas frases, três a sete tags, temas para links internos, tipo de esquema, data e URL da miniatura verificadas quando disponíveis.
 
-## Blog draft
+## X
 
-- Start the blog body with one H1 title. Keep the body text-only: no inline images or blockquotes. Use bold labels inside lists when introducing a named step or concept, and give code fences an appropriate language tag. These formatting conventions apply to the blog copy, not the surrounding bundle metadata.
-- Target 1,500–2,500 words without padding. Reorganize for reading logic and expand compressed teaching points.
-- Put a direct answer to the main question in the first 40–60 words, then a grounded hook. Use natural question-shaped H2s, self-contained sections, paragraphs of 2–4 sentences, practical steps and at least two useful bold definitions.
-- Include a concrete source example as Problem → Action → Result. Aim for a real data point every 150–200 words, but evidence takes priority: use [STAT NEEDED: topic] in review notes when a number is unavailable, never manufacture one.
-- Finish with 3–5 H3 FAQs and concise answers. Use the configured creator/community CTA if available. If the vault file `system/v2/profile.json` has a `cta` text, close with it and adapt only the topic area; otherwise close without a community plug.
-- Include metadata: title/meta title under 60 characters where possible; meta description 150–160 characters; primary keyword; 3–5 secondary keywords; lowercase hyphenated slug under 60 characters; 1–2 sentence excerpt; 3–7 tags; suggested internal-link topics; schema type; verified original video date and thumbnail URL when available.
+Escreva um resultado forte ou afirmação fundamentada, normalmente com menos de 140 caracteres e até duas linhas. Evite abertura de anúncio, hashtag, emoji e URL no corpo. Entregue a URL integral em uma resposta separada.
 
-## X post and reply
+## LinkedIn
 
-Write one strong outcome or grounded claim, usually under 140 characters and at most two short lines. No announcement opener, hashtags, emojis or YouTube URL in the post body. Provide the full video URL as a separate reply. Do not claim a video was posted.
+Adapte o gancho dos primeiros 30 a 60 segundos e cubra cada ideia principal com substância. O post deve ser útil mesmo sem o vídeo. Use cerca de 1.200 a 2.000 caracteres sem encher espaço. Faça a abertura de cerca de 150 caracteres funcionar sozinha. Use uma ideia por linha e evite hashtags e decoração Markdown.
 
-## LinkedIn post and first comment
+Use a chamada conhecida quando houver oferta real na transcrição ou no perfil:
 
-Mirror the video's full premise and adapt its opening 30–60 second hook. Cover each major idea with substance; do not replace a full framework with one minor point. Make it useful without watching, then point to the deeper video. Aim for 1,200–2,000 characters, but do not pad. The opening ~150 characters must work without prior context. Use one idea per line, no hashtags, and no Markdown decoration inside the copy.
+Quer acesso a [OFERTA RELEVANTE]?
 
-Use the established CTA only when its offer is supported by the transcript or configured profile; do not invent a downloadable resource:
+1️⃣ Conecte-se comigo
+2️⃣ Comente “agent”
 
-If you want access to [RELEVANT OFFER]:
+O link do vídeo completo está nos comentários.
 
-1️⃣ Connect with me
-2️⃣ Comment "agent"
-
-Link to the full video breakdown is in the comments.
-
-Keep the video URL out of the body. Include the exact separator on its own line, followed by the comment:
+Mantenha a URL fora do corpo. Use o separador exato seguido do primeiro comentário:
 
 === FIRST COMMENT ===
-Full video here: <verified video URL>
+Vídeo completo: <URL verificada>
 
-## Complete result
+## Entrega
 
-Return a source/coverage summary, complete **Blog metadata**, **Blog draft**, **X post**, **X reply**, **LinkedIn post**, **First comment**, and **Review notes**. Keep the actual draft copy in the result, not merely links, a short index or a completion receipt. This draft workflow has no automatic publication or scheduling phase.
+Inclua fontes e cobertura, **Blog metadata**, **Blog draft**, **X post**, **X reply**, **LinkedIn post**, **First comment** e **Review notes**. Traga os rascunhos completos em português brasileiro.

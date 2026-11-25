@@ -1,69 +1,64 @@
 ---
 name: github-trending
-description: Pull last-7-days + last-30-days top GitHub repos by stars PLUS a fastest-growing (this-month star velocity) metric, classify AI/dev relevance, write to inbox/research/github-trending/YYYY-MM-DD-trending.md. Direct-exec (no AI in loop) — runner spawns the Python script directly. Use when the cockpit "GitHub Trending" card fires a refresh-new intent, or when manually invoked via /github-trending.
+description: "Consulta repositórios novos e em alta no GitHub, identifica projetos de IA e desenvolvimento e gera um relatório no cofre. Use em /github-trending ou ao atualizar o cartão no Obsidian."
 ---
 
-# GitHub Trending
+# Repositórios em alta no GitHub
 
-Mechanical fetch — no AI judgment needed. Three metrics, ranks by stars / star-growth, flags AI/dev relevance from topics + description, writes markdown that the cockpit's `GithubTrendingCard` parses.
+O executor roda o script Python diretamente. Ele grava o Markdown que o cartão do Obsidian lê.
 
-## The four metrics
+## Indicadores
 
-1. **This Week** — repos `created:>7d`, sorted by stars (REST search API).
-2. **This Month** — repos `created:>30d`, sorted by stars (REST search API).
-3. **Fastest Growing (24h)** — top AI/dev repos by **stars gained today**, scraped from `github.com/trending?since=daily`. Catches same-day spikes before they build a monthly number.
-4. **Fastest Growing (30d)** — top AI/dev repos by **stars gained this month**, scraped from `github.com/trending?since=monthly`. The durable breakouts.
+1. **This Week:** repositórios criados nos últimos sete dias, classificados por estrelas pela API REST.
+2. **This Month:** repositórios criados nos últimos 30 dias, classificados por estrelas.
+3. **Fastest Growing (24h):** repositórios relevantes de qualquer idade, classificados por estrelas ganhas hoje na página `github.com/trending?since=daily`.
+4. **Fastest Growing (30d):** classificação equivalente na página mensal.
 
-Metrics 3 & 4 are the velocity pair. Unlike 1 & 2 (which filter on `created:<date>` and so only ever see brand-new repos), they surface a repo of **any age** that is suddenly ripping — the "came out two months ago and is now taking off" case. The trending page gives the star-growth number directly (no cross-run state needed); each AI/dev pick is enriched with one `GET /repos/{full}` call for stars + `created_at` + topics. If a scrape fails, that section degrades gracefully ("_Trending feed unavailable this run._") and the others still render.
+Para os grupos 3 e 4, complemente estrelas, `created_at` e tópicos com uma consulta `GET /repos/{full}` por candidato. Use a contagem de crescimento da própria página. Quando a captura falhar, sinalize a seção e mantenha os outros resultados.
 
-_Note: a pure stars-sorted API query CANNOT do velocity — the top of that list is all mega-repos (50k+ stars), so a single-digit-k sleeper never appears in the sampled pool. The trending page is GitHub's own growth ranking and reaches those mid-size sleepers._
+## Formato
 
-## Output
-
-`inbox/research/github-trending/YYYY-MM-DD-trending.md`
-
-Schema (frozen — `lib/reports.ts → parseTrendingRepos` depends on it):
+O relatório fica em `inbox/research/github-trending/YYYY-MM-DD-trending.md`. Preserve os títulos e nomes de campos que `parseTrendingRepos` lê.
 
 ```
-# GitHub Trending - YYYY-MM-DD (Weekday)
+# GitHub Trending - YYYY-MM-DD (Dia da semana)
 
 ## Top 10 Trending This Week
-_Repos created in the last 7 days, ranked by stars_
+_Repositórios criados nos últimos 7 dias em ordem de estrelas_
 
 ### N. [owner/name](url) **[AI/DEV]?**
 - **Stars:** N | **Language:** L
 - **Created:** YYYY-MM-DD
-- **Topics:** comma list or "none"
+- **Topics:** lista separada por vírgulas ou "none"
 - **Description:** …
 
 ---
 
 ## Top 5 Trending This Month
-_Repos created in the last 30 days, ranked by stars_
+_Repositórios criados nos últimos 30 dias em ordem de estrelas_
 
-(same shape)
+(mesmo formato)
 
 ---
 
 ## Top 10 Fastest Growing (24h)
-_AI/dev repos from GitHub's daily trending, ranked by stars gained today — any age_
+_Repositórios de IA e desenvolvimento em alta no dia, ordenados por estrelas ganhas_
 
 ### N. [owner/name](url) **[AI/DEV]?**
 - **Growth:** +N stars today (created YYYY-MM-DD)
 - **Stars:** N | **Language:** L
 - **Created:** YYYY-MM-DD
-- **Topics:** comma list or "none"
+- **Topics:** lista separada por vírgulas ou "none"
 - **Description:** …
 
 ---
 
 ## Top 10 Fastest Growing (30d)
-_AI/dev repos from GitHub's monthly trending, ranked by stars gained this month — any age_
+_Repositórios de IA e desenvolvimento em alta no mês, ordenados por estrelas ganhas_
 
-(same shape, Growth line reads "+N stars this month")
+(mesmo formato, a linha Growth usa "+N stars this month")
 
-(extra `**Growth:**` line vs sections 1 & 2 — `parseTrendingRepos` tags each block
-with its section via the `## ` heading; "(24h)" → velocity-day, else velocity-month.)
+(linha `**Growth:**` adicional nas seções 3 e 4 — `parseTrendingRepos` identifica cada bloco pelo título `## `. Use "(24h)" para velocity-day e "(30d)" para velocity-month.)
 
 ---
 
@@ -75,30 +70,20 @@ with its section via the `## ` heading; "(24h)" → velocity-day, else velocity-
 _Generated automatically at HH:MM on YYYY-MM-DD_
 ```
 
-## How runner invokes
-
-Listed in `runner.js → isDirectExec` set. Runner spawns `python scripts/fetch.py` with `cwd: VAULT_ROOT`. Script writes the file. Runner logs exit code + first line.
-
-## Manual invocation
+## Executar
 
 ```bash
-python "<starter>/obsidian-v2/runner/scripts/github-trending/fetch.py"
+python "<pasta do projeto>/obsidian-v2/runner/scripts/github-trending/fetch.py"
 ```
 
-Writes to vault if `AGENTIC_OS_VAULT` env var set, else `~/the-vault`.
+A ponte executa com a raiz do cofre como diretório atual. Para execução manual, informe `AGENTIC_OS_VAULT`; sem ele, o script usa `~/the-vault`.
 
-## AI/Dev classifier
+## Classificação
 
-Substring match (case-insensitive) on topics OR description against:
+A correspondência ignora maiúsculas nos tópicos e na descrição:
+
 `ai, llm, gpt, claude, anthropic, agent, mcp, prompt, embedding, rag, deepseek, kimi, gemini, openai, copilot, codex, fine-tun, transformer, ollama, langchain, ai-`
 
-Not perfect — false positives on "DarkGPT"-style spam, false negatives on AI projects with vague descriptions. Good enough for a glance card.
+A heurística dá uma indicação rápida. Revise possíveis falsos positivos e projetos relevantes com descrições vagas.
 
-## Rate limit
-
-Calls per run: 2 Search API (week + month) + 1 HTML GET (trending page, not rate-limited) + up to ~1 enrich call per trending repo scanned until 5 AI/dev picks are found (`GET /repos/{full}`, typically 5–12 of the ~25 trending repos).
-
-- Search API: unauthenticated = 10 req/min, 30 results/min — 2 reqs is fine.
-- Core REST (the enrich calls): unauthenticated = 60/hr per IP — ~12 calls/run is fine for the 6-hourly schedule, but **bursty manual re-runs can exhaust it**. Set `GITHUB_TOKEN` to lift both to 5000/hr and remove the worry.
-
-If `GITHUB_TOKEN` env var present, script uses it for the higher limit.
+A execução consulta a busca para semana e mês, as páginas de tendências e os dados dos candidatos. Repetir manualmente muitas vezes pode atingir os limites da API. Quando houver `GITHUB_TOKEN` no ambiente, o script usa a conexão autenticada.

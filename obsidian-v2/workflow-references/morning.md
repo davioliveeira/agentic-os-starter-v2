@@ -1,31 +1,29 @@
-# Morning routine — combined briefing
+# Boletim da manhã com caixa de entrada
 
-Adapted from the vault's morning routine. Use the attached morning-report and inbox-brief references directly; no external skill installation is required.
+Siga as referências `morning-report` e `inbox-brief`. Rode a pesquisa e a leitura da caixa de entrada em paralelo quando o provedor permitir. Caso contrário, faça em sequência e preserve os dois resultados. Respeite a autorização e disponibilidade dos conectores.
 
-Run the independent trend briefing and inbox scan/qualification together when the provider supports parallel reads. Otherwise sequence them while preserving both outputs. Do not delegate work solely to bypass unavailable permission or connector access.
+A pesquisa cobre YouTube, web, X e GitHub nas últimas 24 horas. A triagem segue as seis categorias e qualifica leads. A execução inicial só gera o relatório.
 
-The trend branch performs the morning-report's 24-hour YouTube/web/X/GitHub scan. The inbox branch performs inbox-brief's scan, strict six-bucket classification and lead qualification only. Both stop at producing their reports; no email drafts, sending, labels, lead-database updates or scheduling occur automatically.
-
-Return one unified note with frontmatter date, skill: morning, tags: [morning, brief], then:
+Use frontmatter `date`, `skill: morning` e `tags: [morning, brief]`, depois:
 
 ```
 # Good morning
 
 ## AI & Coding Agent Trends
-<Complete morning-report sections, with links and source limitations>
+<Relatório completo, fontes e lacunas>
 
 ## Inbox Brief (last 24h)
-<Complete categorized inbox report, keeping separate numbered lead and sponsor lists>
+<Triagem completa, com listas numeradas separadas para leads e patrocínios>
 
 ## Proposed next actions
-<Counts of leads worth pursuing and sponsor pitches worth a reply, linked to the numbered items>
+<Totais de leads e propostas que merecem resposta, com referência aos IDs>
 ```
 
-Preserve the source sections rather than summarizing their summaries again. Avoid duplicate findings between branches. If a branch is unavailable, retain useful findings from the other branch but clearly mark the missing branch; do not claim a complete morning routine. Keep lead identity and thread references sufficient for a later explicit request while minimizing copied email content.
+Preserve o conteúdo de cada seção. Remova duplicatas. Se uma fonte estiver indisponível, indique claramente e mantenha o resultado da outra. Guarde só o mínimo necessário dos e-mails para revisar e identificar itens.
 
-## Durable inbox handoff
+## Identificadores da triagem
 
-Keep separate stable numbering for leads and sponsor pitches. After the complete categorized summary, return two named sections with valid fenced JSON arrays. Preserve the exact IDs from the authenticated source so a later request can select the same item rather than rediscovering it by subject. Use `[]` when none were found. Never fabricate a message ID, email, form answer or qualification verdict; use null for an unavailable identifier and list the missing field as a follow-up blocker.
+Mantenha numeração estável e separada. Após a triagem, inclua as duas seções abaixo com listas JSON válidas. Preserve os IDs exatos. Use `[]` para listas vazias e `null` para identificadores indisponíveis. Registre a lacuna. Use apenas dados, respostas de formulário e classificações verificáveis.
 
 ### SPONSOR_PITCHES
 
@@ -43,17 +41,17 @@ Keep separate stable numbering for leads and sponsor pitches. After the complete
 ]
 ```
 
-`formAnswers` retains the qualification-relevant original question/answer fields; `verdict` is PURSUE, PURSUE? or PASS. Include every lead, including PASS, rather than dropping the unchosen ones. Do not replace the prospect with the form-service sender. Preserve the minimal needed handoff in the local report; this is not permission to publish private inbox data elsewhere.
+Mantenha em `formAnswers` as perguntas e respostas relevantes para a qualificação. Use `PURSUE`, `PURSUE?` ou `PASS` em `verdict`. Inclua os leads descartados na triagem e identifique o prospect pela resposta do formulário. Os dados ficam no relatório local.
 
-## Follow-up grammar
+## Seleção posterior
 
-After the unified report, include only non-empty bucket prompts:
+Se houver itens, apresente opções em português e aceite os comandos originais:
 
-- Leads: give the PURSUE count and offer `pursue all`, `pursue 1,3`, or `pass`.
-- Sponsors: give the pitch count and offer `draft all`, `draft except 3,7`, or `skip`.
+- Leads: quantidade em `PURSUE`. Ofereça “avançar com todos” (`pursue all`), “avançar com 1,3” (`pursue 1,3`) ou `pass`.
+- Patrocínios: quantidade de propostas. Ofereça “rascunhar todos” (`draft all`), “rascunhar exceto 3,7” (`draft except 3,7`) ou `skip`.
 
-Interpret numbers against their respective saved JSON array, not a global combined list. `pursue all` selects the PURSUE leads; borderline PURSUE? entries stay identified for review. Explicit numbered choices identify those leads. `draft except 3,7` selects sponsor pitches other than those IDs. Unknown/ambiguous numbers or an undirected `all` require resolving the bucket; `pass`, `skip` or `no` makes no change to that bucket. If both arrays are empty, state “no leads or sponsor pitches today” and stop.
+Resolva números pela lista correta. “Todos” para leads seleciona `PURSUE` e deixa `PURSUE?` para revisão. IDs explícitos selecionam os itens indicados. Peça a categoria quando o pedido for ambíguo. `pass`, `skip` ou `no` deixam a categoria como está. Se ambas as listas estiverem vazias, diga que não há leads nem propostas de patrocínio.
 
-The initial report creates no drafts or remote mutations. For a later selected drafting request, use configured approved templates: lead outreach is a **new message** to the prospect, with a single personalized line grounded in formAnswers/researchNote (one specific business challenge or goal), verified firstName and booking link. Subjects are `Your project inquiry — next step` for agency and `Your mentorship application — next step` for mentorship. Sponsor copy is a **reply** using the actual messageIdHeader and configured media-kit link, not an unrelated thread ID. If an authenticated connector's draft API needs another identifier, resolve that mapping explicitly. Missing identifiers/templates/links stay blockers; do not invent them.
+A execução inicial termina no relatório, sem efeito remoto. Para preparar rascunhos solicitados depois, use o modelo aprovado. Em leads, escreva uma nova mensagem ao prospect, com uma linha sobre objetivo ou desafio observado em `formAnswers` ou `researchNote`, primeiro nome verificado e link de agendamento. Preserve os assuntos `Your project inquiry — next step` e `Your mentorship application — next step`. Para patrocínio, responda usando o `messageIdHeader` real e o link de mídia configurado. Se faltar algum identificador, modelo ou link, aponte o impedimento.
 
-Default follow-up output can be complete local draft copy for the selected items. Creating Gmail draft records requires an explicit follow-up that requests that account action and an available authenticated capability; it is not automatically dispatched by the briefing or offered grammar. No drafting request implies sending, and the removed legacy GWS send/PDF automation is not restored. Report actual local copies or remote draft IDs and per-item failures truthfully; never call suggested copy a sent or created message.
+Entregue textos locais por padrão. A criação de rascunho no Gmail exige pedido específico e conector autenticado. Envio exige autorização própria. Informe apenas rascunhos criados ou preparados e as falhas por item.

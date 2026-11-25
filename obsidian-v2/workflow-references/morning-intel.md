@@ -1,65 +1,65 @@
-# Morning Intel — full daily intelligence brief
+# Boletim diário de IA
 
-Adapted from the original morning-intel source battery and stable report headings. Use America/Chicago for report dating and a rolling 24-hour news window. Read current sources through available tools or verified fresh cached results; do not assume private fetch scripts or scheduled jobs exist. Parallelize independent source reads when supported.
+Use America/Chicago para datar o relatório e uma janela móvel de 24 horas. Use ferramentas disponíveis ou resultados recentes e verificáveis em cache. Quando possível, consulte fontes independentes em paralelo.
 
-## Source battery
+## Fontes
 
-- AI news: current smol.ai coverage, primary provider announcements/changelogs and linked original reporting. Cover Anthropic/Claude, OpenAI/Codex and other relevant providers; the selected execution provider does not limit the news scope.
-- Hacker News: relevant front-page and recent AI stories, with observed points/comments.
-- YouTube: recent AI-builder videos with title, channel, subscribers, views, date and URL. Main-radar views/subscribers ratio of at least 0.3 is an audience signal; label the formula and unknown inputs.
-- Small-channel outliers: use the attached outlier-radar rubric or verified fresh existing reports. In this brief highlight findings from the last 24 hours. Its lifetime-baseline multiplier is distinct from the main radar's views/subscribers ratio.
-- GitHub: top new repositories over 7/30 days and observed growth where available, emphasizing relevant AI/dev projects. Read the deterministic snapshot when fresh; label snapshot age and do not claim historic star growth from one current count.
-- Gmail: read-only last-24-hour inbox triage using the attached inbox rubric. Operational deadlines first, opportunities/needs-reply next, FYI last; collapse noise to a count. Do not draft or send in this initial scan.
-- X: current primary announcements and useful builder reactions; search both current and legacy domains where needed. Verify dates against the post or corroborating dated coverage; search rank is not a freshness guarantee. Unavailable engagement figures stay unknown.
+- **Notícias de IA:** cobertura atual do smol.ai, anúncios originais, históricos de versões e reportagens primárias vinculadas. Cubra Anthropic/Claude, OpenAI/Codex e demais provedores relevantes.
+- **Hacker News:** notícias recentes de IA e da página inicial. Registre pontos e comentários observados.
+- **YouTube:** vídeos recentes, com título, canal, inscritos, visualizações, data e URL. Use a razão visualizações/inscritos de pelo menos 0,3 como sinal de público no radar principal. Nomeie a fórmula e as entradas indisponíveis.
+- **Destaques de canais pequenos:** siga `outlier-radar` ou use um relatório existente e recente. Destaque as últimas 24 horas. Diferencie o multiplicador contra a mediana do canal da razão visualizações/inscritos.
+- **GitHub:** repositórios relevantes novos ou em alta em 7 e 30 dias. Use a captura determinística se recente, com a idade. Para afirmar crescimento, compare observações históricas.
+- **Gmail:** triagem das últimas 24 horas em modo de leitura. Prazos primeiro, seguidos de oportunidades, itens que pedem resposta, informativos e contagem de ruído. Preserve as mensagens.
+- **X:** anúncios primários e reações de quem desenvolve com as ferramentas. Pesquise os domínios atual e antigo quando necessário. Confirme datas nos posts ou em fontes datadas. Marque engajamento não observado como desconhecido.
 
-## Original source and inbox coverage
+## Pesquisas complementares e triagem
 
-Keep the targeted X gap-fill search battery, adapting only topic/date inputs:
+Mantenha as seguintes consultas para cobrir lacunas, ajustando tema e data:
 
-- `site:x.com AnthropicAI OR claudeai OR ClaudeDevs <topic keywords>`
+- `site:x.com AnthropicAI OR claudeai OR ClaudeDevs <termos do tema>`
 - `site:x.com bcherny OR _catwu OR alexalbert__ claude code`
 - `site:x.com sama OR gdb OR OpenAIDevs OR Codex_Changelog`
-- `Anthropic OR "Claude Code" announcement news <today's date>`
-- `OpenAI OR Codex announcement news <today's date>`
+- `Anthropic OR "Claude Code" announcement news <data de hoje>`
+- `OpenAI OR Codex announcement news <data de hoje>`
 
-Use equivalent legacy-domain queries where useful. Search snippets are evidence to verify, not measured engagement. The baseline uses smol.ai as the Reddit/Discord discussion proxy; there is no bundled direct Reddit integration. Label proxy coverage and its possible one-to-two-day lag. Do not repeatedly probe blocked mirrors or claim direct Reddit coverage unless an available authorized connector was actually used.
+Use consultas equivalentes no domínio antigo quando útil. Verifique as prévias antes de tratá-las como fatos. Use smol.ai como fonte indireta de discussões de Reddit e Discord e indique possível atraso de um a dois dias. Só declare cobertura direta quando tiver usado um conector autorizado. Evite insistir em fontes bloqueadas.
 
-For Gmail, deduplicate by thread and use the latest message date. Classify from snippets when sufficient (the original expected roughly 80% coverage); fetch full threads for operational/transactional mail or relevant personalized inbound, and when a reliable decision needs context. Preserve **needs-reply / opportunity / newsletter-worth-reading / FYI / ignore** categories with one why-care sentence. Quota, billing and site failures come first. Collapse ignore mail to a count. Never click tracking links or mutate labels, drafts or messages in this scan.
+No Gmail, deduplique por conversa e use a data da mensagem mais recente. Classifique por prévia quando suficiente. Leia o fio inteiro para mensagens operacionais, transações, contatos relevantes ou decisões dependentes de contexto. Mantenha `needs-reply`, `opportunity`, `newsletter-worth-reading`, `FYI` e `ignore`, com uma frase sobre a relevância. Comece por cota, cobrança e falhas do site. Conte os ignorados. Evite links de rastreamento e preserve rótulos, rascunhos e mensagens.
 
-## Stable result headings
+## Estrutura do resultado
 
-Return the complete report with these headings:
+Use os títulos preservados pelo leitor e escreva o conteúdo em português brasileiro:
 
 # Morning Intel - YYYY-MM-DD (Weekday)
 
 ## TL;DR
-Three to six bullets with the most consequential story first, including urgent operational inbox items when present.
+Três a seis pontos em ordem de relevância. Inclua itens operacionais urgentes quando existirem.
 
 ## Top Story
-One or two paragraphs with direct sources and a verified useful statistic if available.
+Um ou dois parágrafos com fontes diretas e um dado útil verificado, se disponível.
 
 ## AI News (last 24h)
-Group Anthropic/Claude, OpenAI/Codex and others. Link factual claims and include relevant changelog changes.
+Agrupe Anthropic/Claude, OpenAI/Codex e demais provedores. Vincule afirmações e mudanças de versão relevantes.
 
 ## Hacker News Pulse
-Relevant stories, measured points/comments and why they matter.
+Notícias, pontos e comentários observados e relevância.
 
 ## YouTube Radar
-Table of linked title, channel/subscribers, views and explicitly named ratio. Discuss recurring hooks or underserved audience signals without overclaiming.
+Tabela de título vinculado, canal, inscritos, visualizações e razão nomeada. Discuta ganchos recorrentes e lacunas do público com evidência.
 
 ### Small-Channel Outliers (last 24h)
-Table of title, channel/subscribers, views/age, lifetime multiplier and discovery method. Label early velocity separately. A verified zero scan is meaningful; stale/unavailable data is not zero.
+Tabela de título, canal, inscritos, idade, visualizações, multiplicador acumulado e método de descoberta. Identifique velocidade inicial separadamente e diferencie busca sem resultados de fonte indisponível ou antiga.
 
 ## GitHub Radar
-Linked 7-day/30-day new or growing repositories, with a line explaining each AI-builder implication.
+Repositórios vinculados novos ou em crescimento em 7 ou 30 dias. Explique em uma frase a consequência de cada um para quem desenvolve com IA.
 
 ## Inbox (last 24h)
-Operational items, opportunities/needs-reply, FYI, then noise count.
+Operações, oportunidades e pendências de resposta, informativos e contagem de ruído.
 
 ## So What - Content Plan
-Rank three to five YouTube ideas with working title, two-sentence hook, supporting findings and urgency/expiry versus evergreen value. Add two or three LinkedIn ideas and one or two shorts/carousel ideas. Ground any lead-magnet offer in actual existing resources, never invent one. Relate ideas to documented creator themes such as Agentic OS, skills and practical agent building.
+Classifique de três a cinco pautas para YouTube com título provisório, gancho de duas frases, evidências, prazo e valor duradouro. Inclua de duas a três ideias para LinkedIn e uma ou duas para vídeo curto ou carrossel. Relacione às linhas editoriais Agentic OS, skills do Codex, qualidade de conteúdo e construção prática de agentes. Marque temas corroborados nos dois radares do YouTube. Priorize resultados de língua inglesa e destaque sinais internacionais comprovados.
 
-For those LinkedIn ideas, preserve the creator's **“Steal my X for Y”** lead-magnet format: name a real existing resource X and the concrete outcome Y. If no resource supports an idea, mark the resource gap and suggest the angle without falsely offering a download. Preserve the original franchise checks (Agentic OS, Codex skills, taste/anti-slop and practical skills content); flag topics corroborated by both the main YouTube radar and small-channel outliers. Lead with English-language results while noting evidenced international outliers as a separate audience signal.
+No LinkedIn, mantenha a estrutura “Steal my X for Y”, com recurso existente e resultado concreto. Se faltar um recurso, indique a lacuna e proponha a pauta sem prometer download.
 
 ## Source Status
-Source / Status / Freshness or failure table, including Gmail and X. Preserve useful partial findings and clearly mark unavailable sections. End with observed generation time in CT. The bridge saves the complete answer; do not replace it with a short summary or a file link.
+Tabela `Source / Status / Freshness or failure`, incluindo Gmail e X. Preserve achados parciais, informe indisponibilidades e termine com a hora observada em America/Chicago. Entregue o relatório completo para a ponte gravar.
