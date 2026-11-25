@@ -39,7 +39,7 @@ export function TaskActivityBar({tasks,ready,viewing}:{tasks:WorkTask[];ready:bo
     openWork([entry.task.id],true);
   };
   return <>
-    <div className="agent-task-chips" aria-label="Task status">
+    <div className="agent-task-chips" aria-label="Status da tarefa">
       {visible.map(entry=>{
         const {task,state,key,since}=entry,elapsed=activityElapsed(entry,now);
         const finishing=state==='done'||state==='failed';
@@ -51,7 +51,7 @@ export function TaskActivityBar({tasks,ready,viewing}:{tasks:WorkTask[];ready:bo
     </div>
     <div className="agent-task-toasts" aria-live="polite">
       {toasts.filter(item=>item.state==='needs input'||now-item.since<5000).map(item=><div key={item.key} className="agent-task-toast" data-state={item.state}>
-        <span className="agent-task-dot" aria-hidden="true"/><span>{activityMessage(item)}</span><button onClick={()=>view(item)}>View</button>
+        <span className="agent-task-dot" aria-hidden="true"/><span>{activityMessage(item)}</span><button onClick={()=>view(item)}>Ver</button>
       </div>)}
     </div>
   </>;

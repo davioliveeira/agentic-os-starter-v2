@@ -14,17 +14,17 @@ const settings=(prefs:VoicePrefs,unavailable:string|null=null)=>renderToStaticMa
 test('older bridge adds no Live controls; unavailable Live shows a disabled option and the bridge reason',()=>{
  assert.equal(settings(local),'');
  const unavailable=settings({...live,voiceMode:'local'},'Run aos openai-key to set up Live voice.');
- assert.match(unavailable,/<button[^>]*disabled=""[^>]*>Live<\/button>/);
+ assert.match(unavailable,/<button[^>]*disabled=""[^>]*>Ao vivo<\/button>/);
  assert.match(unavailable,/Run aos openai-key to set up Live voice/);
- assert.doesNotMatch(unavailable,/Confirm actions|End call after idle|Wake on voice/);
+ assert.doesNotMatch(unavailable,/Confirmar ações|Encerrar chamada por inatividade|Ativar por voz/);
  const enabled=settings(live);
- assert.match(enabled,/Say yes/);assert.match(enabled,/Tap to confirm/);
- assert.match(enabled,/Ask only for stops &amp; edits/);
- assert.match(enabled,/Done &amp; blockers/);assert.match(enabled,/Screen only/);assert.match(enabled,/Check in on long tasks/);
- assert.match(enabled,/Wake on voice/);assert.match(enabled,/Remember today/);
- assert.match(enabled,/Share task titles<input[^>]*checked=""/);
- assert.match(enabled,/Live sees what&#x27;s in progress \(titles only\)/);
- assert.doesNotMatch(settings({...live,liveShareWork:undefined}),/Share task titles/);
+ assert.match(enabled,/Diga “yes”/);assert.match(enabled,/Clique para confirmar/);
+ assert.match(enabled,/Confirmar só paradas e edições/);
+ assert.match(enabled,/Conclusões e impedimentos/);assert.match(enabled,/Só na tela/);assert.match(enabled,/Acompanhar tarefas longas/);
+ assert.match(enabled,/Ativar por voz/);assert.match(enabled,/Lembrar chamadas de hoje/);
+ assert.match(enabled,/Compartilhar títulos de tarefas<input[^>]*checked=""/);
+ assert.match(enabled,/O modo ao vivo recebe só os títulos das tarefas em andamento/);
+ assert.doesNotMatch(settings({...live,liveShareWork:undefined}),/Compartilhar títulos de tarefas/);
 });
 
 test('Live controls send the saved bridge keys and keep idle minutes numeric',async()=>{
@@ -48,8 +48,8 @@ test('the call bar renders the exact pending action and only offers click confir
  const staged={actionId:'fixture',description:'Start the morning-intel workflow',expiresAt:Date.now()+10000};
  const call=(mode:'voice'|'click')=>renderToStaticMarkup(createElement(LiveCallBar,{live:{...initialLive,state:'listening',ready:true,startedAt:Date.now(),cost:0.12,staged:{...staged,mode}}}));
  assert.match(call('click'),/LIVE 00:00 · ~\$0.12/);
- assert.match(call('click'),/Start the morning-intel workflow/);assert.match(call('click'),/>Confirm<\/button>/);
- assert.match(call('voice'),/>Cancel<\/button>/);assert.doesNotMatch(call('voice'),/>Confirm<\/button>/);
+ assert.match(call('click'),/Start the morning-intel workflow/);assert.match(call('click'),/>Confirmar<\/button>/);
+ assert.match(call('voice'),/>Cancelar<\/button>/);assert.doesNotMatch(call('voice'),/>Confirmar<\/button>/);
  const busy=renderToStaticMarkup(createElement(LiveCallBar,{live:{...initialLive,occupied:'Live call in Obsidian'}}));
  assert.match(busy,/Live call in Obsidian/);assert.doesNotMatch(busy,/Hang up/);
 });

@@ -52,19 +52,19 @@ function useAnimatedNumber(target: number, duration = 700): number {
 
 function formatValue(value: number, format: NonNullable<Props["format"]>): string {
 	if (format === "currency") {
-		return new Intl.NumberFormat("en-US", {
+		return new Intl.NumberFormat("pt-BR", {
 			style: "currency",
 			currency: "USD",
 			maximumFractionDigits: 0,
 		}).format(value);
 	}
 	if (format === "compact" || format === "percent") {
-		return new Intl.NumberFormat("en-US", {
+		return new Intl.NumberFormat("pt-BR", {
 			notation: "compact",
 			maximumFractionDigits: 1,
 		}).format(value);
 	}
-	return new Intl.NumberFormat("en-US").format(Math.round(value));
+	return new Intl.NumberFormat("pt-BR").format(Math.round(value));
 }
 
 function pctClass(pct: number): string {
@@ -110,7 +110,7 @@ export function MetricCard({
 			>
 				<div className="aos-v2-cc-card-label">{label}</div>
 				<div className="aos-v2-cc-card-value aos-v2-cc-dim">—</div>
-				<div className="aos-v2-cc-card-delta aos-v2-cc-dim">no data</div>
+				<div className="aos-v2-cc-card-delta aos-v2-cc-dim">sem dados</div>
 			</div>
 		);
 	}

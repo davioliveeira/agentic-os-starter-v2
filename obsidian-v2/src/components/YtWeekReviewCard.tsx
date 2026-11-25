@@ -16,7 +16,7 @@ interface Props {
 
 function compact(n: number | null): string {
 	if (n === null) return "—";
-	return new Intl.NumberFormat("en-US", {
+	return new Intl.NumberFormat("pt-BR", {
 		notation: "compact",
 		maximumFractionDigits: 1,
 	}).format(n);
@@ -87,7 +87,7 @@ export function YtWeekReviewCard({ app }: Props) {
 		try {
 			await writeIntent(app, "yt-week-review", {});
 		} catch (e) {
-			new Notice(`Could not start workflow: ${e}`);
+			new Notice(`Não foi possível iniciar o fluxo: ${e}`);
 		} finally {
 			setBusy(false);
 		}
@@ -102,9 +102,9 @@ export function YtWeekReviewCard({ app }: Props) {
 		return (
 			<section className="aos-v2-cc-yt-review aos-v2-cc-yt-review--empty">
 				<header className="aos-v2-cc-yt-review-head">
-					<span className="aos-v2-cc-yt-review-title">§ YT WEEK REVIEW</span>
+					<span className="aos-v2-cc-yt-review-title">§ SEMANA NO YOUTUBE</span>
 					<span className="aos-v2-cc-yt-review-meta aos-v2-cc-dim">
-						no review yet
+						nenhuma análise
 					</span>
 					<button
 						type="button"
@@ -112,11 +112,11 @@ export function YtWeekReviewCard({ app }: Props) {
 						onClick={() => void runNew()}
 						disabled={busy}
 					>
-						RUN NEW ↻
+						GERAR NOVO ↻
 					</button>
 				</header>
 				<p className="aos-v2-cc-yt-review-empty-msg aos-v2-cc-mono aos-v2-cc-dim">
-					&gt; click RUN NEW to generate this week's channel review
+					&gt; clique em GERAR NOVO para analisar a semana do canal
 				</p>
 			</section>
 		);
@@ -147,7 +147,7 @@ export function YtWeekReviewCard({ app }: Props) {
 	return (
 		<section className="aos-v2-cc-yt-review">
 			<header className="aos-v2-cc-yt-review-head">
-				<span className="aos-v2-cc-yt-review-title">§ YT WEEK REVIEW</span>
+				<span className="aos-v2-cc-yt-review-title">§ SEMANA NO YOUTUBE</span>
 				<span className="aos-v2-cc-yt-review-window">
 					{review.window || review.date}
 				</span>
@@ -156,16 +156,16 @@ export function YtWeekReviewCard({ app }: Props) {
 						type="button"
 						className="aos-v2-cc-yt-review-btn"
 						onClick={openFull}
-						title="open full report"
+						title="abrir relatório completo"
 					>
-						FULL ↗
+						COMPLETO ↗
 					</button>
 					<button
 						type="button"
 						className="aos-v2-cc-yt-review-btn"
 						onClick={() => void runNew()}
 						disabled={busy}
-						title="Run workflow"
+						title="Executar fluxo"
 					>
 						↻
 					</button>
@@ -184,7 +184,7 @@ export function YtWeekReviewCard({ app }: Props) {
 				<div className="aos-v2-cc-yt-review-chart">
 					<div className="aos-v2-cc-yt-review-chart-head">
 						<span className="aos-v2-cc-yt-review-chart-title">
-							UPLOADS · VIEWS
+							VÍDEOS · VISUALIZAÇÕES
 						</span>
 						<span className="aos-v2-cc-yt-review-chips">
 							{ringSegments.map((seg, i) => (
@@ -209,7 +209,7 @@ export function YtWeekReviewCard({ app }: Props) {
 					<div className="aos-v2-cc-yt-review-bars">
 						{review.uploads.length === 0 ? (
 							<span className="aos-v2-cc-yt-review-bars-empty aos-v2-cc-dim">
-								no uploads in window
+								nenhum vídeo publicado no período
 							</span>
 						) : (
 							review.uploads.map((u, i) => {
@@ -258,7 +258,7 @@ export function YtWeekReviewCard({ app }: Props) {
 					{review.topPerformer ? (
 						<div className="aos-v2-cc-yt-review-outlier aos-v2-cc-yt-review-outlier--top">
 							<span className="aos-v2-cc-yt-review-outlier-label">
-								▲ TOP PERFORMER
+								▲ MELHOR DESEMPENHO
 							</span>
 							<span className="aos-v2-cc-yt-review-outlier-title">
 								{review.topPerformer.title}
@@ -271,7 +271,7 @@ export function YtWeekReviewCard({ app }: Props) {
 					{review.underperformer ? (
 						<div className="aos-v2-cc-yt-review-outlier aos-v2-cc-yt-review-outlier--bottom">
 							<span className="aos-v2-cc-yt-review-outlier-label">
-								▼ UNDERPERFORMER
+								▼ MENOR DESEMPENHO
 							</span>
 							<span className="aos-v2-cc-yt-review-outlier-title">
 								{review.underperformer.title}

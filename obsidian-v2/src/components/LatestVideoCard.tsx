@@ -7,7 +7,7 @@ interface Props {
 }
 
 function compact(n: number): string {
-	return new Intl.NumberFormat("en-US", {
+	return new Intl.NumberFormat("pt-BR", {
 		notation: "compact",
 		maximumFractionDigits: 1,
 	}).format(n);
@@ -48,9 +48,9 @@ export function LatestVideoCard({ video }: Props) {
 	if (!video) {
 		return (
 			<div className="aos-v2-cc-card aos-v2-cc-latest-video aos-v2-cc-card-empty">
-				<div className="aos-v2-cc-card-label">Latest Upload</div>
+				<div className="aos-v2-cc-card-label">Último vídeo publicado</div>
 				<div className="aos-v2-cc-card-value aos-v2-cc-dim">—</div>
-				<div className="aos-v2-cc-card-delta aos-v2-cc-dim">no data</div>
+				<div className="aos-v2-cc-card-delta aos-v2-cc-dim">sem dados</div>
 			</div>
 		);
 	}
@@ -65,7 +65,7 @@ export function LatestVideoCard({ video }: Props) {
 			title={`open ${video.url}`}
 		>
 			<div className="aos-v2-cc-card-head">
-				<span className="aos-v2-cc-card-label">Latest Upload</span>
+				<span className="aos-v2-cc-card-label">Último vídeo publicado</span>
 				<span
 					className={`aos-v2-cc-status-dot ${statusClass(video.status)}`}
 					title={`${video.status}${video.error ? ` — ${video.error}` : ""}`}
@@ -77,15 +77,15 @@ export function LatestVideoCard({ video }: Props) {
 			<div className="aos-v2-cc-latest-stats">
 				<span className="aos-v2-cc-latest-stat" title={`${video.views} views`}>
 					<span className="aos-v2-cc-latest-stat-num">{compact(video.views)}</span>
-					<span className="aos-v2-cc-latest-stat-label">views</span>
+					<span className="aos-v2-cc-latest-stat-label">visualizações</span>
 				</span>
 				<span className="aos-v2-cc-latest-stat" title={`${video.likes} likes`}>
 					<span className="aos-v2-cc-latest-stat-num">{compact(video.likes)}</span>
-					<span className="aos-v2-cc-latest-stat-label">likes</span>
+					<span className="aos-v2-cc-latest-stat-label">curtidas</span>
 				</span>
 				<span className="aos-v2-cc-latest-stat" title={`${video.comments} comments`}>
 					<span className="aos-v2-cc-latest-stat-num">{compact(video.comments)}</span>
-					<span className="aos-v2-cc-latest-stat-label">comments</span>
+					<span className="aos-v2-cc-latest-stat-label">comentários</span>
 				</span>
 				<span className="aos-v2-cc-latest-age aos-v2-cc-dim">{age(video.published_at)}</span>
 			</div>

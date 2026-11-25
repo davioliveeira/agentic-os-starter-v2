@@ -1,7 +1,8 @@
 {
  "dailyDrivers": [
-  "Inbox triage",
-  "Deep work block",
-  "Daily review"
- ]
+  "Triar a caixa de entrada",
+  "Separar um bloco de foco",
+  "Revisar o dia"
+ ],
+ "speechLanguage": "pt"
 }

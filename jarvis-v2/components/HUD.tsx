@@ -45,7 +45,7 @@ function fmt(n: number): string {
 }
 
 function fmtFull(n: number): string {
-  return n.toLocaleString("en-US");
+  return n.toLocaleString("pt-BR");
 }
 
 function useVaultState(_intervalMs = 1000) {
@@ -199,7 +199,7 @@ function runAnnouncement(skill: string, status: string, summary: string, label?:
   }
   // "plan today is done. Done." — a summary that only says done adds nothing
   const redundant = /^(done|complete|completed|finished|all done|ok)[.!]?$/i.test(clean);
-  return `${name} is done.${clean && !redundant ? ` ${clean.slice(0, 160)}` : ""}`;
+  return `${name} foi concluído.${clean && !redundant ? ` ${clean.slice(0, 160)}` : ""}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -207,7 +207,7 @@ function runAnnouncement(skill: string, status: string, summary: string, label?:
 // ---------------------------------------------------------------------------
 
 const SOCIAL_DEFS: { source: string; metric: string; label: string }[] = [
-  { source: "youtube", metric: "subscribers", label: "YT Subscribers" },
+  { source: "youtube", metric: "subscribers", label: "Inscritos no YouTube" },
   { source: "instagram", metric: "followers", label: "Instagram" },
 ];
 
@@ -233,7 +233,7 @@ const Vitals = memo(function Vitals({ state, hot, provider }: { state: VaultStat
 
   return (
     <section className={`block boot-stagger ${hot ? "voice-hot" : ""}`} style={{ animationDelay: "0.1s" }}>
-      <SectionTitle title="System Vitals" tick="VAULT DATA" />
+      <SectionTitle title="Indicadores" tick="DADOS DO COFRE" />
       {SOCIAL_DEFS.map((def) => {
         const m = findMetric(metrics, def.source, def.metric);
         if (!m) return null;
@@ -258,11 +258,11 @@ const Vitals = memo(function Vitals({ state, hot, provider }: { state: VaultStat
 
       {v && vidMetric && (
         <div className={`vital metric-video ${fmtAge(vidMetric.timestamp).stale ? "is-stale" : ""}`}>
-          <VitalLabel m={vidMetric} label="Latest Video" />
+          <VitalLabel m={vidMetric} label="Vídeo mais recente" />
           <span className="value">
             <CountUp value={v.views} />
           </span>
-          <span className="delta">{vidPerDay !== null ? `≈${fmt(vidPerDay)} /day` : "—"}</span>
+          <span className="delta">{vidPerDay !== null ? `≈${fmt(vidPerDay)} /dia` : "—"}</span>
           <div className="spark-row">
             <Sparkline animated points={vidMetric.history.map((h) => h.value)} />
           </div>
@@ -302,7 +302,7 @@ function CommandDeck({
 
   const fire = async (skill: string, args:Record<string,string> = {}) => {
     const spec=catalog.find(entry=>entry.id===skill);
-    if(!spec){setQueueError('This skill is no longer available. Customize your dashboard to replace it.');return;}
+    if(!spec){setQueueError('Esta skill deixou de estar disponível. Personalize o painel para substituí-la.');return;}
     const unavailable=skillUnavailable(spec,provider,preferences.data.installedProviders);if(unavailable){setQueueError(unavailable);return;}
     const key=spec.kind==='installed'?'request':spec.arg;
     if(key&&!args[key]){setArgument({skill,label:spec.label,key,installed:spec.kind==='installed'});setArgumentText('');return;}
@@ -319,11 +319,11 @@ function CommandDeck({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ skill, args }),
       });
-      if(!res.ok) { const result=await res.json();throw new Error(result.error||"Could not queue this workflow."); }
+      if(!res.ok) { const result=await res.json();throw new Error(result.error||"Não foi possível colocar o fluxo na fila."); }
       const task=await res.json();openWork();setQueueError("");onQueued(skill, true,task.id);
       void dashboardStore.refresh();
     } catch (e) {
-      setQueueError(e instanceof Error?e.message:"V2 bridge unavailable");setCooldown(c=>({...c,[skill]:false}));if(spec.kind==='builtin')onQueued(skill,false);return;
+      setQueueError(e instanceof Error?e.message:"Ponte do V2 indisponível");setCooldown(c=>({...c,[skill]:false}));if(spec.kind==='builtin')onQueued(skill,false);return;
     }
     setTimeout(() => setCooldown((c) => ({ ...c, [skill]: false })), 15000);
   };
@@ -332,7 +332,7 @@ function CommandDeck({
     <section className={`block boot-stagger ${hot ? "voice-hot" : ""}`} style={{ animationDelay: "0.26s" }}>
       <SectionTitle
         title="Skills"
-        tick="QUICK ACCESS"
+        tick="ACESSO RÁPIDO"
       />
       {state && state.queue.length > 0 && (
         <div className="queue-list">
@@ -357,20 +357,20 @@ function CommandDeck({
           </button>
         ))}
       </div>
-      {!dashboardEntries(preferences.data).length&&<p className="dashboard-note">Choose shortcuts with Customize dashboard.</p>}
-      <button className="browse-skills" onClick={()=>setBrowsing(true)}><span>Browse all skills</span><span>{catalog.length} <span aria-hidden="true">↗</span></span></button>
-      <button className="browse-skills customize-dashboard" disabled={!preferences.loaded||!!preferences.error} onClick={()=>setCustomizing(true)}><span>Customize dashboard</span><span aria-hidden="true">⚙</span></button>
+      {!dashboardEntries(preferences.data).length&&<p className="dashboard-note">Use Personalizar painel para escolher seus atalhos.</p>}
+      <button className="browse-skills" onClick={()=>setBrowsing(true)}><span>Ver todas as skills</span><span>{catalog.length} <span aria-hidden="true">↗</span></span></button>
+      <button className="browse-skills customize-dashboard" disabled={!preferences.loaded||!!preferences.error} onClick={()=>setCustomizing(true)}><span>Personalizar painel</span><span aria-hidden="true">⚙</span></button>
       {browsing&&<SkillBrowser onClose={()=>setBrowsing(false)} onSelect={skill=>void fire(skill)} available={!!state} catalog={catalog} provider={provider} installedProviders={preferences.data.installedProviders}/>}
       {customizing&&<DashboardCustomizer data={preferences.data} provider={provider} onClose={()=>setCustomizing(false)}/>}
       {argument && <form className="voice-message" onSubmit={e=>{e.preventDefault();const a=argument;if(argumentText.trim()){setArgument(null);void fire(a.skill,{[a.key]:argumentText.trim()})}}}>
-        <label>{argument.installed?`What should ${argument.label} do?`:argument.label}<input autoFocus aria-label={argument.label+" "+argument.key} value={argumentText} maxLength={4000} placeholder={argument.installed?'Describe your task…':argument.key==='url'?'https://…':'Enter a topic…'} onChange={e=>setArgumentText(e.target.value)}/></label>
-        <button type="submit" disabled={!argumentText.trim()}>{argument.installed?'Open in terminal':'Run skill'}</button><button type="button" onClick={()=>setArgument(null)}>Cancel</button>
+        <label>{argument.installed?`O que a skill ${argument.label} deve fazer?`:argument.label}<input autoFocus aria-label={argument.label+" "+argument.key} value={argumentText} maxLength={4000} placeholder={argument.installed?'Descreva a tarefa…':argument.key==='url'?'https://…':'Informe um tema…'} onChange={e=>setArgumentText(e.target.value)}/></label>
+        <button type="submit" disabled={!argumentText.trim()}>{argument.installed?'Abrir no terminal':'Executar skill'}</button><button type="button" onClick={()=>setArgument(null)}>Cancelar</button>
       </form>}
       {queueError && <p className="voice-message" role="alert">{queueError}</p>}
-      {(preferences.error||preferences.data.error)&&<p className="voice-message" role="alert">Dashboard preferences: {preferences.error||preferences.data.error}{preferences.error&&!preferences.loaded?' · Showing default shortcuts.':preferences.error?' · Showing last loaded shortcuts.':''}</p>}
-      <div className="deck-hint">{state?'Bundled skills → reports here · installed skills → terminals':'Workflow runner offline'}</div>
-      {schedule.lines.length>0&&<div className="deck-hint" role="status" title="Change it with: node aos.mjs schedule">Scheduled · {schedule.lines.join(' · ')}</div>}
-      {schedule.error&&<p className="voice-message" role="alert">Schedule: {schedule.error}</p>}
+      {(preferences.error||preferences.data.error)&&<p className="voice-message" role="alert">Preferências do painel: {preferences.error||preferences.data.error}{preferences.error&&!preferences.loaded?' · Exibindo atalhos padrão.':preferences.error?' · Exibindo os últimos atalhos carregados.':''}</p>}
+      <div className="deck-hint">{state?'Skills incluídas → relatórios aqui · skills instaladas → terminais':'Executor de fluxos desconectado'}</div>
+      {schedule.lines.length>0&&<div className="deck-hint" role="status" title="Altere com node aos.mjs schedule">Agendado · {schedule.lines.join(' · ')}</div>}
+      {schedule.error&&<p className="voice-message" role="alert">Agenda: {schedule.error}</p>}
     </section>
   );
 }
@@ -386,7 +386,13 @@ const AudioIO = memo(function AudioIO({ mode, voiceMode, call, message, provider
   // How voice sounds in this vault, shared with the Obsidian plugin.
   const [sound,setSound]=useState<VoicePrefsSnapshot>(()=>voicePrefs.getSnapshot());
   const useLive=sound.prefs.voiceMode==='live';
-  const voiceState=useLive?liveLabel(call):voiceMode==='idle'?'Tap to talk':voiceMode==='working'?'Thinking':voiceMode==='error'?'Try again':voiceMode;
+  const voiceState = useLive ? liveLabel(call) : {
+    idle: "Clique para falar",
+    listening: "Ouvindo",
+    working: "Processando",
+    speaking: "Falando",
+    error: "Tentar novamente",
+  }[voiceMode];
   const textBlocked=!!call.occupied||call.state==='connecting';
   const [soundError,setSoundError]=useState('');
   useEffect(()=>voicePrefs.subscribe(setSound),[]);
@@ -394,22 +400,22 @@ const AudioIO = memo(function AudioIO({ mode, voiceMode, call, message, provider
   return (
     <section className="block boot-stagger" style={{ animationDelay: "0.42s" }}>
       <div className="voice-card-heading">
-        <SectionTitle title="Voice" tick={voiceState.toUpperCase()} />
+        <SectionTitle title="Voz" tick={voiceState.toUpperCase()} />
         <details className="voice-conversation-controls" onKeyDown={event=>{if(event.key==='Escape'){event.currentTarget.open=false;event.currentTarget.querySelector('summary')?.focus();event.stopPropagation()}}}>
-          <summary aria-label="Voice conversation controls" title="Conversation and sound">···</summary>
+          <summary aria-label="Controles da conversa por voz" title="Conversa e áudio">···</summary>
           <div className="voice-conversation-menu">
-            <div className="voice-conversation-heading"><label htmlFor="jarvis-voice-conversation">Conversation</label><button type="button" disabled={choosing||voiceBusy} onClick={()=>void choose(null)}>+ New conversation</button></div>
-            <select id="jarvis-voice-conversation" aria-label="Voice conversation" title={selectedTask?.title} disabled={choosing||voiceBusy} value={target||''} onChange={e=>void choose(e.target.value||null)}>
-              <option value="">New conversation</option>
-              {target&&!selectedTask&&<option value={target} disabled>Conversation unavailable</option>}
+            <div className="voice-conversation-heading"><label htmlFor="jarvis-voice-conversation">Conversa</label><button type="button" disabled={choosing||voiceBusy} onClick={()=>void choose(null)}>+ Nova conversa</button></div>
+            <select id="jarvis-voice-conversation" aria-label="Conversa por voz" title={selectedTask?.title} disabled={choosing||voiceBusy} value={target||''} onChange={e=>void choose(e.target.value||null)}>
+              <option value="">Nova conversa</option>
+              {target&&!selectedTask&&<option value={target} disabled>Conversa indisponível</option>}
               {providerTasks.map(task=><option key={task.id} value={task.id}>{shortConversationTitle(task)}</option>)}
             </select>
-            {target&&!selectedTask&&<p role="status">Choose a conversation or start a new one.</p>}
+            {target&&!selectedTask&&<p role="status">Escolha uma conversa ou inicie outra.</p>}
             {selectionError&&<p role="alert">{selectionError}</p>}
             {sound.ready&&!useLive&&<div className="voice-sound">
-              <button type="button" className="voice-mute" aria-pressed={!sound.prefs.spokenReplies} title="Replies are still written here, and hearing you keeps working." onClick={()=>saveSound({spokenReplies:!sound.prefs.spokenReplies})}><span>Spoken replies</span><strong>{sound.prefs.spokenReplies?'On':'Off'}</strong></button>
-              {sound.voices.length>0&&<label>Voice<select aria-label="Voice" disabled={voiceBusy} value={sound.prefs.voice||sound.fallback||''} onChange={e=>saveSound({voice:e.target.value===sound.fallback?null:e.target.value},true)}>{voiceGroups(sound.voices).map(set=><optgroup key={set.group} label={set.group}>{set.voices.map(choice=><option key={choice.id} value={choice.id}>{choice.name}</option>)}</optgroup>)}</select></label>}
-              <label>Speed<select aria-label="Speaking speed" disabled={voiceBusy} value={String(sound.prefs.rate)} onChange={e=>saveSound({rate:Number(e.target.value)},true)}>{(VOICE_RATES.includes(sound.prefs.rate)?VOICE_RATES:[...VOICE_RATES,sound.prefs.rate].sort((a,b)=>a-b)).map(rate=><option key={rate} value={String(rate)}>{rateLabel(rate)}</option>)}</select></label>
+              <button type="button" className="voice-mute" aria-pressed={!sound.prefs.spokenReplies} title="Você ainda pode falar e ler as respostas aqui." onClick={()=>saveSound({spokenReplies:!sound.prefs.spokenReplies})}><span>Respostas em voz alta</span><strong>{sound.prefs.spokenReplies?'Ativado':'Desativado'}</strong></button>
+              {sound.voices.length>0&&<label>Voz<select aria-label="Voz" disabled={voiceBusy} value={sound.prefs.voice||sound.fallback||''} onChange={e=>saveSound({voice:e.target.value===sound.fallback?null:e.target.value},true)}>{voiceGroups(sound.voices).map(set=><optgroup key={set.group} label={set.group}>{set.voices.map(choice=><option key={choice.id} value={choice.id}>{choice.name}</option>)}</optgroup>)}</select></label>}
+              <label>Velocidade<select aria-label="Velocidade da fala" disabled={voiceBusy} value={String(sound.prefs.rate)} onChange={e=>saveSound({rate:Number(e.target.value)},true)}>{(VOICE_RATES.includes(sound.prefs.rate)?VOICE_RATES:[...VOICE_RATES,sound.prefs.rate].sort((a,b)=>a-b)).map(rate=><option key={rate} value={String(rate)}>{rateLabel(rate)}</option>)}</select></label>
               {soundError&&<p role="alert">{soundError}</p>}
             </div>}
             {sound.ready&&<LiveVoiceSettings prefs={sound.prefs} live={call} save={saveSound}/>}
@@ -423,17 +429,17 @@ const AudioIO = memo(function AudioIO({ mode, voiceMode, call, message, provider
         ))}
       </div>
       <div className="audio-meta">
-        <button disabled={choosing||!!call.occupied||useLive&&!!call.unavailable} onClick={() => void voice.toggle()}>{useLive?liveToggleLabel(call):voiceMode === "listening" ? "Send recording" : voiceMode === "working" ? "Cancel request" : voiceMode === "speaking" ? "Interrupt & talk" : "Tap to talk"}</button>
-        <span>{useLive?'GPT-Live':'Whisper / Kokoro · local speech'}</span>
+        <button disabled={choosing||!!call.occupied||useLive&&!!call.unavailable} onClick={() => void voice.toggle()}>{useLive?liveToggleLabel(call):voiceMode === "listening" ? "Send recording" : voiceMode === "working" ? "Cancel request" : voiceMode === "speaking" ? "Interrupt & talk" : "Clique para falar"}</button>
+        <span>{useLive?'GPT-Live':'Whisper / Kokoro · voz local'}</span>
       </div>
       <LiveCallBar live={call}/>
-      <p className="voice-message" role="status">{message || (useLive?call.unavailable||'Start a call to talk. End call hangs up.':"Tap to talk, then pause to send. Escape cancels.")}</p>
+      <p className="voice-message" role="status">{message || (useLive?call.unavailable||'Inicie uma chamada para falar. Use Encerrar chamada para desligar.':"Clique para falar e faça uma pausa para enviar. Esc cancela.")}</p>
       <form className="voice-text" onSubmit={e=>{e.preventDefault();if(!textBlocked&&text.trim()){void voice.sendText(text);setText("");}}}>
-        <input aria-label="Type a voice request" placeholder="Ask or continue…" value={text} maxLength={4000} onChange={e=>setText(e.target.value)}/>
-        <button disabled={textBlocked||choosing||!text.trim()||voiceMode==="working"||voiceMode==="listening"}>Send</button>
+        <input aria-label="Digite uma solicitação" placeholder="Pergunte ou continue…" value={text} maxLength={4000} onChange={e=>setText(e.target.value)}/>
+        <button disabled={textBlocked||choosing||!text.trim()||voiceMode==="working"||voiceMode==="listening"}>Enviar</button>
       </form>
-      <button className="agent-open-link" onClick={onOpen}>Open terminals</button>
-      <small className="voice-disclosure">{useLive?(sound.prefs.liveShareBrief?'Call audio, a vault snapshot and your whole morning brief go to OpenAI.':'Call audio and a vault snapshot go to OpenAI.'):'Speech stays local. Transcripts go to the selected provider.'}</small>
+      <button className="agent-open-link" onClick={onOpen}>Abrir terminais</button>
+      <small className="voice-disclosure">{useLive?(sound.prefs.liveShareBrief?'O áudio da chamada, um recorte do cofre e todo o boletim da manhã são enviados à OpenAI.':'O áudio da chamada e um recorte do cofre são enviados à OpenAI.'):'O áudio fica no computador. As transcrições são enviadas ao provedor selecionado.'}</small>
     </section>
   );
 });
@@ -455,7 +461,7 @@ const Priorities = memo(function Priorities({
       className={`block boot-stagger ${!d || d.isToday ? "" : "note-stale"} ${hot ? "voice-hot" : ""}`}
       style={{ animationDelay: "0.18s" }}
     >
-      <SectionTitle title="Directives" tick="TOP.3" />
+      <SectionTitle title="Prioridades" tick="TOP 3" />
       {d ? (
         <>
           {!d.isToday && (
@@ -468,7 +474,7 @@ const Priorities = memo(function Priorities({
               className={`prio ${p.done ? "done" : ""} ${d.isToday ? "clickable" : ""}`}
               key={i}
               role={d.isToday ? "button" : undefined}
-              title={d.isToday ? (p.done ? "mark open" : "mark done") : undefined}
+              title={d.isToday ? (p.done ? "reabrir" : "marcar como concluída") : undefined}
               onClick={d.isToday ? () => onToggle(i, !p.done) : undefined}
             >
               <span className="box">{p.done ? "■" : "□"}</span>
@@ -478,7 +484,7 @@ const Priorities = memo(function Priorities({
           <div className="prio-date">{d.isToday ? "today" : `carried · ${d.date}`}</div>
         </>
       ) : (
-        <div className="prio dim">no daily note found</div>
+        <div className="prio dim">nenhuma nota diária encontrada</div>
       )}
     </section>
   );
@@ -505,7 +511,7 @@ const Documents = memo(function Documents({
   if (docs.length === 0) return null;
   return (
     <section className={`block boot-stagger ${hot ? "voice-hot" : ""}`} style={{ animationDelay: "0.26s" }}>
-      <SectionTitle title="Documents" tick="INBOX.TRAIL" />
+      <SectionTitle title="Documentos" tick="CAIXA DE ENTRADA" />
       {docs.map((doc) => (
         <div className="doc-row" key={doc.path} role="button" onClick={() => onOpen(doc.path)}>
           <span className="doc-skill">{doc.skill.replace(/-/g, " ")}</span>
@@ -528,7 +534,7 @@ const Wire = memo(function Wire({
   if (!m || m.heads.length === 0) return null;
   return (
     <section className="block boot-stagger" style={{ animationDelay: "0.5s" }}>
-      <SectionTitle title="AI Wire" tick="MORNING.INTEL" />
+      <SectionTitle title="Notícias de IA" tick="BOLETIM DA MANHÃ" />
       {/* top 3 only — the panel sits at the viewport's edge and more cuts off */}
       {m.heads.slice(0, 3).map((h, i) => (
         <div className="wire-row" key={i} role="button" onClick={() => onOpen(m.rel)}>
@@ -565,8 +571,8 @@ const Schedule = memo(function Schedule({ state, hot }: { state: VaultState; hot
       style={{ animationDelay: "0.34s" }}
     >
       <SectionTitle
-        title="Schedule"
-        tick={state?.daily?.date || "NO DAILY NOTE"}
+        title="Agenda"
+        tick={state?.daily?.date || "SEM NOTA DIÁRIA"}
         
       />
       <div className="sched">
@@ -579,11 +585,11 @@ const Schedule = memo(function Schedule({ state, hot }: { state: VaultState; hot
           >
             <span className="t">{s.time}</span>
             <span className="i">{s.item}</span>
-            {i === currentIdx && <span className="now-tag">NOW</span>}
+            {i === currentIdx && <span className="now-tag">AGORA</span>}
           </div>
         ))}
       </div>
-      {d.focus && <div className="focus-line">focus · {d.focus}</div>}
+      {d.focus && <div className="focus-line">foco · {d.focus}</div>}
     </section>
   );
 });
@@ -605,11 +611,11 @@ const Objective = memo(function Objective({ state, hot }: { state: VaultState; h
 
   const deployLine = v && (
     <div className="video-title">
-      latest deploy ·{" "}
+      última publicação ·{" "}
       <a href={v.url} target="_blank" rel="noreferrer">
         <b>{v.title}</b>
       </a>{" "}
-      — {fmtFull(v.views)} views
+      — {fmtFull(v.views)} visualizações
     </div>
   );
 
@@ -619,23 +625,23 @@ const Objective = memo(function Objective({ state, hot }: { state: VaultState; h
     const windowPct = Math.min((ageH! / LIVE_DEPLOY_H) * 100, 100);
     return (
       <section className={`objective boot-stagger ${hot ? "voice-hot" : ""}`} style={{ animationDelay: "0.58s" }}>
-        <div className="obj-label">Primary Directive · Live Deploy</div>
+        <div className="obj-label">Prioridade · Último vídeo</div>
         <div className="big">
           <CountUp value={v.views} full />
-          <span className="unit">VIEWS</span>
+          <span className="unit">VISUALIZAÇÕES</span>
         </div>
         <div className="progress">
           <i style={{ width: `${windowPct}%` }} />
         </div>
         <div className="sub">
           <span>
-            velocity <b>{fmtFull(perDay)}/day</b>
+            ritmo <b>{fmtFull(perDay)}/dia</b>
           </span>
           <span>
             live <b>{Math.round(ageH!)}h</b>
           </span>
           <span>
-            spotlight <b>{Math.max(LIVE_DEPLOY_H - Math.round(ageH!), 0)}h left</b>
+            destaque <b>{Math.max(LIVE_DEPLOY_H - Math.round(ageH!), 0)}h restantes</b>
           </span>
         </div>
         {deployLine}
@@ -650,29 +656,29 @@ const Objective = memo(function Objective({ state, hot }: { state: VaultState; h
     subs && subs.deltaWeek && subs.deltaWeek > 0
       ? new Date(
           Date.now() + ((target - subs.value) / subs.deltaWeek) * 7 * 86_400_000
-        ).toLocaleDateString("en-US", { month: "short", year: "numeric" })
+        ).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })
       : null;
   return (
     <section className={`objective boot-stagger ${hot ? "voice-hot" : ""}`} style={{ animationDelay: "0.58s" }}>
-      <div className="obj-label">Primary Directive · Road to {fmt(target)}</div>
+      <div className="obj-label">Prioridade · Rumo a {fmt(target)}</div>
       <div className="big">
         {subs ? <CountUp value={subs.value} full /> : "—"}
-        <span className="unit">SUBS</span>
+        <span className="unit">INSCRITOS</span>
       </div>
       <div className="progress">
         <i style={{ width: `${pct}%` }} />
       </div>
       <div className="sub">
         <span>
-          target <b>{fmtFull(target)}</b>
+          meta <b>{fmtFull(target)}</b>
         </span>
         <span>
-          this week <b>{subs?.deltaWeek ? `+${fmtFull(subs.deltaWeek)}` : "—"}</b>
+          esta semana <b>{subs?.deltaWeek ? `+${fmtFull(subs.deltaWeek)}` : "—"}</b>
         </span>
         <span>
           {eta ? (
             <>
-              at this pace <b>{eta}</b>
+              nesse ritmo <b>{eta}</b>
             </>
           ) : (
             <b>{pct.toFixed(1)}%</b>
@@ -699,17 +705,17 @@ function TopBar({
     <header className="topbar hud-top boot-stagger" style={{ animationDelay: "0.05s" }}>
       <div className="wordmark">
         <span className="name">JARVIS<span className="v2-mark"> / V2</span></span>
-        <span className="expansion">Your command center, reimagined</span>
+        <span className="expansion">Sua central de comando</span>
       </div>
       <div className="status-line">
         <span className={`mode-chip mode-${mode}`}>
-          <i className="status-dot" /> core · {mode}
+          <i className="status-dot" /> núcleo · {mode}
         </span>
         <span className={`chip ${online ? "on" : "dead"}`}>
           {online ? "connected vault" : "preview unavailable"}
         </span>
         <span className="chip pending">
-          terminals · {r?.alive ? "connected" : "offline"}
+          terminais · {r?.alive ? "connected" : "offline"}
         </span>
       </div>
       <div className="clock-wrap">
@@ -767,14 +773,14 @@ export default function HUD() {
   }, [state, selecting]);
   const chooseProvider = async (next: "claude" | "codex") => {
     if (next === provider) return;
-    if (selecting)throw new Error('A provider switch is still saving. Try again.');
+    if (selecting)throw new Error('A troca de provedor ainda está sendo salva. Tente novamente.');
     voice.cancelArtifact();
     setSelecting(true); setSelectionError("");
     try {
       const response = await fetch("/api/settings", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({provider:next})});
-      if (!response.ok) throw new Error("Selection was not saved. Try again.");
+      if (!response.ok) throw new Error("A seleção não foi salva. Tente novamente.");
       const chosen=await response.json();setWorkProvider(next,chosen.model);publishProvider(next);setProvider(next);
-    } catch(e) { setSelectionError("Selection was not saved. Try again.");throw e; }
+    } catch(e) { setSelectionError("A seleção não foi salva. Tente novamente.");throw e; }
     finally { setSelecting(false); }
   };
   const [voiceSpeaking, setVoiceSpeaking] = useState(false);
@@ -822,7 +828,7 @@ export default function HUD() {
   const artifactLoaded=useCallback((generation:number)=>artifactPresenter.current?.loaded(generation),[]);
   const artifactFailed=useCallback((generation:number,error:string)=>artifactPresenter.current?.failed(generation,error),[]);
   const closeArtifact=useCallback(()=>artifactPresenter.current?.close(),[]);
-  const openArtifact=useCallback<ArtifactOpener>((artifact,signal)=>{if(signal?.aborted)return Promise.reject(new Error('Opening was cancelled.'));try{validateArtifact(artifact)}catch(error){return Promise.reject(error)}reportRequest.current++;setReport(null);return artifactPresenter.current?.open(artifact,signal)??Promise.reject(new Error('The dashboard file viewer is unavailable.'))},[]);
+  const openArtifact=useCallback<ArtifactOpener>((artifact,signal)=>{if(signal?.aborted)return Promise.reject(new Error('A abertura foi cancelada.'));try{validateArtifact(artifact)}catch(error){return Promise.reject(error)}reportRequest.current++;setReport(null);return artifactPresenter.current?.open(artifact,signal)??Promise.reject(new Error('O visualizador de arquivos do painel está indisponível.'))},[]);
   const reportOpenRef = useRef(false);
   reportOpenRef.current = report !== null||artifactView!==null;
   const seenRunsRef = useRef<Set<string>>(new Set());
@@ -843,7 +849,7 @@ export default function HUD() {
         })();
         if(request===reportRequest.current)setReport(j);
       } catch {
-        if(request===reportRequest.current)pushLine("err", `couldn't open ${path}`);
+        if(request===reportRequest.current)pushLine("err", `não foi possível abrir ${path}`);
       }
     },
     [pushLine]
@@ -861,7 +867,7 @@ export default function HUD() {
       if (!res.ok) throw new Error(String(res.status));
       const report=(await res.json()) as {path:string;content:string};if(request===reportRequest.current)setReport(report);
     } catch {
-      if(request===reportRequest.current)pushLine("err", "couldn't load transcript");
+      if(request===reportRequest.current)pushLine("err", "não foi possível carregar a transcrição");
     }
   }, [pushLine]);
 
@@ -870,7 +876,7 @@ export default function HUD() {
       try {
         const daily = state?.daily;
         const priority = daily?.top3[index];
-        if (!daily?.isToday || !priority) throw new Error("Only today's priorities can be changed.");
+        if (!daily?.isToday || !priority) throw new Error("Só é possível alterar as prioridades de hoje.");
         const res = await fetch("/api/daily", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -908,7 +914,7 @@ export default function HUD() {
     if (!window.location.search.includes("demo=livehandoff")) return;
     const show = (key: string, phase: string, label = "") => setCallouts((cur) => liveActivityCallout(cur, { key, phase, label }, () => ++calloutSeq.current));
     const steps: [number, string, string, string?][] = [
-      [800, "demo-1", "handoff"], [3000, "demo-1", "starting", "Start Inbox Brief"], [6500, "demo-1", "started", "Start Inbox Brief"],
+      [800, "demo-1", "handoff"], [3000, "demo-1", "starting", "Iniciar resumo da caixa de entrada"], [6500, "demo-1", "started", "Iniciar resumo da caixa de entrada"],
       [9000, "demo-2", "handoff"], [11500, "demo-2", "answered", "the morning brief"],
     ];
     const timers = steps.map(([at, key, phase, label]) => setTimeout(() => show(key, phase, label), at));
@@ -1139,11 +1145,11 @@ export default function HUD() {
       <div hidden={provider!=='codex'} className="provider-stars"><StarField /></div>
       <div hidden={provider!=='codex'} className="core-transition provider-art">{visited.codex&&<GalaxyCore mode={mode} getLevel={voice.getLevel} paused={paused||provider!=='codex'} variant="tight" />}</div>
       <div hidden={provider!=='claude'} className="core-transition provider-art">{(visited.claude||provider==='claude')&&<GraphCore mode={mode} bgMode={bgMode} getLevel={voice.getLevel} paused={paused||provider!=='claude'} />}</div>
-      <nav className="provider-switch" aria-label="Agent provider">
+      <nav className="provider-switch" aria-label="Provedor do agente">
         <button aria-pressed={provider === "claude"} disabled={selecting} onClick={() => void chooseProvider("claude").catch(()=>{})}><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2v20M2 12h20M5 5l14 14M5 19 19 5M8 2l8 20M2 8l20 8M2 16l20-8M8 22l8-20" /></svg>Claude Code</button>
         <button aria-pressed={provider === "codex"} disabled={selecting} onClick={() => void chooseProvider("codex").catch(()=>{})}><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-2-15-4 18" /></svg>Codex</button>
       </nav>
-      <div className="preview-banner">V2 <span>·</span> Connected vault <span>·</span> Shared agent terminals</div>
+      <div className="preview-banner">V2 <span>·</span> Cofre conectado <span>·</span> Terminais compartilhados</div>
       {selectionError && <div role="alert" className="selection-error">{selectionError}</div>}
 
       <div className="scrim scrim-l" aria-hidden="true" />
@@ -1237,7 +1243,7 @@ export default function HUD() {
                   </span>
                   <button
                     className="callout-x"
-                    aria-label="dismiss"
+                    aria-label="dispensar"
                     onClick={(e) => {
                       e.stopPropagation();
                       setCallouts((cur) => cur.filter((x) => x.id !== c.id));
@@ -1251,7 +1257,7 @@ export default function HUD() {
           })}
           {callouts.length > 1 && (
             <button className="callout-clear" onClick={() => setCallouts([])}>
-              clear all ×{callouts.length}
+              limpar tudo ×{callouts.length}
             </button>
           )}
         </div>
@@ -1264,22 +1270,22 @@ export default function HUD() {
             onQueued={onQueued}
           />
           <AudioIO mode={mode} voiceMode={voiceMode} call={liveCall} message={voiceMessage} provider={provider} tasks={work.tasks} target={work.target} selectionError={work.selectionError} onTarget={async id=>{setVoiceMessage('');await work.selectVoice(id);voice.syncLiveContext()}} onOpen={()=>work.setOpen(true)} />
-          {state && <details className="dashboard-details"><summary>Schedule <span>{state.daily?.date||'Today'}</span></summary><Schedule state={state} hot={hotPanels.includes("schedule")} /></details>}
+          {state && <details className="dashboard-details"><summary>Agenda <span>{state.daily?.date||'Hoje'}</span></summary><Schedule state={state} hot={hotPanels.includes("schedule")} /></details>}
           {state && <Wire state={state} onOpen={openReport} />}
         </div>
 
         <div className="hud-bottom v2-core-caption">
           <h1>{provider === "codex" ? "ASTRA" : "CLAUDE"}</h1>
-          <p>{provider === "codex" ? "GPT-6 Astra · Codex mode" : "Original Jarvis core · Claude Code mode"}</p>
-          <div className="state-preview" role="group" aria-label="Preview animation state">
+          <p>{provider === "codex" ? "GPT-6 Astra · Modo Codex" : "Núcleo original do Jarvis · Modo Claude Code"}</p>
+          <div className="state-preview" role="group" aria-label="Testar estado da animação">
             {(["idle", "listening", "working", "speaking", "error"] as CoreMode[]).map(value => <button key={value} aria-pressed={mode === value} onClick={() => setModeOverride(value)}>{value}</button>)}
-            <button aria-pressed={modeOverride === null} onClick={() => setModeOverride(null)}>Auto</button>
+            <button aria-pressed={modeOverride === null} onClick={() => setModeOverride(null)}>Automático</button>
           </div>
-          <div className="preview-footnote"><span aria-live="polite">{modeOverride ? "Simulated" : state?.runner?.busy ? "Background worker" : "Ready"} · {mode}</span><button aria-pressed={paused} onClick={() => setPaused(value => !value)}>{paused ? "Resume motion" : "Pause motion"}</button></div>
+          <div className="preview-footnote"><span aria-live="polite">{modeOverride ? "Simulado" : state?.runner?.busy ? "Tarefa em segundo plano" : "Pronto"} · {mode}</span><button aria-pressed={paused} onClick={() => setPaused(value => !value)}>{paused ? "Retomar animações" : "Pausar animações"}</button></div>
         </div>
 
         <button className="transcript-btn" onClick={() => void openTranscript()}>
-          Transcript
+          Transcrição
         </button>
       </div>
 
@@ -1291,7 +1297,7 @@ export default function HUD() {
           action={
             report.path === "system/voice/transcript"
               ? {
-                  label: "reset transcript ×",
+                  label: "limpar transcrição ×",
                   onClick: () => {
                     void fetch("/api/transcript", { method: "DELETE" }).then(() => {
                       setReport(null);

@@ -37,7 +37,7 @@ test('a schedule holds bundled workflows that need no input, at real times, on r
     // A key the schedule does not know is a slip ("enable" for "enabled"), never quietly ignored.
     [{jobs: [{...weekdayPlan, enable: false}]}, /"enable" is not something a scheduled item understands/], [{pause: true, jobs: []}, /"pause" is not something the schedule understands/],
     // The same workflow at the same time on a shared day is one run, whatever the entries are called.
-    [{jobs: [{...weekdayPlan, id: 'morning-plan'}, {...weekdayPlan, id: 'second-plan', days: ['fri', 'sat']}]}, /Plan Today at 07:00 is on the schedule twice for the same day/],
+    [{jobs: [{...weekdayPlan, id: 'morning-plan'}, {...weekdayPlan, id: 'second-plan', days: ['fri', 'sat']}]}, /Planejar hoje at 07:00 is on the schedule twice for the same day/],
     [{jobs: Array.from({length: MAX_JOBS + 1}, (_, index) => ({skill: 'plan-today', at: `0${index % 10}:${String(index).padStart(2, '0')}`}))}, /12 items at most/]])
     assert.throws(() => validateSchedule(input), message);
   const skills = schedulableSkills().map(skill => skill.id);
@@ -252,7 +252,7 @@ test('the listing says when each job runs next and how the last run went', () =>
   const root = vault({jobs: [weekdayPlan]});
   scheduleTick(root, () => ({id: 'task-9'}), {now: at(7), timeZone: ZONE});
   const view = scheduleView(root, {now: at(8), timeZone: ZONE});
-  assert.equal(view.jobs[0].label, 'Plan Today'); assert.equal(view.jobs[0].next, 'tomorrow 07:00'); assert.equal(view.jobs[0].last.outcome, 'started');
+  assert.equal(view.jobs[0].label, 'Planejar hoje'); assert.equal(view.jobs[0].next, 'tomorrow 07:00'); assert.equal(view.jobs[0].last.outcome, 'started');
   assert.equal(view.history[0].id, 'plan-today-0700'); assert.equal(view.timeZone, ZONE);
 });
 
@@ -261,14 +261,14 @@ test('the schedule command adds, lists, switches and removes, and explains a mis
   const run = async (words, flags = {}) => { const lines = []; const code = await scheduleCommand({words, flags, log: line => lines.push(line), at: home, vault: theVault, now: at(6)}); return {code, text: lines.join('\n')}; };
   assert.match((await run([])).text, /Nothing is scheduled\. Example: node aos\.mjs schedule add plan-today 07:00 --days weekdays/);
   const added = await run(['add', 'plan-today', '07:00'], {days: 'weekdays'});
-  assert.match(added.text, /Scheduled: Plan Today at 07:00, weekdays \(id plan-today-0700\)/);
+  assert.match(added.text, /Scheduled: Planejar hoje at 07:00, weekdays \(id plan-today-0700\)/);
   assert.match(added.text, /uses your Claude or Codex plan the same as pressing the button/);
   await run(['add', 'morning-intel', '06:30']);
   await run(['add', 'inbox-brief', '12:00'], {days: 'Mon,Wed,Friday'});
   assert.deepEqual(readSchedule(theVault).jobs.map(job => [job.id, job.days.length]), [['plan-today-0700', 5], ['morning-intel-0630', 7], ['inbox-brief-1200', 3]]);
   const listed = (await run([])).text;
-  assert.match(listed, /plan-today-0700\s+Plan Today, 07:00 weekdays\s+next: today 07:00\s+last: has not run yet/);
-  assert.match(listed, /inbox-brief-1200\s+Inbox Brief, 12:00 mon, wed, fri/);
+  assert.match(listed, /plan-today-0700\s+Planejar hoje, 07:00 weekdays\s+next: today 07:00\s+last: has not run yet/);
+  assert.match(listed, /inbox-brief-1200\s+Resumo da caixa de entrada, 12:00 mon, wed, fri/);
   assert.match(listed, /Runs happen only while the services are running/);
   assert.match((await run(['off', 'morning-intel-0630'])).text, /morning-intel-0630 is off/);
   assert.match((await run([])).text, /morning-intel-0630.*\[off\]\s+next: off/);
@@ -277,7 +277,7 @@ test('the schedule command adds, lists, switches and removes, and explains a mis
   await run(['resume']); await run(['on', 'morning-intel-0630']);
   assert.match((await run(['remove', 'inbox-brief-1200'])).text, /Removed inbox-brief-1200/);
   assert.deepEqual(readSchedule(theVault).jobs.map(job => job.id), ['plan-today-0700', 'morning-intel-0630']);
-  assert.match((await run(['skills'])).text, /plan-today\s+Plan Today/);
+  assert.match((await run(['skills'])).text, /plan-today\s+Planejar hoje/);
   const before = fs.readFileSync(path.join(theVault, SCHEDULE_FILE), 'utf8');
   for (const [words, flags, message] of [[['add', 'plan-today'], {}, /schedule add <workflow> <HH:MM>/], [['add', 'plan-today', '07:00'], {}, /same workflow at the same time/], [['add', 'deep-research-chase', '07:00'], {}, /needs a topic/], [['add', 'plan-today', '8'], {}, /not a time/], [['add', 'plan-today', '08:00'], {days: 'someday'}, /--days takes/], [['remove', 'nope'], {}, /Nothing on the schedule is called "nope"/], [['on', 'nope'], {}, /Nothing on the schedule/]])
     await assert.rejects(run(words, flags), message, words.join(' '));
@@ -312,9 +312,9 @@ test('the screens show what is scheduled in a line, and show nothing when they c
   const root = vault({jobs: [weekdayPlan, {skill: 'morning-intel', at: '06:30'}, {skill: 'inbox-brief', at: '12:00', days: ['mon', 'wed'], enabled: false}]});
   scheduleTick(root, job => { if (job.skill === 'morning-intel') throw new Error('busy'); }, {now: at(7), timeZone: ZONE});
   const view = scheduleView(root, {now: at(8), timeZone: ZONE});
-  assert.deepEqual(scheduleLines(view), {error: '', lines: ['Plan Today 07:00 weekdays, next tomorrow 07:00', 'Intel Brief 06:30, next tomorrow 06:30, last run failed', 'Inbox Brief 12:00 mon, wed (off)']});
+  assert.deepEqual(scheduleLines(view), {error: '', lines: ['Planejar hoje 07:00 weekdays, next tomorrow 07:00', 'Boletim de IA 06:30, next tomorrow 06:30, last run failed', 'Resumo da caixa de entrada 12:00 mon, wed (off)']});
   editSchedule(root, schedule => ({...schedule, paused: true}));
-  assert.equal(scheduleLines(scheduleView(root, {now: at(8), timeZone: ZONE})).lines[0], 'Plan Today 07:00 weekdays (paused)');
+  assert.equal(scheduleLines(scheduleView(root, {now: at(8), timeZone: ZONE})).lines[0], 'Planejar hoje 07:00 weekdays (paused)');
   assert.deepEqual(scheduleLines(scheduleView(vault(), {now: at(8), timeZone: ZONE})), {lines: [], error: ''}, 'nothing scheduled shows nothing');
   assert.match(scheduleLines(scheduleView(vault('{"jobs": ['), {now: at(8), timeZone: ZONE})).error, /nothing is scheduled/);
   for (const odd of [null, undefined, 'text', {error: 'Unknown route'}, {jobs: 'none'}, []]) assert.deepEqual(scheduleLines(odd), {lines: [], error: ''});

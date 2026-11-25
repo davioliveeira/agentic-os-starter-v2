@@ -10,7 +10,7 @@ interface Props {
 const WINDOW_MS = 5 * 60 * 60 * 1000;
 
 function compact(n: number): string {
-	return new Intl.NumberFormat("en-US", {
+	return new Intl.NumberFormat("pt-BR", {
 		notation: "compact",
 		maximumFractionDigits: 2,
 	}).format(n);
@@ -114,20 +114,20 @@ export function TokenBurnChart({ series, budget }: Props) {
 
 			<header className="aos-v2-cc-tokenburn-head">
 				<span className="aos-v2-cc-tokenburn-title">
-					§ CLAUDE · LOCAL 5H ACTIVITY
+					§ CLAUDE · ATIVIDADE LOCAL EM 5 H
 				</span>
 				<span className="aos-v2-cc-tokenburn-pulse">
 					<span className="aos-v2-cc-tokenburn-pulse-dot" />
-					ESTIMATE
+					ESTIMATIVA
 				</span>
 				<span className="aos-v2-cc-tokenburn-meta">
 					{lastPullAgoMs !== null
-						? `last pull ${humanDur(lastPullAgoMs)} ago`
+						? `última atualização ${humanDur(lastPullAgoMs)} ago`
 						: "no pulls yet"}
 				</span>
 			</header>
 
-			<p className="aos-v2-cc-tokenburn-meta">Local logs at the last collection. Scale uses your configured token target, not Claude subscription quota.</p>
+			<p className="aos-v2-cc-tokenburn-meta">Dados locais da última coleta. A escala segue a meta de tokens configurada.</p>
             <div className="aos-v2-cc-tokenburn-meter">
 				<div className="aos-v2-cc-tokenburn-pct">
 					<span className="aos-v2-cc-tokenburn-pct-num">

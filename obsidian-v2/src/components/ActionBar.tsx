@@ -34,24 +34,24 @@ export function ActionBar({ plugin, onSubmitted, appearance = 'terminal' }: Prop
    let input = '';
    if (skill.arg || skill.kind === 'installed') {
     const value = await askForArg(plugin.app, skill.kind === 'installed' ? `Run ${skill.label}` : skill.label,
-     skill.arg === 'url' ? 'https://…' : 'What should this skill do?');
+     skill.arg === 'url' ? 'https://…' : 'O que esta skill deve fazer?');
     if (!value) return;
     input = value;
    }
    await launchDashboardSkill(plugin.app, skill, input);
    onSubmitted?.();
   } catch (error) {
-   new Notice(`Could not start workflow: ${error instanceof Error ? error.message : String(error)}`);
+   new Notice(`Não foi possível iniciar o fluxo: ${error instanceof Error ? error.message : String(error)}`);
   } finally { setBusy(false); }
  };
  const buttons = dashboardButtons(dashboard);
  return <div>
   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
-   <button type="button" onClick={() => openDashboardCustomization(plugin.app)} style={{ fontSize: '11px' }}>Customize dashboard</button>
-   <button type="button" onClick={() => openWorkflowPicker(plugin.app)} style={{ fontSize: '11px' }}>More workflows…</button>
+   <button type="button" onClick={() => openDashboardCustomization(plugin.app)} style={{ fontSize: '11px' }}>Personalizar painel</button>
+   <button type="button" onClick={() => openWorkflowPicker(plugin.app)} style={{ fontSize: '11px' }}>Mais fluxos…</button>
   </div>
-  {dashboard.error && <p role="status" style={{ fontSize: '12px' }}>{dashboard.error} {dashboard.configured ? 'Showing your last saved buttons.' : 'Showing starter buttons.'}</p>}
-  {!buttons.length && <p className="aos-v2-empty">Choose buttons in Customize dashboard, or use More workflows.</p>}
+  {dashboard.error && <p role="status" style={{ fontSize: '12px' }}>{dashboard.error} {dashboard.configured ? 'Exibindo os últimos botões salvos.' : 'Exibindo os botões iniciais.'}</p>}
+  {!buttons.length && <p className="aos-v2-empty">Escolha os botões em Personalizar painel ou use Mais fluxos.</p>}
   <div className={appearance === 'glass' ? 'aos-v2-row aos-v2-row--keys' : 'aos-v2-cc-actionbar'}>
    {buttons.map(skill => {
     const reason = dashboardSkillReason(skill, provider.selection.provider, provider.health, dashboard.error, dashboard.installedProviders);
@@ -65,7 +65,7 @@ export function ActionBar({ plugin, onSubmitted, appearance = 'terminal' }: Prop
     </button>;
    })}
   </div>
-  {schedule.lines.length > 0 && <p className="aos-v2-empty" role="status" title="Change it with: node aos.mjs schedule" style={{ fontSize: '12px', marginTop: '8px' }}>Scheduled: {schedule.lines.join(' · ')}</p>}
-  {schedule.error && <p role="alert" style={{ fontSize: '12px' }}>Schedule: {schedule.error}</p>}
+  {schedule.lines.length > 0 && <p className="aos-v2-empty" role="status" title="Altere com node aos.mjs schedule" style={{ fontSize: '12px', marginTop: '8px' }}>Agendado: {schedule.lines.join(' · ')}</p>}
+  {schedule.error && <p role="alert" style={{ fontSize: '12px' }}>Agenda: {schedule.error}</p>}
  </div>;
 }

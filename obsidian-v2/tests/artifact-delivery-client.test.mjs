@@ -59,7 +59,7 @@ test('voice dispatch identifies its owning surface, and a missing opener fails c
  const session=new VoiceSession(async(path,options)=>{const body=JSON.parse(options.body);calls.push({path,options,body});if(path==='/artifacts/claim'&&pending){pending=false;return {status:200,json:{action:{id:'unsupported',artifact}}}}return {status:200,json:path==='/voice/text'?{reply:''}:null}},async()=>({provider:'codex',model:'astra'}),'native',{heartbeat:()=>()=>{}});
  session.onMessage=(text,error)=>messages.push({text,error});session.connect();await flush();await session.sendText('Create an image');await flush();
  const dispatch=calls.find(c=>c.path==='/voice/text'),surface=calls.find(c=>c.path==='/voice/surface');assert.equal(dispatch.options.headers['X-V2-Surface'],surface.body.id);
- pending=true;window.dispatchEvent(new Event('focus'));await flush();assert.ok(messages.some(m=>m.error&&/cannot display/.test(m.text)));assert.equal(calls.find(c=>c.path==='/artifacts/ack').body.ok,false);await session.destroy();
+ pending=true;window.dispatchEvent(new Event('focus'));await flush();assert.ok(messages.some(m=>m.error&&/não consegue exibi-lo/.test(m.text)));assert.equal(calls.find(c=>c.path==='/artifacts/ack').body.ok,false);await session.destroy();
 });
 
 function nativeFixture(file=artifact.path){const calls=[],leaf={view:{getViewType:()=> 'image'},openFile:async value=>calls.push(['open',value.path])};const app={vault:{getAbstractFileByPath:path=>path===file?{path,name:path.split('/').at(-1),extension:path.split('.').at(-1)}:null},workspace:{iterateAllLeaves:()=>{},getLeaf:where=>{calls.push(['leaf',where]);return leaf},revealLeaf:async value=>{assert.equal(value,leaf);calls.push(['reveal'])}}};return {app,leaf,calls}}

@@ -64,8 +64,8 @@ interface CardSpec {
 }
 
 const CARDS: CardSpec[] = [
-	{ key: "youtube:subscribers", label: "YouTube Subs", format: "integer", tabs: ["overview", "audience"], tone: "youtube" },
-	{ key: "youtube:views_28d", label: "YouTube Views", format: "integer", tabs: ["overview", "audience"], tone: "youtube" },
+	{ key: "youtube:subscribers", label: "Inscritos no YouTube", format: "integer", tabs: ["overview", "audience"], tone: "youtube" },
+	{ key: "youtube:views_28d", label: "Visualizações no YouTube", format: "integer", tabs: ["overview", "audience"], tone: "youtube" },
 	{ key: "instagram:followers", label: "Instagram", format: "integer", tabs: ["overview", "audience"], tone: "instagram" },
 	{ key: "tiktok:followers", label: "TikTok", format: "integer", tabs: ["overview", "audience"], tone: "tiktok" },
 ];
@@ -213,11 +213,11 @@ export function Cockpit({ plugin }: Props) {
 				</span>
 				<h1 className="aos-v2-cc-title">AGENTIC OS <small>V2</small></h1>
 				<span className="aos-v2-cc-status">
-					{error ? "ERROR" : snapshots ? "CONNECTED VAULT" : "BOOT"}
+					{error ? "ERRO" : snapshots ? "COFRE CONECTADO" : "INICIANDO"}
 				</span>
 				<ProviderPanel plugin={plugin} state={providerState} busy={runnerBusy} />
-                <button className="aos-v2-cc-themebtn" onClick={()=>openWork()}>Terminals</button>
-				<div className="aos-v2-cc-themebar" role="group" aria-label="theme">
+                <button className="aos-v2-cc-themebtn" onClick={()=>openWork()}>Terminais</button>
+				<div className="aos-v2-cc-themebar" role="group" aria-label="tema">
 					{(["terminal", "glass"] as CockpitTheme[]).map((t) => (
 						<button
 							key={t}
@@ -226,9 +226,9 @@ export function Cockpit({ plugin }: Props) {
 								theme === t ? "aos-v2-cc-themebtn--active" : ""
 							}`}
 							onClick={() => void switchTheme(t)}
-							title={`switch to ${t} theme`}
+							title={t === "terminal" ? "Usar tema Terminal" : "Usar tema Vidro"}
 						>
-							{t}
+							{t === "terminal" ? "Terminal" : "Vidro"}
 						</button>
 					))}
 				</div>
@@ -236,7 +236,7 @@ export function Cockpit({ plugin }: Props) {
 					className="aos-v2-cc-refresh"
 					type="button"
 					onClick={() => { invalidateMetrics(plugin.app); invalidateRecentRuns(plugin.app); void refresh(); }}
-					title="refresh"
+					title="atualizar"
 				>
 					↻
 				</button>
@@ -250,14 +250,14 @@ export function Cockpit({ plugin }: Props) {
 						className={`aos-v2-cc-tab ${t === tab ? "aos-v2-cc-tab-active" : ""}`}
 						onClick={() => setTab(t)}
 					>
-						{t}
+						{{ overview: "Visão geral", audience: "Público", research: "Pesquisa" }[t]}
 					</button>
 				))}
 			</nav>
 
 			{error ? (
 				<section className="aos-v2-cc-placeholder aos-v2-cc-error-box">
-					<p className="aos-v2-cc-mono">&gt; read failed</p>
+					<p className="aos-v2-cc-mono">&gt; falha na leitura</p>
 					<p className="aos-v2-cc-mono aos-v2-cc-dim">{error}</p>
 				</section>
 			) : glass && tab === "overview" ? (
@@ -300,20 +300,19 @@ export function Cockpit({ plugin }: Props) {
 			{dailyMissing ? (
 				<section className="aos-v2-cc-placeholder">
 					<p className="aos-v2-cc-mono aos-v2-cc-dim">
-						&gt; no daily note at {todayPath()}
+						&gt; nenhuma nota diária em {todayPath()}
 					</p>
 					<p className="aos-v2-cc-mono aos-v2-cc-dim">
-						click "Open Today" above or run /today
+						clique em “Abrir hoje” acima ou execute /today
 					</p>
 				</section>
 			) : dailyUnsupported ? (
 				<section className="aos-v2-cc-placeholder aos-v2-cc-error-box">
 					<p className="aos-v2-cc-mono">
-						&gt; unsupported schema_version: {daily!.schemaVersion}
+						&gt; versão de schema incompatível: {daily!.schemaVersion}
 					</p>
 					<p className="aos-v2-cc-mono aos-v2-cc-dim">
-						plugin supports v{SUPPORTED_SCHEMA_VERSION}. update template or bump
-						parser.
+						O plugin usa v{SUPPORTED_SCHEMA_VERSION}. Atualize o modelo da nota ou o plugin.
 					</p>
 				</section>
 			) : (
@@ -336,7 +335,7 @@ export function Cockpit({ plugin }: Props) {
 							<div className="aos-v2-cc-stack">
 								<OutlierRadarCard app={plugin.app} limit={6} />
 								<ContentAnglesCard app={plugin.app} limit={4} />
-								<p className="aos-v2-cc-dim">External research connectors are not connected.</p>
+								<p className="aos-v2-cc-dim">Conectores de pesquisa externa indisponíveis.</p>
 							</div>
 						</section>
 					) : null}
@@ -386,7 +385,7 @@ export function Cockpit({ plugin }: Props) {
 										: "no heartbeat"
 								}
 							>
-								● terminals {online ? "online" : "offline"}
+								● terminais {online ? "online" : "offline"}
 								{online && runner?.busy
 									? ` (${runner.active ?? "?"} sessions${
 											runner.pending ? ` · ${runner.pending} queued` : ""
@@ -396,14 +395,14 @@ export function Cockpit({ plugin }: Props) {
 									  : ""}
 							</span>
 							<span className="aos-v2-cc-foot-sep">·</span>
-							<span title={lastTs || ""}>last pull {lastAgo} ago</span>
+							<span title={lastTs || ""}>última atualização há {lastAgo}</span>
 							<span className="aos-v2-cc-foot-sep">·</span>
 							<span>
-								next{" "}
+								próxima atualização{" "}
 								{next
 									? next.overdue
-										? `overdue ${humanDuration(-next.ms)}`
-										: `in ${humanDuration(next.ms)}`
+										? `atrasada há ${humanDuration(-next.ms)}`
+										: `em ${humanDuration(next.ms)}`
 									: "—"}
 							</span>
 							<span className="aos-v2-cc-cursor">█</span>

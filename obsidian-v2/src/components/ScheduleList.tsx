@@ -14,20 +14,20 @@ export function ScheduleList({ app, entries }: Props) {
 		try {
 			await writeIntent(app, "refresh-schedule", {});
 		} catch (e) {
-			new Notice(`Refresh failed: ${e}`);
+			new Notice(`Falha ao atualizar: ${e}`);
 		}
 	};
 
 	return (
 		<div className="aos-v2-cc-panel">
 			<div className="aos-v2-cc-panel-head">
-				<span className="aos-v2-cc-panel-label">Schedule</span>
+				<span className="aos-v2-cc-panel-label">Agenda</span>
 				<span className="aos-v2-cc-panel-actions">
 					<button
 						type="button"
 						className="aos-v2-cc-refresh aos-v2-cc-refresh-inline"
 						onClick={() => void refresh()}
-						title="Refresh from Google Calendar"
+						title="Atualizar do Google Agenda"
 					>
 						↻
 					</button>
@@ -39,7 +39,7 @@ export function ScheduleList({ app, entries }: Props) {
 			<div className="aos-v2-cc-panel-body">
 				{entries.length === 0 ? (
 					<p className="aos-v2-cc-mono aos-v2-cc-dim">
-						&gt; no events — click ↻ to pull
+						&gt; sem eventos — clique em ↻ para atualizar
 					</p>
 				) : (
 					<ul

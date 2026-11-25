@@ -74,7 +74,7 @@ export function GithubTrendingCard({ app, limit = 6 }: Props) {
 		try {
 			await writeIntent(app, "github-trending", {});
 		} catch (e) {
-			new Notice(`GitHub Trending could not start — ${(e as Error).message}`);
+			new Notice(`Não foi possível consultar o GitHub — ${(e as Error).message}`);
 		} finally {
 			setRunning(false);
 		}
@@ -118,7 +118,7 @@ export function GithubTrendingCard({ app, limit = 6 }: Props) {
 		.filter(
 			(r) =>
 				r.section === "velocity-month" ||
-				(r.section as string) === "velocity",
+				(r.section as string) === "ritmo",
 		)
 		.slice(0, 5);
 	const items = weekItems;
@@ -126,7 +126,7 @@ export function GithubTrendingCard({ app, limit = 6 }: Props) {
 	return (
 		<div className="aos-v2-cc-panel">
 			<div className="aos-v2-cc-panel-head">
-				<span className="aos-v2-cc-panel-label">GitHub Trending</span>
+				<span className="aos-v2-cc-panel-label">Em alta no GitHub</span>
 				<span className="aos-v2-cc-panel-actions">
 					{snap ? (
 						<button
@@ -135,7 +135,7 @@ export function GithubTrendingCard({ app, limit = 6 }: Props) {
 							onClick={openReport}
 							title={`open ${snap.sourcePath}`}
 						>
-							full ↗
+							completo ↗
 						</button>
 					) : null}
 					<button
@@ -145,8 +145,8 @@ export function GithubTrendingCard({ app, limit = 6 }: Props) {
 						disabled={running}
 						title={
 							running
-								? "running — new capture in flight"
-								: "fetch fresh trending now (queues daemon)"
+								? "em execução — buscando dados"
+								: "buscar dados atualizados"
 						}
 					>
 						{running ? "…" : "▶"}
@@ -155,7 +155,7 @@ export function GithubTrendingCard({ app, limit = 6 }: Props) {
 						type="button"
 						className="aos-v2-cc-refresh aos-v2-cc-refresh-inline"
 						onClick={refresh}
-						title="re-read latest trending file"
+						title="reler o último relatório"
 					>
 						↻
 					</button>
@@ -167,7 +167,7 @@ export function GithubTrendingCard({ app, limit = 6 }: Props) {
 			<div className="aos-v2-cc-panel-body">
 				{items.length === 0 ? (
 					<p className="aos-v2-cc-mono aos-v2-cc-dim">
-						&gt; no trending captures yet
+						&gt; nenhum relatório disponível
 					</p>
 				) : (
 					<ul className="aos-v2-cc-feed-list">
@@ -203,15 +203,15 @@ export function GithubTrendingCard({ app, limit = 6 }: Props) {
 				)}
 				{velDayItems.length > 0
 					? renderVelGroup(
-							"🚀 Fastest growing — 24h",
+							"🚀 Maior crescimento — 24 h",
 							velDayItems,
-							"/day",
+							"/dia",
 							openRepo,
 						)
 					: null}
 				{velMonthItems.length > 0
 					? renderVelGroup(
-							"📈 Fastest growing — 30d",
+							"📈 Maior crescimento — 30 d",
 							velMonthItems,
 							"/mo",
 							openRepo,

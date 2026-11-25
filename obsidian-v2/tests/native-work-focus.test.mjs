@@ -26,7 +26,7 @@ function fixture(){
 test('background ready-to-closed title refresh cannot replay persisted active:true or retarget voice',async()=>{
  const f=fixture(),task={id:'history-task',title:'HN research',state:'ready',provider:'codex'};publish([task]);await f.view.setState(f.leaf.stored.state,{});await f.view.onOpen();
  assert.equal(subscriberCount(),1);publish([{...task,state:'stopped'}]);await flush();
- assert.equal(f.view.getDisplayText(),'HN research · Closed');assert.equal(f.leaf.states.at(-1).active,false);assert.equal(f.workspace.activeLeaf,f.dashboard);assert.equal(f.leaf.focuses,0);assert.equal(f.workspace.reveals,0);assert.deepEqual(choices,[]);assert.deepEqual(f.opened,[]);
+ assert.equal(f.view.getDisplayText(),'HN research · Encerrado');assert.equal(f.leaf.states.at(-1).active,false);assert.equal(f.workspace.activeLeaf,f.dashboard);assert.equal(f.leaf.focuses,0);assert.equal(f.workspace.reveals,0);assert.deepEqual(choices,[]);assert.deepEqual(f.opened,[]);
  const before=f.leaf.states.length;publish([{...task,state:'stopped'}]);await flush();assert.equal(f.leaf.states.length,before,'unchanged task does not repeatedly restore view state');
  await f.view.onClose();assert.equal(subscriberCount(),0);publish([{...task,state:'error'}]);await flush();assert.equal(f.leaf.states.length,before);
 });

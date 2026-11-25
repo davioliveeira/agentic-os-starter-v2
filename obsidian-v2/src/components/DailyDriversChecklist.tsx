@@ -20,7 +20,7 @@ export function DailyDriversChecklist({ app, path, items }: Props) {
 
 	const toggle = async (text: string) => {
 		const ok = await toggleTaskByText(app, path, "Daily Drivers", text);
-		if (!ok) new Notice(`Could not toggle: ${text}`);
+		if (!ok) new Notice(`Não foi possível alterar: ${text}`);
 	};
 
 	const submitAdd = async (e: Event) => {
@@ -29,7 +29,7 @@ export function DailyDriversChecklist({ app, path, items }: Props) {
 		if (!text) return;
 		const ok = await addTaskToSection(app, path, "Daily Drivers", text);
 		if (!ok) {
-			new Notice("Add failed — daily note missing Daily Drivers section");
+			new Notice("Não foi possível adicionar: falta a seção Daily Drivers na nota diária");
 			return;
 		}
 		setNewTask("");
@@ -39,7 +39,7 @@ export function DailyDriversChecklist({ app, path, items }: Props) {
 	return (
 		<div className="aos-v2-cc-panel">
 			<div className="aos-v2-cc-panel-head">
-				<span className="aos-v2-cc-panel-label">Daily Tasks</span>
+				<span className="aos-v2-cc-panel-label">Tarefas do dia</span>
 				<span className="aos-v2-cc-panel-count aos-v2-cc-dim">
 					{doneCount}/{items.length}
 				</span>
@@ -52,7 +52,7 @@ export function DailyDriversChecklist({ app, path, items }: Props) {
 			</div>
 			<div className="aos-v2-cc-panel-body">
 				{items.length === 0 ? (
-					<p className="aos-v2-cc-mono aos-v2-cc-dim">&gt; no tasks</p>
+					<p className="aos-v2-cc-mono aos-v2-cc-dim">&gt; nenhuma tarefa</p>
 				) : (
 					<ul
 						className={`aos-v2-cc-drivers ${items.length > 5 ? "aos-v2-cc-drivers-wide" : ""}`}
@@ -79,7 +79,7 @@ export function DailyDriversChecklist({ app, path, items }: Props) {
 							type="text"
 							className="aos-v2-cc-quickadd-input"
 							autoFocus
-							placeholder="new task…"
+							placeholder="nova tarefa…"
 							value={newTask}
 							onInput={(e) => setNewTask((e.target as HTMLInputElement).value)}
 							onKeyDown={(e) => {
@@ -99,7 +99,7 @@ export function DailyDriversChecklist({ app, path, items }: Props) {
 						className="aos-v2-cc-quickadd-trigger"
 						onClick={() => setAdding(true)}
 					>
-						+ add task
+						+ adicionar tarefa
 					</button>
 				)}
 			</div>

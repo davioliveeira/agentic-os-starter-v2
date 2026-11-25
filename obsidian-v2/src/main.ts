@@ -29,7 +29,7 @@ export default class ChaseCommandCenter extends Plugin {
 
 	async onload() {
 		try { await assertTestVault(this.app); }
-		catch { new Notice("Agentic OS V2 needs an installed V2 vault configuration. Run the V2 installer for this vault."); return; }
+		catch { new Notice("Este cofre ainda precisa ser configurado para o Agentic OS V2. Execute o instalador V2 para este cofre."); return; }
 		await this.loadSettings();
         configureVoiceTransport(this.app,this.manifest.dir||`${this.app.vault.configDir}/plugins/${this.manifest.id}`);
         registerSkillReports(this);
@@ -42,7 +42,7 @@ export default class ChaseCommandCenter extends Plugin {
         if((this.app.vault.adapter as any).getBasePath){
             this.nativeDirect=new NativeDirectHost({app:this.app,request:async(path,body)=>{
                 const response=await v2VoiceTransport(path,body===undefined?{}:{method:'POST',body:JSON.stringify(body)});
-                if(response.status!==200)throw new Error(response.json?.error||'Native terminal service is unavailable.');return response.json;
+                if(response.status!==200)throw new Error(response.json?.error||'O serviço de terminal nativo está indisponível.');return response.json;
             },createLeaf:reveal=>this.createWorkLeaf(reveal),reveal:async leaf=>{await this.app.workspace.revealLeaf(leaf)},withLayout:operation=>this.withNativeLayout(operation),notice:message=>{new Notice(message)}});
             const timers=(globalThis as any).require?.('timers')||globalThis;
             let polling=false,closed=false;
@@ -58,8 +58,8 @@ export default class ChaseCommandCenter extends Plugin {
 		this.injectThemeAssets();
         this.registerView(WORK_VIEW,leaf=>new WorkView(leaf,this));
         this.addCommand({id:'toggle-voice-recording',name:'Start or send voice recording',callback:()=>{if(!this.settings.orbEnabled){this.settings.orbEnabled=true;this.remountOrb()}window.dispatchEvent(new Event('aos-toggle-voice'))}});
-        this.addCommand({id:'open-agent-work',name:'Open terminals',callback:()=>void this.activateWork()});
-        this.addCommand({id:'run-workflow',name:'Run a workflow…',callback:()=>openWorkflowPicker(this.app)});
+        this.addCommand({id:'open-agent-work',name:'Abrir terminais',callback:()=>void this.activateWork()});
+        this.addCommand({id:'run-workflow',name:'Executar um fluxo…',callback:()=>openWorkflowPicker(this.app)});
         const showWork=(event:Event)=>void this.activateWork((event as CustomEvent<string[]>).detail||[],false);window.addEventListener('aos-open-work',showWork);this.register(()=>window.removeEventListener('aos-open-work',showWork));
         this.app.workspace.onLayoutReady(()=>this.registerEvent(this.app.workspace.on('active-leaf-change',leaf=>{
             if(this.openingWork||this.nativeLayoutDepth>0||!leaf)return;
@@ -73,19 +73,19 @@ export default class ChaseCommandCenter extends Plugin {
 			(leaf: WorkspaceLeaf) => new CockpitView(leaf, this),
 		);
 
-		this.addRibbonIcon("activity", "Open Agentic OS V2", () => {
+		this.addRibbonIcon("activity", "Abrir Agentic OS V2", () => {
 			this.activateView();
 		});
 
 		this.addCommand({
 			id: "open-command-center",
-			name: "Open Agentic OS V2",
+			name: "Abrir Agentic OS V2",
 			callback: () => this.activateView(),
 		});
 
 		this.addCommand({
 			id: "toggle-jarvis-orb",
-			name: "Toggle Jarvis orb",
+			name: "Alternar botão flutuante do Jarvis",
 			callback: async () => {
 				this.settings.orbEnabled = !this.settings.orbEnabled;
 				await this.saveSettings();
@@ -242,7 +242,7 @@ export default class ChaseCommandCenter extends Plugin {
             if(first)await workspace.revealLeaf(first);
             }finally{this.openingWork=false}
         });
-        this.workOpenQueue=operation.catch(error=>{new Notice(`Could not open terminal: ${String(error)}`)});
+        this.workOpenQueue=operation.catch(error=>{new Notice(`Não foi possível abrir o terminal: ${String(error)}`)});
         return this.workOpenQueue;
     }
 

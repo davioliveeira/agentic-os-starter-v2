@@ -52,11 +52,11 @@ test('the rendered terminal strip keeps history behind its button and uses hones
   const live=task('Current CLI','needs input'),old=task('Old stopped fixture','stopped',{keep:true});
   const props={tabs:[live],history:[old,live],target:live.id,historyOpen:false,loaded:true,onHistory:()=>{},onSelect:()=>{},onClose:()=>{}};
   const collapsed=renderToStaticMarkup(React.createElement(TerminalTabs,props));
-  assert.match(collapsed,/aria-label="Terminal tabs"/);assert.match(collapsed,/Current CLI/);assert.match(collapsed,/Needs input/);
-  assert.match(collapsed,/aria-expanded="false"[^>]*>History/);assert.doesNotMatch(collapsed,/Old stopped fixture|terminal-history" aria-label/);
+  assert.match(collapsed,/aria-label="Abas de terminal"/);assert.match(collapsed,/Current CLI/);assert.match(collapsed,/Precisa de resposta/);
+  assert.match(collapsed,/aria-expanded="false"[^>]*>Histórico/);assert.doesNotMatch(collapsed,/Old stopped fixture|terminal-history" aria-label/);
   const expanded=renderToStaticMarkup(React.createElement(TerminalTabs,{...props,historyOpen:true}));
-  assert.match(expanded,/Old stopped fixture/);assert.match(expanded,/Closed · Kept/);assert.doesNotMatch(expanded,/completed|successful/i);
-  assert.match(expanded,/Opening history does not resume a session/);
+  assert.match(expanded,/Old stopped fixture/);assert.match(expanded,/Encerrado · Mantido/);assert.doesNotMatch(expanded,/completed|successful/i);
+  assert.match(expanded,/Abrir o histórico mostra as sessões salvas/);
 });
 
 function elements(node:React.ReactNode):React.ReactElement<any>[] {
@@ -70,7 +70,7 @@ test('history selection exposes the exact Claude conversation and closes history
   const claude=task('Claude history','stopped',{provider:'claude',model:'opus',sessionId:'saved-cli-session'});
   t.mock.method(globalThis,'fetch',async()=>{assert.fail('Viewing history must not make a provider or resume request')});
   const tree=TerminalTabs({tabs:[],history:[claude],target:null,historyOpen:true,loaded:true,onSelect:id=>chosen.push(id),onHistory:value=>historyChanges.push(value),onClose:id=>closed.push(id)});
-  const section=elements(tree).find(element=>element.type==='section'&&element.props['aria-label']==='Terminal history');
+  const section=elements(tree).find(element=>element.type==='section'&&element.props['aria-label']==='Histórico de terminais');
   const button=elements(section).find(element=>element.type==='button');
   assert.ok(button);button.props.onClick();
   assert.deepEqual(chosen,[claude.id]);assert.deepEqual(historyChanges,[false]);assert.deepEqual(closed,[]);
@@ -81,7 +81,7 @@ test('the tab strip itself only reports a close request; what closing means is d
   const closed:string[]=[],chosen:string[]=[],live=task('Running Codex','working',{pid:123});
   t.mock.method(globalThis,'fetch',async()=>{assert.fail('The strip never talks to the bridge itself')});
   const tree=TerminalTabs({tabs:[live],history:[live],target:live.id,historyOpen:false,loaded:true,onSelect:id=>chosen.push(id),onHistory:()=>{},onClose:id=>closed.push(id)});
-  const close=elements(tree).find(element=>element.props['aria-label']==='Close tab: Running Codex');
+  const close=elements(tree).find(element=>element.props['aria-label']==='Fechar aba: Running Codex');
   assert.ok(close);close.props.onClick();
   assert.deepEqual(closed,[live.id]);assert.deepEqual(chosen,[]);assert.equal(live.pid,123);assert.equal(live.state,'working');
 });
@@ -110,10 +110,10 @@ test('an armed tab says Stop? and names what the next press does; a stopping tab
   const busy=task('Busy CLI','working',{pid:9}),going=task('Going CLI','stopping',{pid:10}),idle=task('Idle CLI','ready',{pid:11}),old=task('Old CLI');
   const props={tabs:[busy,going,idle,old],history:[],target:null,historyOpen:false,loaded:true,onHistory:()=>{},onSelect:()=>{},onClose:()=>{}};
   const plain=renderToStaticMarkup(React.createElement(TerminalTabs,props));
-  assert.match(plain,/aria-label="Close tab: Busy CLI" title="This terminal is still busy\. Press again to stop it; text typed in the CLI but not sent is lost\."/);
-  assert.match(plain,/aria-label="Close tab: Idle CLI" title="Close: ends this terminal\. The conversation stays in History\."/);
-  assert.match(plain,/aria-label="Close tab: Old CLI" title="Remove this tab\. The conversation stays in History\."/);
-  assert.match(plain,/aria-label="Close tab: Going CLI"[^>]*disabled/);assert.doesNotMatch(plain,/Stop\?|running sessions continue/);
+  assert.match(plain,/aria-label="Fechar aba: Busy CLI" title="Este terminal está ocupado\. Clique de novo para pará-lo\. Texto digitado e ainda não enviado será perdido\."/);
+  assert.match(plain,/aria-label="Fechar aba: Idle CLI" title="Fechar encerra este terminal\. A conversa fica no histórico\."/);
+  assert.match(plain,/aria-label="Fechar aba: Old CLI" title="Remover esta aba\. A conversa fica no histórico\."/);
+  assert.match(plain,/aria-label="Fechar aba: Going CLI"[^>]*disabled/);assert.doesNotMatch(plain,/Parar\?|running sessions continue/);
   const armed=renderToStaticMarkup(React.createElement(TerminalTabs,{...props,armed:busy.id}));
-  assert.match(armed,/class="is-armed" aria-label="Stop and close: Busy CLI"[^>]*>Stop\?</);assert.equal((armed.match(/Stop\?/g)||[]).length,1);
+  assert.match(armed,/class="is-armed" aria-label="Parar e fechar: Busy CLI"[^>]*>Parar\?</);assert.equal((armed.match(/Parar\?/g)||[]).length,1);
 });

@@ -17,8 +17,8 @@ const mono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Jarvis V2 — Galaxy Preview",
-  description: "Isolated Jarvis V2 visual preview with Claude and Codex modes",
+  title: "Jarvis V2 — Central de comando",
+  description: "Central de comando Jarvis V2 com Claude Code e Codex",
 };
 
 export default function RootLayout({
@@ -27,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <body className={`${display.variable} ${mono.variable}`}>{children}</body>
     </html>
   );

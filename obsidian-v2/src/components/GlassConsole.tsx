@@ -27,8 +27,8 @@ interface Props {
 // four channel tiles — same sources as the terminal theme's CARDS; tone
 // drives the tinted platform stamp pressed into the ivory
 const TILES: { key: string; label: string; tone: "youtube" | "instagram" | "tiktok" }[] = [
-	{ key: "youtube:subscribers", label: "YouTube subs", tone: "youtube" },
-	{ key: "youtube:views_28d", label: "YT views · 28d", tone: "youtube" },
+	{ key: "youtube:subscribers", label: "Inscritos no YouTube", tone: "youtube" },
+	{ key: "youtube:views_28d", label: "Visualizações no YouTube · 28 d", tone: "youtube" },
 	{ key: "instagram:followers", label: "Instagram", tone: "instagram" },
 	{ key: "tiktok:followers", label: "TikTok", tone: "tiktok" },
 ];
@@ -45,7 +45,7 @@ export function GlassConsole({
 	const toggleTask = async (text: string) => {
 		if (!daily) return;
 		const ok = await toggleTaskByText(plugin.app, daily.path, "Daily Drivers", text);
-		if (!ok) new Notice(`Could not toggle: ${text}`);
+		if (!ok) new Notice(`Não foi possível alterar: ${text}`);
 	};
 
 	const tasks = daily?.drivers ?? [];
@@ -70,11 +70,11 @@ export function GlassConsole({
 			<div className="aos-v2-row aos-v2-row--lists">
 				<section className="aos-v2-pane aos-v2-pane--dark">
 					<div className="aos-v2-pane-head">
-						<span className="aos-v2-label">Today</span>
+						<span className="aos-v2-label">Hoje</span>
 					</div>
 					<div className="aos-v2-list aos-v2-list--cols">
 						{schedule.length === 0 ? (
-							<div className="aos-v2-empty">nothing scheduled</div>
+							<div className="aos-v2-empty">sem compromissos</div>
 						) : (
 							schedule.map((s, i) => (
 								<div key={`${i}-${s.time}`} className="aos-v2-list-row">
@@ -87,14 +87,14 @@ export function GlassConsole({
 				</section>
 				<section className="aos-v2-pane aos-v2-pane--dark">
 					<div className="aos-v2-pane-head">
-						<span className="aos-v2-label">Tasks</span>
+						<span className="aos-v2-label">Tarefas</span>
 						<span className="aos-v2-label">
 							{tasksDone}/{tasks.length}
 						</span>
 					</div>
 					<div className="aos-v2-list">
 						{tasks.length === 0 ? (
-							<div className="aos-v2-empty">no tasks yet</div>
+							<div className="aos-v2-empty">nenhuma tarefa</div>
 						) : (
 							tasks.map((t, i) => (
 								<button

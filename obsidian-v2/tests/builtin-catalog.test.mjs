@@ -26,21 +26,21 @@ test('every built-in workflow has a plain description and a needs list; none is 
 
 test('what stopped on a blank vault says what it needs, and what finished needs nothing it did not have', () => {
   const needs = id => SKILLS[id].needs.join(' | ');
-  for (const id of ['plan-today', 'plan-tomorrow', 'refresh-schedule']) assert.match(needs(id), /Google Calendar/, id);
+  for (const id of ['plan-today', 'plan-tomorrow', 'refresh-schedule']) assert.match(needs(id), /Google Agenda/, id);
   for (const id of ['inbox-brief', 'morning']) assert.match(needs(id), /Gmail/, id);
-  for (const id of ['yt-week-review', 'outlier-radar', 'yt-pipeline', 'metrics-pull']) assert.match(needs(id), /YouTube API key/, id);
-  assert.match(needs('lead-research'), /leads database/);
+  for (const id of ['yt-week-review', 'outlier-radar', 'yt-pipeline', 'metrics-pull']) assert.match(needs(id), /chave da API do YouTube/, id);
+  assert.match(needs('lead-research'), /base de leads/);
   for (const id of ['content-cascade', 'yt-pipeline']) assert.match(needs(id), /yt-dlp/, id);
   // These finished with nothing connected.
   for (const id of ['vault-summary', 'vault-cleanup', 'deep-research-chase', 'morning-intel', 'morning-report', 'ai-trend-scan', 'angle-brainstorm', 'outline-build']) assert.deepEqual(SKILLS[id].needs, [], id);
-  assert.match(SKILLS['morning-intel'].better.join(' '), /Gmail.*YouTube API key/);
+  assert.match(SKILLS['morning-intel'].better.join(' '), /Gmail.*chave da API do YouTube/);
 });
 
 test('the description a member sees is the sentence, then what it needs, then what makes it better', () => {
   assert.equal(builtinDescription(SKILLS['vault-summary']), SKILLS['vault-summary'].about);
-  assert.equal(builtinDescription(SKILLS['plan-today']), `${SKILLS['plan-today'].about} Needs Google Calendar connected in your coding tool.`);
-  assert.match(builtinDescription(SKILLS['refresh-schedule']), /Needs Google Calendar connected in your coding tool; today's daily note\.$/);
-  assert.match(builtinDescription(SKILLS['deep-research-chase']), /disagreements\. Better with a YouTube API key .*\(adds video sources\)\.$/);
+  assert.equal(builtinDescription(SKILLS['plan-today']), `${SKILLS['plan-today'].about} Requer Google Agenda conectado à sua ferramenta de código.`);
+  assert.match(builtinDescription(SKILLS['refresh-schedule']), /Requer Google Agenda conectado à sua ferramenta de código; nota diária de hoje\.$/);
+  assert.match(builtinDescription(SKILLS['deep-research-chase']), /divergências\. Para complementar, use uma chave da API do YouTube .* para incluir vídeos como fontes\.$/);
   assert.equal(builtinDescription({instruction: 'Old text.'}), 'Old text.', 'an entry without the new fields keeps its old text');
   assert.equal(builtinDescription(undefined), '');
 });
@@ -53,7 +53,7 @@ test('dashboard list hands the agent and both apps the description and the needs
   assert.equal(builtins.length, 21);
   const plan = builtins.find(entry => entry.id === 'plan-today');
   assert.equal(plan.description, builtinDescription(SKILLS['plan-today']));
-  assert.deepEqual(plan.needs, ['Google Calendar connected in your coding tool']);
+  assert.deepEqual(plan.needs, ['Google Agenda conectado à sua ferramenta de código']);
   assert.equal('better' in plan, false);
   assert.ok(builtins.find(entry => entry.id === 'morning-intel').better.length === 2);
   for (const entry of builtins) assert.doesNotMatch(entry.description, /^Complete the/, entry.id);

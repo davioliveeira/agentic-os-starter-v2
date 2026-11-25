@@ -20,146 +20,146 @@ export const CLAUDE_WORKER_EFFORT='medium';
 /** @type {Record<string,{label:string,instruction:string,arg?:string,direct?:boolean}>} */
 export const SKILLS = {
   "vault-summary": {
-    "label": "Summarize Vault",
-    "about": "Reads your vault and reports what is documented, what is unfinished, and what to do next.",
+    "label": "Resumir cofre",
+    "about": "Lê o cofre e reúne o que está documentado, as pendências e os próximos passos.",
     "needs": [],
     "instruction": "Summarize documented facts, unfinished work and suggested next steps."
   },
   "plan-today": {
-    "label": "Plan Today",
-    "about": "Writes today's daily note: your top three priorities, your schedule, and what carried over from recent days.",
-    "needs": ["Google Calendar connected in your coding tool"],
+    "label": "Planejar hoje",
+    "about": "Escreve a nota de hoje com três prioridades, a agenda e pendências dos últimos dias.",
+    "needs": ["Google Agenda conectado à sua ferramenta de código"],
     "instruction": "Complete the Plan Today workflow."
   },
   "plan-tomorrow": {
-    "label": "Plan Tomorrow",
-    "about": "Writes tomorrow's daily note tonight from unfinished work, due projects and tomorrow's calendar. An existing note is left alone.",
-    "needs": ["Google Calendar connected in your coding tool"],
+    "label": "Planejar amanhã",
+    "about": "Prepara a nota de amanhã com pendências, prazos de projetos e compromissos. Se já existir uma nota, ela é preservada.",
+    "needs": ["Google Agenda conectado à sua ferramenta de código"],
     "instruction": "Complete the Plan Tomorrow workflow."
   },
   "refresh-schedule": {
-    "label": "Refresh Schedule",
-    "about": "Re-reads your calendar and updates the Schedule section of today's note. Nothing else in the note changes.",
-    "needs": ["Google Calendar connected in your coding tool","today's daily note"],
+    "label": "Atualizar agenda",
+    "about": "Lê novamente o calendário e atualiza a seção Schedule da nota de hoje.",
+    "needs": ["Google Agenda conectado à sua ferramenta de código","nota diária de hoje"],
     "instruction": "Complete the Refresh Schedule workflow."
   },
   "morning-intel": {
-    "label": "Intel Brief",
-    "about": "A daily AI intelligence brief from the news, Hacker News and GitHub, ending in content ideas.",
+    "label": "Boletim de IA",
+    "about": "Reúne notícias de IA, Hacker News e GitHub em um boletim diário com ideias de conteúdo.",
     "needs": [],
-    "better": ["Gmail connected in your coding tool (adds inbox triage)","a YouTube API key (YOUTUBE_API_KEY in ~/.claude/.env) (adds YouTube and small-channel sections)"],
+    "better": ["Gmail conectado à sua ferramenta de código (adiciona triagem de e-mails)","uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env) para incluir canais pequenos e outras seções do YouTube"],
     "instruction": "Complete the Intel Brief workflow."
   },
   "inbox-brief": {
-    "label": "Inbox Brief",
-    "about": "Triages the last 24 hours of your email: what matters, what can wait, and suggested replies. It sends nothing.",
-    "needs": ["Gmail connected in your coding tool"],
+    "label": "Resumo da caixa de entrada",
+    "about": "Organiza os e-mails das últimas 24 horas por prioridade e sugere respostas para revisão.",
+    "needs": ["Gmail conectado à sua ferramenta de código"],
     "instruction": "Complete the Inbox Brief workflow."
   },
   "deep-research-chase": {
-    "label": "Deep Research",
-    "about": "Researches any topic you give it across the web, X and GitHub and returns a cited synthesis with sources and disagreements.",
+    "label": "Pesquisa aprofundada",
+    "about": "Pesquisa um tema na web, no X e no GitHub e resume as descobertas, com fontes e divergências.",
     "needs": [],
-    "better": ["a YouTube API key (YOUTUBE_API_KEY in ~/.claude/.env) (adds video sources)"],
+    "better": ["uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env) para incluir vídeos como fontes"],
     "instruction": "Complete the Deep Research workflow.",
     "arg": "topic"
   },
   "content-cascade": {
-    "label": "Content Cascade",
-    "about": "Turns one YouTube video into a blog draft, an X post and a LinkedIn post, written from its transcript. Drafts only: nothing is posted.",
-    "needs": ["a YouTube video link","yt-dlp installed, to read video transcripts"],
+    "label": "Reaproveitar conteúdo",
+    "about": "Cria rascunhos para blog, X e LinkedIn a partir da transcrição de um vídeo do YouTube.",
+    "needs": ["um link de vídeo do YouTube","yt-dlp instalado para ler as transcrições de vídeos"],
     "instruction": "Complete the Content Cascade workflow.",
     "arg": "url"
   },
   "yt-pipeline": {
-    "label": "YT Pipeline",
-    "about": "Finds the strongest YouTube videos on a topic and turns their transcripts into a research report.",
-    "needs": ["a YouTube API key (YOUTUBE_API_KEY in ~/.claude/.env)", "yt-dlp installed, to read video transcripts"],
+    "label": "Pesquisa no YouTube",
+    "about": "Encontra os vídeos mais relevantes sobre um tema no YouTube e gera um relatório com base nas transcrições.",
+    "needs": ["uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env)", "yt-dlp instalado para ler as transcrições de vídeos"],
     "instruction": "Complete the YT Pipeline workflow.",
     "arg": "topic"
   },
   "weekly-review": {
-    "label": "Weekly Review",
-    "about": "Reviews your last seven daily notes: effort, focus, what shipped, and themes worth acting on.",
-    "needs": ["a few days of daily notes"],
-    "better": ["a YouTube API key (YOUTUBE_API_KEY in ~/.claude/.env) and your channel (adds a channel review)"],
+    "label": "Revisão semanal",
+    "about": "Analisa as últimas sete notas diárias para identificar esforço, foco, entregas e temas que merecem atenção.",
+    "needs": ["alguns dias de notas diárias"],
+    "better": ["uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env) e seu canal para incluir a análise do canal"],
     "instruction": "Complete the Weekly Review workflow."
   },
   "vault-cleanup": {
-    "label": "Vault Cleanup",
-    "about": "Lists stale files it would archive, with a reason for each. Preview only: nothing is moved or deleted.",
+    "label": "Revisar arquivos do cofre",
+    "about": "Lista arquivos que podem ser arquivados e explica cada sugestão para revisão.",
     "needs": [],
     "instruction": "Complete the Vault Cleanup workflow."
   },
   "metrics-pull": {
-    "label": "Pull Metrics",
-    "about": "Refreshes the numbers on your dashboard cards: YouTube, Instagram, TikTok and GitHub.",
-    "needs": ["your handles and a YouTube API key (YOUTUBE_API_KEY in ~/.claude/.env)"],
+    "label": "Atualizar métricas",
+    "about": "Atualiza os indicadores de YouTube, Instagram, TikTok e GitHub no painel.",
+    "needs": ["seus nomes de usuário e uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env)"],
     "instruction": "Complete the Pull Metrics workflow.",
     "direct": true
   },
   "github-trending": {
-    "label": "GitHub Trending",
-    "about": "Fetches the fastest-growing GitHub repositories of the week and the month into a report.",
+    "label": "Em alta no GitHub",
+    "about": "Gera um relatório dos repositórios que mais cresceram no GitHub na semana e no mês.",
     "needs": ["Python 3"],
     "instruction": "Complete the GitHub Trending workflow.",
     "direct": true
   },
   "yt-week-review": {
-    "label": "YouTube Review",
-    "about": "Reviews your YouTube channel's last seven days of uploads against your recent videos.",
-    "needs": ["your YouTube channel and a YouTube API key (YOUTUBE_API_KEY in ~/.claude/.env)"],
+    "label": "Análise do YouTube",
+    "about": "Compara os vídeos publicados nos últimos sete dias com os vídeos recentes do canal.",
+    "needs": ["seu canal e uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env)"],
     "instruction": "Complete the YouTube Review workflow."
   },
   "outlier-radar": {
-    "label": "Outlier Radar",
-    "about": "Finds recent videos from small AI channels that far outperformed their channel's usual numbers.",
-    "needs": ["a YouTube API key (YOUTUBE_API_KEY in ~/.claude/.env)"],
+    "label": "Radar de vídeos em destaque",
+    "about": "Encontra vídeos recentes de canais pequenos de IA que superaram o desempenho habitual do canal.",
+    "needs": ["uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env)"],
     "instruction": "Complete the Outlier Radar workflow."
   },
   "lead-research": {
-    "label": "Lead Research",
-    "about": "Researches new leads from your own leads database before a sales call.",
-    "needs": ["a leads database connected in your coding tool"],
+    "label": "Pesquisar leads",
+    "about": "Pesquisa os leads da sua base antes da reunião comercial.",
+    "needs": ["uma base de leads conectada à sua ferramenta de código"],
     "instruction": "Complete the Lead Research workflow."
   },
   "morning": {
-    "label": "Morning Brief",
-    "about": "One briefing that combines the AI morning report with your inbox triage.",
-    "needs": ["Gmail connected in your coding tool"],
+    "label": "Boletim da manhã",
+    "about": "Combina as notícias de IA da manhã com a triagem da caixa de entrada.",
+    "needs": ["Gmail conectado à sua ferramenta de código"],
     "instruction": "Complete the Morning Brief workflow."
   },
   "morning-report": {
-    "label": "Morning Report",
-    "about": "The last 24 hours in AI and agent building: releases, news, and what they mean.",
+    "label": "Relatório da manhã",
+    "about": "Resume lançamentos e notícias das últimas 24 horas sobre IA e criação de agentes, com o que mudou na prática.",
     "needs": [],
-    "better": ["a YouTube API key (YOUTUBE_API_KEY in ~/.claude/.env) (adds YouTube coverage)"],
+    "better": ["uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env) para incluir dados do YouTube"],
     "instruction": "Complete the Morning Report workflow."
   },
   "ai-trend-scan": {
-    "label": "AI Trend Scan",
-    "about": "Scans for AI topics that are gaining speed and ranks them as ideas to cover.",
+    "label": "Tendências de IA",
+    "about": "Identifica temas de IA em alta e prioriza ideias de conteúdo.",
     "needs": [],
-    "better": ["a YouTube API key (YOUTUBE_API_KEY in ~/.claude/.env) (adds real view counts)"],
+    "better": ["uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env) para incluir contagens de visualizações"],
     "instruction": "Complete the AI Trend Scan workflow."
   },
   "angle-brainstorm": {
-    "label": "Brainstorm Angles",
-    "about": "Gives 8 to 12 distinct video angles for a topic you name, each tied to what the audience wants.",
+    "label": "Gerar ideias de abordagem",
+    "about": "Sugere de 8 a 12 abordagens de vídeo para um tema com base no interesse do público.",
     "needs": [],
-    "better": ["a YouTube API key (YOUTUBE_API_KEY in ~/.claude/.env) (adds evidence from real videos)"],
+    "better": ["uma chave da API do YouTube (YOUTUBE_API_KEY em ~/.claude/.env) para embasar as ideias em vídeos publicados"],
     "instruction": "Complete the Brainstorm Angles workflow.",
     "arg": "topic"
   },
   "outline-build": {
-    "label": "Build Outline",
-    "about": "Turns one chosen angle into a full video outline: hook, beats, re-hooks, payoff and call to action.",
+    "label": "Montar roteiro",
+    "about": "Transforma a abordagem escolhida em um roteiro com abertura, tópicos, retomadas, conclusão e chamada para ação.",
     "needs": [],
     "instruction": "Complete the Build Outline workflow.",
     "arg": "topic"
   },
   "voice-ask": {
-    "label": "Ask Astra",
+    "label": "Perguntar ao Astra",
     "instruction": "Complete the Ask Astra workflow.",
     "arg": "prompt"
   }

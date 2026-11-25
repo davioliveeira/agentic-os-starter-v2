@@ -152,8 +152,8 @@ test('named workflow outputs open from the run ledgers by whole words, never by 
  }
  assert.equal(resolve(root,'pull up the cascade from july 16').path,'inbox/reports/cascades/2026-07-16-1901fc7d.md');
  assert.equal(resolve(root,'pull up the metrics report').path,'inbox/reports/metrics/2026-08-15-pull-19e39d85.md');
- const cleanup=resolve(root,'open the vault cleanup report');assert.equal(cleanup.kind,'missing');assert.equal(cleanup.label,'vault cleanup report');assert.equal(cleanup.nearest,null);
- const scan=resolve(root,'show me the trend scan');assert.equal(scan.kind,'missing');assert.equal(scan.label,'AI trend scan report');
+ const cleanup=resolve(root,'open the vault cleanup report');assert.equal(cleanup.kind,'missing');assert.equal(cleanup.label,'revisar arquivos do cofre report');assert.equal(cleanup.nearest,null);
+ const scan=resolve(root,'show me the trend scan');assert.equal(scan.kind,'missing');assert.equal(scan.label,'tendências de IA report');
  const dated=resolve(root,'show me the cascade from monday');assert.equal(dated.kind,'missing');assert.equal(dated.nearest.path,'inbox/reports/cascades/2026-07-16-1901fc7d.md');
  assert.equal(resolve(root,'open the content plan').kind,'ambiguous');
  assert.equal(resolve(root,'pull up the skoot crm playbook').kind,'note');

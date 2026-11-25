@@ -23,7 +23,7 @@ export function dashboardSelected(selected, surface = 'cockpit') {
 // Wording comes from running each one on a blank vault with no accounts connected (see shared/contract.mjs).
 export function builtinDescription(skill) {
   if (!skill?.about) return skill?.instruction || '';
-  const needs = skill.needs?.length ? ` Needs ${skill.needs.join('; ')}.` : '';
-  const better = skill.better?.length ? ` Better with ${skill.better.join('; ')}.` : '';
+  const needs = skill.needs?.length ? ` Requer ${skill.needs.join('; ')}.` : '';
+  const better = skill.better?.length ? ` Para complementar, use ${skill.better.join('; ')}.` : '';
   return skill.about + needs + better;
 }

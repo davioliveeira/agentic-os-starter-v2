@@ -42,7 +42,7 @@ export function MorningBriefCard({ app }: Props) {
 		try {
 			await writeIntent(app, "morning-intel", {});
 		} catch (e) {
-			new Notice(`Could not start workflow: ${e}`);
+			new Notice(`Não foi possível iniciar o fluxo: ${e}`);
 		} finally {
 			setBusy(false);
 		}
@@ -57,9 +57,9 @@ export function MorningBriefCard({ app }: Props) {
 		return (
 			<section className="aos-v2-cc-morning aos-v2-cc-morning--empty">
 				<header className="aos-v2-cc-morning-head">
-					<span className="aos-v2-cc-morning-title">§ INTEL BRIEF</span>
+					<span className="aos-v2-cc-morning-title">§ BOLETIM DE IA</span>
 					<span className="aos-v2-cc-morning-meta aos-v2-cc-dim">
-						no brief yet
+						nenhum boletim
 					</span>
 					<button
 						type="button"
@@ -67,11 +67,11 @@ export function MorningBriefCard({ app }: Props) {
 						onClick={() => void runNew()}
 						disabled={busy}
 					>
-						RUN NEW ↻
+						GERAR NOVO ↻
 					</button>
 				</header>
 				<p className="aos-v2-cc-morning-empty-msg aos-v2-cc-mono aos-v2-cc-dim">
-					&gt; click RUN NEW to generate today's intel brief
+					&gt; clique em GERAR NOVO para preparar o boletim de hoje
 				</p>
 			</section>
 		);
@@ -80,25 +80,25 @@ export function MorningBriefCard({ app }: Props) {
 	return (
 		<section className="aos-v2-cc-morning">
 			<header className="aos-v2-cc-morning-head">
-				<span className="aos-v2-cc-morning-title">§ INTEL BRIEF</span>
+				<span className="aos-v2-cc-morning-title">§ BOLETIM DE IA</span>
 				<span className="aos-v2-cc-morning-window">{brief.date}</span>
 				<span className="aos-v2-cc-morning-chips">
 					<span className="aos-v2-cc-morning-chip">
 						<span className="aos-v2-cc-morning-chip-count">
 							{brief.headlines.length}
 						</span>
-						HEADLINES
+						MANCHETES
 					</span>
 					<span className="aos-v2-cc-morning-chip">
 						<span className="aos-v2-cc-morning-chip-count">{brief.webCount}</span>
-						ARTICLES
+						ARTIGOS
 					</span>
 					{brief.xVoicesCount > 0 ? (
 						<span className="aos-v2-cc-morning-chip">
 							<span className="aos-v2-cc-morning-chip-count">
 								{brief.xVoicesCount}
 							</span>
-							X VOICES
+							NO X
 						</span>
 					) : (
 						<span className="aos-v2-cc-morning-chip">
@@ -110,13 +110,13 @@ export function MorningBriefCard({ app }: Props) {
 					)}
 					<span className="aos-v2-cc-morning-chip">
 						<span className="aos-v2-cc-morning-chip-count">{brief.repoCount}</span>
-						REPOS
+						REPOSITÓRIOS
 					</span>
 					<span className="aos-v2-cc-morning-chip aos-v2-cc-morning-chip--opp">
 						<span className="aos-v2-cc-morning-chip-count">
 							{brief.contentOpportunities.length}
 						</span>
-						OPPS
+						OPORTUNIDADES
 					</span>
 				</span>
 				<span className="aos-v2-cc-morning-actions">
@@ -124,16 +124,16 @@ export function MorningBriefCard({ app }: Props) {
 						type="button"
 						className="aos-v2-cc-yt-review-btn"
 						onClick={openFull}
-						title="open full report"
+						title="abrir relatório completo"
 					>
-						FULL ↗
+						COMPLETO ↗
 					</button>
 					<button
 						type="button"
 						className="aos-v2-cc-yt-review-btn"
 						onClick={() => void runNew()}
 						disabled={busy}
-						title="Run workflow"
+						title="Executar fluxo"
 					>
 						↻
 					</button>
@@ -142,10 +142,10 @@ export function MorningBriefCard({ app }: Props) {
 
 			<div className="aos-v2-cc-morning-body">
 				<div className="aos-v2-cc-morning-col">
-					<div className="aos-v2-cc-morning-col-label">▸ HEADLINES</div>
+					<div className="aos-v2-cc-morning-col-label">▸ MANCHETES</div>
 					{brief.headlines.length === 0 ? (
 						<p className="aos-v2-cc-morning-col-empty aos-v2-cc-dim">
-							no headlines parsed
+							nenhuma manchete encontrada
 						</p>
 					) : (
 						<ul className="aos-v2-cc-morning-bullets">
@@ -158,10 +158,10 @@ export function MorningBriefCard({ app }: Props) {
 					)}
 				</div>
 				<div className="aos-v2-cc-morning-col aos-v2-cc-morning-col--yt">
-					<div className="aos-v2-cc-morning-col-label">▶ YT TRENDING</div>
+					<div className="aos-v2-cc-morning-col-label">▶ EM ALTA NO YOUTUBE</div>
 					{brief.ytTrending.length === 0 ? (
 						<p className="aos-v2-cc-morning-col-empty aos-v2-cc-dim">
-							no YT data parsed
+							nenhum dado do YouTube encontrado
 						</p>
 					) : (
 						<ul className="aos-v2-cc-morning-yt-list">
@@ -187,15 +187,15 @@ export function MorningBriefCard({ app }: Props) {
 				    show that; the X column only renders for legacy briefs */}
 				{brief.topStory ? (
 					<div className="aos-v2-cc-morning-col aos-v2-cc-morning-col--x">
-						<div className="aos-v2-cc-morning-col-label">◆ TOP STORY</div>
+						<div className="aos-v2-cc-morning-col-label">◆ DESTAQUE</div>
 						<p className="aos-v2-cc-morning-topstory">{brief.topStory}</p>
 					</div>
 				) : (
 					<div className="aos-v2-cc-morning-col aos-v2-cc-morning-col--x">
-						<div className="aos-v2-cc-morning-col-label">𝕏 CONVERSATION</div>
+						<div className="aos-v2-cc-morning-col-label">𝕏 DISCUSSÃO</div>
 						{brief.xVoices.length === 0 ? (
 							<p className="aos-v2-cc-morning-col-empty aos-v2-cc-dim">
-								no X voices parsed
+								nenhuma discussão do X encontrada
 							</p>
 						) : (
 							<ul className="aos-v2-cc-morning-x-list">
@@ -209,10 +209,10 @@ export function MorningBriefCard({ app }: Props) {
 					</div>
 				)}
 				<div className="aos-v2-cc-morning-col aos-v2-cc-morning-col--opp">
-					<div className="aos-v2-cc-morning-col-label">★ CONTENT OPPORTUNITIES</div>
+					<div className="aos-v2-cc-morning-col-label">★ OPORTUNIDADES DE CONTEÚDO</div>
 					{brief.contentOpportunities.length === 0 ? (
 						<p className="aos-v2-cc-morning-col-empty aos-v2-cc-dim">
-							no opportunities parsed
+							nenhuma oportunidade encontrada
 						</p>
 					) : (
 						<ol className="aos-v2-cc-morning-opps">

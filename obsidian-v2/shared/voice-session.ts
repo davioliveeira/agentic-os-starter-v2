@@ -51,7 +51,7 @@ export class VoiceSession {
    if(e.type==='wake'){this.primeAudio();this.cancel();this.remoteCapture=true;this.beginTrace(crypto.randomUUID(),'remote-start');this.set('listening');this.onMessage('Listening…')}
    else if(e.type==='transcript'&&this.remoteCapture){this.remoteCapture=false;const text=String(e.text||'').trim();if(!text)this.mark('remote-empty');if(!text||/^(stop|never ?mind|cancel|no)[.!]?$/i.test(text))this.cancel();else void this.sendText(text)}
    else if((e.type==='wake_timeout'||e.type==='wake_error')&&this.remoteCapture){this.mark(e.type==='wake_timeout'?'remote-timeout':'error');this.cancel();if(e.type==='wake_error'){this.onMessage('Voice capture failed. Try again.',true);this.set('error')}else this.onMessage('')}
-  },this.surfaceInfo,()=>this.kind!=='web'||this.context?.state==='running',()=>this.getTimingTrace(),async(artifact,signal)=>{if(this.destroyed||signal?.aborted)throw new Error('Opening was cancelled.');if(!this.onArtifact)throw new Error('The file is saved, but this window cannot display it.');await this.onArtifact(artifact,signal)});
+  },this.surfaceInfo,()=>this.kind!=='web'||this.context?.state==='running',()=>this.getTimingTrace(),async(artifact,signal)=>{if(this.destroyed||signal?.aborted)throw new Error('A abertura foi cancelada.');if(!this.onArtifact)throw new Error('O arquivo foi salvo. Esta janela não consegue exibi-lo.');await this.onArtifact(artifact,signal)});
  }
  getTimingTrace():VoiceTrace|null{return this.trace?{...this.trace,points:this.trace.points.map(point=>({...point}))}:null}
  private beginTrace(requestId:string,stage:VoiceTraceStage){this.trace={requestId,startedAt:Date.now(),points:[]};this.traceStart=performance.now();this.traceGeneration=this.generation;this.mark(stage)}
@@ -111,7 +111,7 @@ export class VoiceSession {
   this.cancel();if(this.destroyed)return;const token=this.generation;this.preparingCapture=token;this.beginTrace(crypto.randomUUID(),'capture-start');this.set('working');this.onMessage('Preparing voice…');
   try{
    await this.surface?.focus();if(token!==this.generation)return;this.mark('ownership-ready');const chosen=await this.getSelection();if(token!==this.generation)return;this.mark('selection-ready');const health=await this.checked('/voice/health');
-   if(token!==this.generation)return;if(!health.json?.ok)throw new Error('Local speech is offline. Start the V2 speech service.');
+   if(token!==this.generation)return;if(!health.json?.ok)throw new Error('A voz local está desconectada. Inicie o serviço de voz do V2.');
    if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined')throw new Error('Microphone recording is unavailable in this window. Open V2 in a browser or Obsidian with microphone support.');
    const stream=await navigator.mediaDevices.getUserMedia(VOICE_MIC_CONSTRAINTS);
    if(token!==this.generation){stream.getTracks().forEach(t=>t.stop());return}

@@ -29,7 +29,7 @@ export function Top3Priorities({ app, path, items }: Props) {
 		const text = draft.trim();
 		if (!text) return;
 		const ok = await setTop3TextByIndex(app, path, idx, text);
-		if (!ok) new Notice(`Could not write Top 3 slot ${idx + 1}`);
+		if (!ok) new Notice(`Não foi possível salvar a prioridade ${idx + 1}`);
         else setEditingIdx(null);
 	};
 
@@ -40,13 +40,13 @@ export function Top3Priorities({ app, path, items }: Props) {
 
 	const toggle = async (idx: number) => {
 		const ok = await toggleTop3ByIndex(app, path, idx);
-		if (!ok) new Notice(`Slot ${idx + 1} empty — click text to add`);
+		if (!ok) new Notice(`Slot ${idx + 1} vazio — clique no texto para adicionar`);
 	};
 
 	return (
 		<div className="aos-v2-cc-panel">
 			<div className="aos-v2-cc-panel-head">
-				<span className="aos-v2-cc-panel-label">Top 3 Priorities</span>
+				<span className="aos-v2-cc-panel-label">3 prioridades</span>
 			</div>
 			<div className="aos-v2-cc-panel-body">
 				<ol className="aos-v2-cc-top3">
@@ -65,7 +65,7 @@ export function Top3Priorities({ app, path, items }: Props) {
 										e.stopPropagation();
 										if (text) void toggle(i);
 									}}
-									title={text ? "toggle done" : "set text first"}
+									title={text ? "alternar conclusão" : "digite a prioridade primeiro"}
 								>
 									{item?.done ? "■" : "□"}
 								</span>
@@ -90,10 +90,10 @@ export function Top3Priorities({ app, path, items }: Props) {
 									<span
 										className="aos-v2-cc-top3-text aos-v2-cc-top3-clickable"
 										onClick={() => startEdit(i, text)}
-										title="click to edit"
+										title="clique para editar"
 									>
 										{text || (
-											<span className="aos-v2-cc-dim">— click to set —</span>
+											<span className="aos-v2-cc-dim">— clique para definir —</span>
 										)}
 									</span>
 								)}

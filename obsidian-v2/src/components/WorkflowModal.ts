@@ -13,7 +13,7 @@ class WorkflowModal extends Modal {
   const search = this.contentEl.createEl('input');
   search.type = 'search'; search.placeholder = 'Find a workflow';
   search.setAttribute('aria-label', 'Find a workflow'); search.style.width = '100%';
-  const message = this.contentEl.createEl('p', { text: 'Loading workflows…' }); message.setAttribute('role', 'status');
+  const message = this.contentEl.createEl('p', { text: 'Carregando fluxos…' }); message.setAttribute('role', 'status');
   const list = this.contentEl.createDiv();
   Object.assign(list.style, { display: 'grid', gap: '6px', maxHeight: '50vh', overflowY: 'auto', marginTop: '12px' });
   let catalog: DashboardSkill[] = [], provider: Provider = 'codex', error = '', installedProviders: Provider[] | undefined;
@@ -29,12 +29,12 @@ class WorkflowModal extends Modal {
     button.onclick = () => void this.choose(skill);
     if (reason) list.createEl('small', { text: reason });
    }
-   if (!entries.length) list.createEl('p', { text: 'No matching workflow.' });
+   if (!entries.length) list.createEl('p', { text: 'Nenhum fluxo encontrado.' });
   };
   void Promise.all([readDashboard(this.app), readSelection(this.app)]).then(([value, selection]) => {
    if (this.closed) return;
    catalog = value.catalog; provider = selection.provider; error = value.error; installedProviders = value.installedProviders;
-   message.textContent = error || 'Stock workflows run in the background. Your installed skills open an agent terminal.';
+   message.textContent = error || 'Os fluxos incluídos rodam em segundo plano. Skills instaladas abrem um terminal.';
    show();
   }).catch(error => { if (!this.closed) message.textContent = error instanceof Error ? error.message : String(error); });
   search.addEventListener('input', show); search.focus();
@@ -45,12 +45,12 @@ class WorkflowModal extends Modal {
   try {
    let input = '';
    if (skill.arg || skill.kind === 'installed') {
-    const value = await askForArg(this.app, skill.label, skill.arg === 'url' ? 'https://…' : 'What should this skill do?');
+    const value = await askForArg(this.app, skill.label, skill.arg === 'url' ? 'https://…' : 'O que esta skill deve fazer?');
     if (!value) return;
     input = value;
    }
    await launchDashboardSkill(this.app, skill, input);
-  } catch (error) { new Notice(`Could not start workflow: ${error instanceof Error ? error.message : String(error)}`); }
+  } catch (error) { new Notice(`Não foi possível iniciar o fluxo: ${error instanceof Error ? error.message : String(error)}`); }
  }
  onClose() { this.closed = true; this.contentEl.empty(); }
 }

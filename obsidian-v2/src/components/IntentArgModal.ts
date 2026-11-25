@@ -53,7 +53,7 @@ export class IntentArgModal extends Modal {
 			cls: "mod-cta",
 		});
 		submitBtn.onclick = () => this.submit();
-		const cancelBtn = buttons.createEl("button", { text: "Cancel" });
+		const cancelBtn = buttons.createEl("button", { text: "Cancelar" });
 		cancelBtn.onclick = () => this.cancel();
 
 		// focus + select existing content for easy overwrite

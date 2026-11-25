@@ -8,7 +8,7 @@ interface Props {
 }
 
 function formatCompact(n: number): string {
-	return new Intl.NumberFormat("en-US", {
+	return new Intl.NumberFormat("pt-BR", {
 		notation: "compact",
 		maximumFractionDigits: 1,
 	}).format(n);

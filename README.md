@@ -1,3 +1,5 @@
+[Documentação em português do Brasil](README.pt-BR.md)
+
 <div align="center">
 
 <a href="#install"><img src="docs/assets/banner.png" alt="Agentic OS V2. Your AI command center, inside Obsidian." width="100%"></a>

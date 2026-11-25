@@ -43,21 +43,21 @@ test('a finished terminal nobody typed in is closed after 30 quiet minutes, not 
  assert.equal(record.state,'stopped');assert.equal(b.manager.live.has(task.id),false);assert.equal(live.proc.killed,true);assert.ok(record.sessionId,'the saved session is what makes it resumable');
  assert.equal(record.idleStoppedAt,b.clock.now);
  const summary=taskSummary(b.manager.list().find(item=>item.id===task.id));
- assert.equal(summary.idleStoppedAt,b.clock.now);assert.equal(taskStatus(summary),'Closed (idle)');assert.equal(isOpenWork(summary),false);
+ assert.equal(summary.idleStoppedAt,b.clock.now);assert.equal(taskStatus(summary),'Encerrado por inatividade');assert.equal(isOpenWork(summary),false);
  assert.deepEqual(b.manager.sweepIdle(),[],'nothing left to close');
  // A follow-up reopens it (the existing resume path) and the idle marker goes.
  b.manager.send(task.id,'One more thing.',{resumeStopped:true});
  assert.equal(b.manager.live.has(task.id),true);assert.equal(b.manager.get(task.id).idleStoppedAt,undefined);
- assert.equal(taskStatus(taskSummary(b.manager.list().find(item=>item.id===task.id))),'Working');
+ assert.equal(taskStatus(taskSummary(b.manager.list().find(item=>item.id===task.id))),'Em execução');
 });
 
 test('only the sweep labels a close as idle; an ordinary Stop never does, and the label needs a closed terminal',t=>{
  const b=bench(t),task=b.ready();b.manager.get(task.id).idleStoppedAt=123;b.manager.stop(task.id);
- assert.equal(b.manager.get(task.id).idleStoppedAt,undefined);assert.equal(taskStatus(taskSummary(b.manager.list().find(item=>item.id===task.id))),'Closed');
- assert.equal(taskStatus({state:'ready',idleStoppedAt:5}),'Ready');assert.equal(taskSummary({...b.manager.get(task.id),state:'error',idleStoppedAt:5}).idleStoppedAt,undefined);
+ assert.equal(b.manager.get(task.id).idleStoppedAt,undefined);assert.equal(taskStatus(taskSummary(b.manager.list().find(item=>item.id===task.id))),'Encerrado');
+ assert.equal(taskStatus({state:'ready',idleStoppedAt:5}),'Pronto');assert.equal(taskSummary({...b.manager.get(task.id),state:'error',idleStoppedAt:5}).idleStoppedAt,undefined);
  // The production manager keeps the label.
  const c=bench(t,{Manager:NativeTerminalManager}),other=c.ready();c.clock.now+=31*MIN;
- assert.deepEqual(c.manager.sweepIdle(),[other.id]);assert.equal(taskStatus(taskSummary(c.manager.list().find(item=>item.id===other.id))),'Closed (idle)');
+ assert.deepEqual(c.manager.sweepIdle(),[other.id]);assert.equal(taskStatus(taskSummary(c.manager.list().find(item=>item.id===other.id))),'Encerrado por inatividade');
 });
 
 test('nothing that is busy, unfinished, unsaved, foreign or in flight is ever closed',t=>{

@@ -30,7 +30,7 @@ function LiveTerminal({task,onError}:{task:WorkTask;onError:(message:string)=>vo
   const timer=window.setInterval(()=>void poll(),150);
   return()=>{gone=true;clearInterval(timer);observer.disconnect();element.removeEventListener('focusin',resize);input.dispose();term.dispose();css.remove()};
  },[task.id,readOnly]);
- return <div className="aos-work-terminal" ref={host} aria-label="Interactive terminal"/>;
+ return <div className="aos-work-terminal" ref={host} aria-label="Terminal interativo"/>;
 }
 export function WorkPane({app,getSelection,taskId,onOpenTask}:{app?:App;getSelection:()=>Promise<VoiceSelection>;taskId?:string|null;onOpenTask?:(id:string|null)=>void}){
  const [tasks,setTasks]=useState<WorkTask[]>([]),[localSelected,setSelected]=useState<string|null>(workTarget()),[hidden,setHidden]=useState<string[]>([]);
@@ -48,15 +48,15 @@ export function WorkPane({app,getSelection,taskId,onOpenTask}:{app?:App;getSelec
  useEffect(()=>{if(!vault||selected)return;try{setRecovery(readRecovery(localStorage,draftKey('obsidian',vault,null)));setRecoveryError('')}catch(e){setRecovery(null);setRecoveryError(String(e))}},[vault,selected]);
  const recover=async()=>{if(!current||operation.current||!vault)return;operation.current=true;setSending(true);setError('');const captured=view.current;try{
   const saved=checkedRecovery(await workRequest('/request?id='+encodeURIComponent(current.id)));
-  if(view.current.storageKey!==captured.storageKey)throw new Error('The selected task changed. Select the request again to recover it.');
-  const key=draftKey('obsidian',captured.vault,null);if(readDraft(localStorage,key).trim())throw new Error('Your new-task draft is already occupied. Save or submit it before recovering this request.');
+  if(view.current.storageKey!==captured.storageKey)throw new Error('A tarefa selecionada mudou. Selecione a solicitação novamente para recuperá-la.');
+  const key=draftKey('obsidian',captured.vault,null);if(readDraft(localStorage,key).trim())throw new Error('Já existe um rascunho de nova tarefa. Salve-o ou envie-o antes de recuperar esta solicitação.');
   preserveRecovery(localStorage,key,saved);setRecovery(saved);setRecoveryError('');select(null);setPrompt(saved.prompt);
  }catch(e){setError(String(e))}finally{operation.current=false;setSending(false)}};
  const edit=(text:string)=>{setPrompt(text);try{
   if(!selected&&recovery&&text.trim())setRecovery(preserveRecovery(localStorage,storageKey,{...recovery,prompt:text}));
-  else{if(!saveDraft(localStorage,storageKey,text))throw new Error('Draft could not be saved locally. Copy it before reloading.');if(!selected&&!text.trim()){localStorage.removeItem(storageKey+':selection');setRecovery(null);setRecoveryError('')}}
+  else{if(!saveDraft(localStorage,storageKey,text))throw new Error('Não foi possível salvar o rascunho neste dispositivo. Copie-o antes de recarregar.');if(!selected&&!text.trim()){localStorage.removeItem(storageKey+':selection');setRecovery(null);setRecoveryError('')}}
  }catch(e){setError(String(e))}};
- const discardRecovery=()=>{if(operation.current||selected)return;try{if(!saveDraft(localStorage,storageKey,''))throw new Error('Could not clear the recovered draft.');localStorage.removeItem(storageKey+':selection');setRecovery(null);setRecoveryError('');setPrompt('')}catch(e){setError(String(e))}};
+ const discardRecovery=()=>{if(operation.current||selected)return;try{if(!saveDraft(localStorage,storageKey,''))throw new Error('Não foi possível limpar o rascunho recuperado.');localStorage.removeItem(storageKey+':selection');setRecovery(null);setRecoveryError('');setPrompt('')}catch(e){setError(String(e))}};
  const refresh=()=>workFeed.refresh();
  const select=(id:string|null)=>{setHistory(false);if(id){setOpened(v=>v.includes(id)?v:[...v,id]);setHidden(v=>v.filter(x=>x!==id))}if(onOpenTask)onOpenTask(id);else{setSelected(id);chooseWork(id)}};
  useEffect(()=>{
@@ -79,14 +79,14 @@ export function WorkPane({app,getSelection,taskId,onOpenTask}:{app?:App;getSelec
   setReadyCheck(false);await refresh();
  }catch(e){setError(String(e))}finally{operation.current=false;setSending(false)}};
  const submit=async()=>{if(!prompt.trim()||operation.current||!vault)return;const capturedKey=storageKey,capturedPrompt=prompt,capturedView=view.current;operation.current=true;setSending(true);setError('');try{
-  if(selected&&!current)throw new Error('This conversation is unavailable. Your draft has not been sent.');
+  if(selected&&!current)throw new Error('Esta conversa está indisponível e o rascunho ficou por enviar.');
   let opened:string|null=null;
-  if(current){if(current.execution==='script'||!isLiveTerminal(current)||current.state!=='ready')throw new Error('Wait for this task to be ready, or respond directly in its terminal.');await workRequest('/send',{id:current.id,text:capturedPrompt})}
+  if(current){if(current.execution==='script'||!isLiveTerminal(current)||current.state!=='ready')throw new Error('Aguarde a tarefa ficar pronta ou responda diretamente no terminal.');await workRequest('/send',{id:current.id,text:capturedPrompt})}
   else{
    if(recoveryError)throw new Error(recoveryError);
    const saved=recovery?checkedRecovery({...recovery,prompt:capturedPrompt}):null,chosen=saved?.selection||await getSelection();
    if(saved?.skill){
-    if(!app)throw new Error('Open this workflow from the dashboard to retry it.');
+    if(!app)throw new Error('Abra este fluxo pelo painel para tentar de novo.');
     await writeIntent(app,saved.skill,saved.args,saved.selection);
    }else{
     const r=await workRequest('/start',{id:crypto.randomUUID(),selection:saved?.selection||(chosen.provider==='codex'?{provider:'codex',model:'astra'}:chosen),prompt:capturedPrompt});
@@ -94,8 +94,8 @@ export function WorkPane({app,getSelection,taskId,onOpenTask}:{app?:App;getSelec
    }
   }
   if(readDraft(localStorage,capturedKey)===capturedPrompt){
-   if(saveDraft(localStorage,capturedKey,'')){if(!capturedView.selected){try{localStorage.removeItem(capturedKey+':selection')}catch{setError('The request was sent, but its old recovery settings could not be cleared locally.')}}}
-   else setError('The request was sent. Its local draft could not be cleared; avoid submitting that saved draft again.');
+   if(saveDraft(localStorage,capturedKey,'')){if(!capturedView.selected){try{localStorage.removeItem(capturedKey+':selection')}catch{setError('A solicitação foi enviada. Houve uma falha ao limpar o registro antigo de recuperação.')}}}
+   else setError('A solicitação foi enviada e o rascunho ainda aparece neste dispositivo. Evite reenviá-lo.');
   }
   if(view.current.storageKey===capturedKey){setPrompt(readDraft(localStorage,capturedKey));if(!capturedView.selected){setRecovery(null);setRecoveryError('')}if(opened)select(opened)}
   await refresh();
@@ -103,36 +103,36 @@ export function WorkPane({app,getSelection,taskId,onOpenTask}:{app?:App;getSelec
  const terminalLive=current?isLiveTerminal(current):false;
  const scriptActive=current?.execution==='script'&&['starting','working','stopping'].includes(current.state);
  return <div className="aos-work-pane" data-provider={current?.provider||recovery?.selection.provider||'codex'}>
-  <header className="aos-work-header"><strong>{current?current.execution==='script'?'Source refresh':current.provider==='codex'?'Codex':'Claude Code':'Terminals'}</strong>{current&&<span className="aos-terminal-status" data-state={current.state}>{taskStatus(current)}</span>}<button onClick={()=>select(null)}>+ New terminal</button><button aria-expanded={history} aria-controls={historyId} onClick={()=>setHistory(!history)}>History</button></header>
-  {history&&<section id={historyId} className="aos-terminal-history" aria-label="Conversation history">
-   <p>Closed conversations clear after 7 days. Keep saves them.</p>
-   {tasks.filter(isHistoryWork).length?tasks.filter(isHistoryWork).map(t=><button key={t.id} onClick={()=>select(t.id)} title={t.title}><span>{shortTaskTitle(t,90)}</span><small>{t.provider==='codex'?'Codex':'Claude Code'} · {taskStatus(t)}{t.keep?' · Kept':''}</small></button>):<p>No saved conversations yet.</p>}
+  <header className="aos-work-header"><strong>{current?current.execution==='script'?'Atualização da fonte':current.provider==='codex'?'Codex':'Claude Code':'Terminais'}</strong>{current&&<span className="aos-terminal-status" data-state={current.state}>{taskStatus(current)}</span>}<button onClick={()=>select(null)}>+ Novo terminal</button><button aria-expanded={history} aria-controls={historyId} onClick={()=>setHistory(!history)}>Histórico</button></header>
+  {history&&<section id={historyId} className="aos-terminal-history" aria-label="Histórico de conversas">
+   <p>Conversas encerradas expiram em 7 dias, a menos que você use Manter.</p>
+   {tasks.filter(isHistoryWork).length?tasks.filter(isHistoryWork).map(t=><button key={t.id} onClick={()=>select(t.id)} title={t.title}><span>{shortTaskTitle(t,90)}</span><small>{t.provider==='codex'?'Codex':'Claude Code'} · {taskStatus(t)}{t.keep?' · Kept':''}</small></button>):<p>Nenhuma conversa salva.</p>}
   </section>}
-  {!onOpenTask&&<nav className="aos-work-tabs" aria-label="Terminal tabs">{tasks.filter(t=>!hidden.includes(t.id)&&(isOpenWork(t)||opened.includes(t.id)||selected===t.id)).map(t=><div key={t.id} className={selected===t.id?'is-active':''}>
+  {!onOpenTask&&<nav className="aos-work-tabs" aria-label="Abas de terminal">{tasks.filter(t=>!hidden.includes(t.id)&&(isOpenWork(t)||opened.includes(t.id)||selected===t.id)).map(t=><div key={t.id} className={selected===t.id?'is-active':''}>
    <button className="aos-work-tab-select" aria-pressed={selected===t.id} title={t.title} onClick={()=>select(t.id)}><span>{shortTaskTitle(t,42)}</span><small className="aos-terminal-status" data-state={activityState(t)||t.state}>{activityState(t)==='failed'?'Failed':activityState(t)==='done'?'Done':taskStatus(t)}</small></button>
-   <button className="aos-work-tab-close" aria-label={`Hide ${t.title}`} title="Hide tab; keep terminal running" onClick={()=>{setHidden(v=>[...v,t.id]);if(selected===t.id)select(null)}}>×</button>
+   <button className="aos-work-tab-close" aria-label={`Hide ${t.title}`} title="Ocultar aba e manter o terminal aberto" onClick={()=>{setHidden(v=>[...v,t.id]);if(selected===t.id)select(null)}}>×</button>
   </div>)}</nav>}
   <div className="aos-work-body">
    {current?<>
     <div className="aos-work-meta"><span title={current.title}>{shortTaskTitle(current,100)}</span><div className="aos-work-task-actions">
-     {terminalLive&&<button aria-expanded={messageBox} onClick={()=>setMessageBox(!messageBox)}>Message{prompt.trim()?' •':''}</button>}
-     {!terminalLive&&current.execution!=='script'&&current.sessionId&&<button disabled={sending} onClick={()=>void action('resume')}>Resume</button>}
-     <details className="aos-terminal-options"><summary>Options</summary><div><button disabled={sending} aria-pressed={!!current.keep} title={current.keep?'Allow automatic cleanup after seven days of inactivity':'Keep this conversation from automatic cleanup'} onClick={()=>void action('keep',{keep:!current.keep})}>{current.keep?'Kept':'Keep'}</button>{current.recoveryAvailable&&<button disabled={sending} onClick={()=>void recover()}>{current.workflow?'Recover workflow':'Recover request'}</button>}<small>{current.model}</small></div></details>
-     {(terminalLive||scriptActive)&&<button disabled={sending||current.state==='stopping'} onClick={()=>void action('stop')}>Stop</button>}
+     {terminalLive&&<button aria-expanded={messageBox} onClick={()=>setMessageBox(!messageBox)}>Mensagem{prompt.trim()?' •':''}</button>}
+     {!terminalLive&&current.execution!=='script'&&current.sessionId&&<button disabled={sending} onClick={()=>void action('resume')}>Retomar</button>}
+     <details className="aos-terminal-options"><summary>Opções</summary><div><button disabled={sending} aria-pressed={!!current.keep} title={current.keep?'Allow automatic cleanup after seven days of inactivity':'Keep this conversation from automatic cleanup'} onClick={()=>void action('keep',{keep:!current.keep})}>{current.keep?'Kept':'Manter'}</button>{current.recoveryAvailable&&<button disabled={sending} onClick={()=>void recover()}>{current.workflow?'Recover workflow':'Recover request'}</button>}<small>{current.model}</small></div></details>
+     {(terminalLive||scriptActive)&&<button disabled={sending||current.state==='stopping'} onClick={()=>void action('stop')}>Parar</button>}
     </div></div>
-    {current.state==='needs input'&&<p className="aos-work-error" role="status">{current.inputReason||'Respond to the prompt in the terminal.'}</p>}
-    {current.execution==='script'?<p className="aos-work-stopped" role="status">{scriptStatus(current)}</p>:terminalLive?<LiveTerminal task={current} onError={setError}/>:<p className="aos-work-stopped">{current.sessionId?'This task is stopped. Resume to continue the same conversation.':'This request stopped before a session was saved. Recover it to review and start a new task.'}</p>}
-    {current.turns.length>0&&<details className="aos-work-answer" open={!terminalLive}><summary>Saved answer</summary><pre>{answer||current.turns.at(-1)?.text}</pre></details>}
-   </>:<div className="aos-work-empty"><strong>{missing?'Conversation no longer saved':selected?'Loading terminal…':'Ready when you are'}</strong><p>{missing?'Any unsent draft is still below.':'Ask by voice or describe a job below. Longer requests open their own terminal tab.'}</p>{missing&&prompt.trim()&&<button disabled={sending} onClick={useExpiredDraft}>Use draft in new task</button>}
-    {!selected&&tasks.some(isOpenWork)&&<div className="aos-open-terminals" aria-label="Open terminals">{tasks.filter(isOpenWork).map(t=><button key={t.id} onClick={()=>select(t.id)}>{shortTaskTitle(t,48)} <small>{taskStatus(t)}</small></button>)}</div>}
+    {current.state==='needs input'&&<p className="aos-work-error" role="status">{current.inputReason||'Responda à solicitação no terminal.'}</p>}
+    {current.execution==='script'?<p className="aos-work-stopped" role="status">{scriptStatus(current)}</p>:terminalLive?<LiveTerminal task={current} onError={setError}/>:<p className="aos-work-stopped">{current.sessionId?'A tarefa foi parada. Use Retomar para continuar na mesma conversa.':'A solicitação parou antes de salvar a sessão. Recupere-a para revisar e iniciar uma tarefa.'}</p>}
+    {current.turns.length>0&&<details className="aos-work-answer" open={!terminalLive}><summary>Resposta salva</summary><pre>{answer||current.turns.at(-1)?.text}</pre></details>}
+   </>:<div className="aos-work-empty"><strong>{missing?'Conversation no longer saved':selected?'Carregando terminal…':'Ready when you are'}</strong><p>{missing?'Se houver um rascunho, ele continua abaixo.':'Use a voz ou descreva a tarefa abaixo. Solicitações mais longas abrem em uma aba de terminal.'}</p>{missing&&prompt.trim()&&<button disabled={sending} onClick={useExpiredDraft}>Usar rascunho em nova tarefa</button>}
+    {!selected&&tasks.some(isOpenWork)&&<div className="aos-open-terminals" aria-label="Abrir terminais">{tasks.filter(isOpenWork).map(t=><button key={t.id} onClick={()=>select(t.id)}>{shortTaskTitle(t,48)} <small>{taskStatus(t)}</small></button>)}</div>}
    </div>}
   </div>
   {(error||current?.error)&&<p className="aos-work-error" role="alert">{error||current?.error}</p>}
-  {!selected&&(recovery||recoveryError)&&<div><small>{recovery?`Recovered ${recovery.skill?'workflow':'request'} · ${recovery.selection.provider} · ${recovery.selection.model}`:recoveryError}</small><button disabled={sending} onClick={discardRecovery}>Discard recovery</button>{recovery?.skill&&<details><summary>Workflow settings: {recovery.skill}</summary><pre>{JSON.stringify(recovery.args,null,2)}</pre></details>}</div>}
-  {messageBox&&terminalLive&&!['ready','stopping'].includes(current!.state)&&<div className="aos-message-guard"><button disabled={sending} onClick={()=>setReadyCheck(!readyCheck)}>Enable message box</button>{readyCheck&&<p role="status">Wait for the CLI to finish and clear any text in its input. Answer approvals in the terminal. <button disabled={sending} onClick={()=>void action('ready',{confirmedEmpty:true})}>CLI is idle and input is empty</button></p>}</div>}
-  {(!selected||missing||messageBox||!terminalLive&&!!prompt.trim())&&current?.execution!=='script'&&<form className="aos-work-compose" onSubmit={e=>{e.preventDefault();void submit()}}><textarea disabled={sending||!vault} readOnly={!selected&&!!recovery?.skill} aria-label={selected?'Follow up on task':recovery?.skill?'Recovered workflow request':'New task request'} value={prompt} placeholder={current?'Continue this conversation…':'What would you like to work on?'} onInput={e=>edit(e.currentTarget.value)} maxLength={12000}/><button disabled={sending||!vault||!prompt.trim()||!!recoveryError&&!selected||!!selected&&(!terminalLive||current?.state!=='ready')}>{selected?'Send follow-up':recovery?.skill?'Retry workflow':'Open terminal'}</button></form>}
-  <footer className="aos-work-footer"><small>{terminalLive?'Type directly in the terminal. Closing its tab keeps it running.':selected?'Saved conversation':'Quick voice answers stay in voice.'}</small>
-   <details onToggle={e=>{if(e.currentTarget.open)void workRequest('/services').then(setServices).catch(e=>setError(String(e)))}}><summary>Services & connections</summary>{services&&<p>Bridge online · {services.bridge.memoryMiB} MiB. Speech: {services.speech.health?.ok?'online':'unavailable'}{services.speech.shared?' (shared)':''}. Each CLI uses its own sign-in. Stop ends a task process and can lose unsent text inside the CLI.</p>}{services?.providers&&Object.entries(services.providers).map(([provider,value])=>{const cli=value as {version?:string;command?:string;detail?:string};return <p key={provider}><strong>{provider}: {cli.version||'unavailable'}</strong><br/><small>{cli.command||cli.detail}</small></p>})}</details>
+  {!selected&&(recovery||recoveryError)&&<div><small>{recovery?`Recovered ${recovery.skill?'workflow':'request'} · ${recovery.selection.provider} · ${recovery.selection.model}`:recoveryError}</small><button disabled={sending} onClick={discardRecovery}>Descartar recuperação</button>{recovery?.skill&&<details><summary>Configurações do fluxo: {recovery.skill}</summary><pre>{JSON.stringify(recovery.args,null,2)}</pre></details>}</div>}
+  {messageBox&&terminalLive&&!['ready','stopping'].includes(current!.state)&&<div className="aos-message-guard"><button disabled={sending} onClick={()=>setReadyCheck(!readyCheck)}>Ativar caixa de mensagem</button>{readyCheck&&<p role="status">Aguarde o terminal terminar e limpe o campo de entrada. Responda aos pedidos de aprovação no terminal. <button disabled={sending} onClick={()=>void action('ready',{confirmedEmpty:true})}>Terminal livre e campo vazio</button></p>}</div>}
+  {(!selected||missing||messageBox||!terminalLive&&!!prompt.trim())&&current?.execution!=='script'&&<form className="aos-work-compose" onSubmit={e=>{e.preventDefault();void submit()}}><textarea disabled={sending||!vault} readOnly={!selected&&!!recovery?.skill} aria-label={selected?'Follow up on task':recovery?.skill?'Recovered workflow request':'New task request'} value={prompt} placeholder={current?'Continuar esta conversa…':'Em que você quer trabalhar?'} onInput={e=>edit(e.currentTarget.value)} maxLength={12000}/><button disabled={sending||!vault||!prompt.trim()||!!recoveryError&&!selected||!!selected&&(!terminalLive||current?.state!=='ready')}>{selected?'Send follow-up':recovery?.skill?'Tentar fluxo de novo':'Open terminal'}</button></form>}
+  <footer className="aos-work-footer"><small>{terminalLive?'Digite diretamente no terminal. Ele continua em execução se você fechar a aba.':selected?'Saved conversation':'Respostas rápidas ficam disponíveis nos controles de voz.'}</small>
+   <details onToggle={e=>{if(e.currentTarget.open)void workRequest('/services').then(setServices).catch(e=>setError(String(e)))}}><summary>Serviços e conexões</summary>{services&&<p>Ponte conectada · {services.bridge.memoryMiB} MiB. Voz: {services.speech.health?.ok?'online':'unavailable'}{services.speech.shared?' (shared)':''}. Cada CLI usa sua sessão. Parar encerra o processo da tarefa e pode descartar texto ainda não enviado.</p>}{services?.providers&&Object.entries(services.providers).map(([provider,value])=>{const cli=value as {version?:string;command?:string;detail?:string};return <p key={provider}><strong>{provider}: {cli.version||'unavailable'}</strong><br/><small>{cli.command||cli.detail}</small></p>})}</details>
   </footer>
  </div>;
 }

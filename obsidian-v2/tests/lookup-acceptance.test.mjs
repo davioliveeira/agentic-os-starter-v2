@@ -87,7 +87,7 @@ test('Live scoped and general reply prompts name the offered action and omit off
   },{transport:'live',jev:{mode:'off'}});
   // A gap ends in the pathway that fills it, by name (2026-11-22: email questions offer Inbox Brief for newer mail).
   assert.equal(answer.reply,compactReply);assert.match(system,/offer the pathway that would get the rest, by name, as one question/);
-  assert.match(system,/Down the chain \(use these names when you offer one\): Inbox Brief \(reads Gmail now\)/);
+  assert.match(system,/Down the chain \(use these names when you offer one\): Resumo da caixa de entrada \(reads Gmail now\)/);
   assert.match(system,/If the answer is complete, don't offer anything/);assert.doesNotMatch(system,/want me to dig into it\?/i);
  }
 });

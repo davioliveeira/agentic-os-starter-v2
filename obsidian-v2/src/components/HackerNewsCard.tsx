@@ -65,7 +65,7 @@ export function HackerNewsCard({ limit = 6, refreshMs = 5 * 60 * 1000 }: Props) 
 						type="button"
 						className="aos-v2-cc-refresh aos-v2-cc-refresh-inline"
 						onClick={refresh}
-						title="fetch HN top stories"
+						title="buscar destaques do Hacker News"
 					>
 						↻
 					</button>
@@ -76,7 +76,7 @@ export function HackerNewsCard({ limit = 6, refreshMs = 5 * 60 * 1000 }: Props) 
 				{error ? (
 					<p className="aos-v2-cc-mono aos-v2-cc-dim">&gt; {error}</p>
 				) : stories.length === 0 ? (
-					<p className="aos-v2-cc-mono aos-v2-cc-dim">&gt; loading…</p>
+					<p className="aos-v2-cc-mono aos-v2-cc-dim">&gt; carregando…</p>
 				) : (
 					<ul className="aos-v2-cc-feed-list">
 						{stories.map((s, i) => (
@@ -84,7 +84,7 @@ export function HackerNewsCard({ limit = 6, refreshMs = 5 * 60 * 1000 }: Props) 
 								key={s.id}
 								className="aos-v2-cc-feed-item aos-v2-cc-feed-item-clickable"
 								onClick={() => openThread(s)}
-								title={`open HN thread · ${s.score}↑ · ${s.descendants} comments · ${relTime(s.time)} ago`}
+								title={`abrir discussão no Hacker News · ${s.score}↑ · ${s.descendants} comments · ${relTime(s.time)} ago`}
 							>
 								<span className="aos-v2-cc-feed-rank">{i + 1}</span>
 								<span className="aos-v2-cc-feed-main">
@@ -98,7 +98,7 @@ export function HackerNewsCard({ limit = 6, refreshMs = 5 * 60 * 1000 }: Props) 
 												type="button"
 												className="aos-v2-cc-feed-headlink"
 												onClick={(e) => openArticle(e, s)}
-												title="open the article"
+												title="abrir artigo"
 											>
 												↗
 											</button>

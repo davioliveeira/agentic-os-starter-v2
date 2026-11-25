@@ -61,5 +61,5 @@ test('plugin unload removes listeners and prevents a request accepted afterward 
 test('a recovered workflow keeps its saved provider and scripts remain background jobs',async t=>{
  const f=fixture();t.after(f.dispose);registerSkillReports(f.plugin);const saved={provider:'claude',model:'sonnet'};
  await writeIntent(f.app,'morning-intel',{},saved);assert.deepEqual(f.calls[0].body.selection,saved);
- const id=await writeIntent(f.app,'metrics-pull');f.files.set('system/v2/runs/'+id+'.json',JSON.stringify({id,skill:'metrics-pull',status:'ok',deliverable_path:null}));for(const handler of f.events.get('modify'))handler({path:'system/v2/runs/'+id+'.json'});await f.settle();assert.equal(f.opens.length,0);assert.ok(f.notices.includes('Pull Metrics finished.'));
+ const id=await writeIntent(f.app,'metrics-pull');f.files.set('system/v2/runs/'+id+'.json',JSON.stringify({id,skill:'metrics-pull',status:'ok',deliverable_path:null}));for(const handler of f.events.get('modify'))handler({path:'system/v2/runs/'+id+'.json'});await f.settle();assert.equal(f.opens.length,0);assert.ok(f.notices.includes('Atualizar métricas finished.'));
 });

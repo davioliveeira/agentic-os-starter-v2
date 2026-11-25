@@ -1,4 +1,4 @@
-﻿// Only End call ends a Live call (Chase, 2026-11-22). These pin the window-side paths that used to hang up.
+﻿// Only Encerrar chamada ends a Live call (Chase, 2026-11-22). These pin the window-side paths that used to hang up.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -18,8 +18,8 @@ test('choosing a terminal tab in the web app keeps a Live call up; only Local vo
  assert.match(client,/const stoppedLive=keepLive\?false:live\?\.stop\(\)/);
 });
 
-test('both apps label the only hang-up control End call',()=>{
+test('both apps label the only hang-up control Encerrar chamada',()=>{
  for(const path of ['../../jarvis-v2/components/LiveVoiceControls.tsx','../src/components/LiveVoiceControls.tsx']){
-  const source=read(path);assert.match(source,/>End call<\/button>/,path);assert.doesNotMatch(source,/Hang up/,path);
+  const source=read(path);assert.match(source,/>Encerrar chamada<\/button>/,path);assert.doesNotMatch(source,/Hang up/,path);
  }
 });

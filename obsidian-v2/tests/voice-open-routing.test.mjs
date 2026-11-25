@@ -112,7 +112,7 @@ for(const {provider,appScope} of [{provider:'codex',appScope:'native'},{provider
  // The saved run is still one ask away by name, without a model.
  assert.equal(call.selection.provider,provider);assert.equal(call.execution,appScope==='native'?'native':undefined);
  opened(await f.speak('show me the content cascade',{provider,appScope}),'inbox/reports/cascades/2026-09-15-1e089d8f.md');
- assert.equal((await f.speak('show me the trend scan',{provider,appScope})).reply,"I don't have an AI trend scan report on file.");
+ assert.equal((await f.speak('show me the trend scan',{provider,appScope})).reply,"I don't have a tendências de IA report on file.");
  assert.equal(f.calls.length,1);
 });
 

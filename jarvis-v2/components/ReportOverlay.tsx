@@ -34,7 +34,7 @@ export default function ReportOverlay({
           <span className="report-path">{report.path}</span>
           {isVaultNote && (
             <a className="report-obsidian" href={obsidianHref}>
-              open in Obsidian ↗
+              abrir no Obsidian ↗
             </a>
           )}
           {action && (
@@ -42,7 +42,7 @@ export default function ReportOverlay({
               {action.label}
             </button>
           )}
-          <button className="report-close" onClick={onClose} aria-label="close">
+          <button className="report-close" onClick={onClose} aria-label="fechar">
             ✕
           </button>
         </div>

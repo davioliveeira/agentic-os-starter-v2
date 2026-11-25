@@ -45,7 +45,7 @@ export function ContentAnglesCard({ app, limit = 4 }: Props) {
 		<div className="aos-v2-cc-panel">
 			<div className="aos-v2-cc-panel-head">
 				<span className="aos-v2-cc-panel-label">
-					Content Angles
+					Ideias para conteúdo
 					{brief ? (
 						<button
 							type="button"
@@ -64,7 +64,7 @@ export function ContentAnglesCard({ app, limit = 4 }: Props) {
 			<div className="aos-v2-cc-panel-body">
 				{items.length === 0 ? (
 					<p className="aos-v2-cc-mono aos-v2-cc-dim">
-						&gt; no angles yet — run /morning-intel
+						&gt; sem ideias por enquanto — execute /morning-intel
 					</p>
 				) : (
 					<ul className="aos-v2-cc-feed-list">

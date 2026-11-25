@@ -61,7 +61,7 @@ export function OutlierRadarCard({ app, limit = 10 }: Props) {
 		try {
 			await writeIntent(app, "outlier-radar", {});
 		} catch (error) {
-			new Notice(`Outlier Radar could not start: ${error instanceof Error ? error.message : String(error)}`);
+			new Notice(`Não foi possível iniciar o radar: ${error instanceof Error ? error.message : String(error)}`);
 		} finally {
 			setRunning(false);
 		}
@@ -80,7 +80,7 @@ export function OutlierRadarCard({ app, limit = 10 }: Props) {
 		<div className="aos-v2-cc-panel">
 			<div className="aos-v2-cc-panel-head">
 				<span className="aos-v2-cc-panel-label">
-					Outlier Radar
+					Radar de vídeos em destaque
 					{snap ? (
 						<button
 							type="button"
@@ -98,7 +98,7 @@ export function OutlierRadarCard({ app, limit = 10 }: Props) {
 						className="aos-v2-cc-refresh aos-v2-cc-refresh-inline"
 						onClick={() => void runNow()}
 						disabled={running}
-						title="Not connected in V2"
+						title="Sem conexão no V2"
 					>
 						{running ? "…" : "▶"}
 					</button>
@@ -110,7 +110,7 @@ export function OutlierRadarCard({ app, limit = 10 }: Props) {
 			<div className="aos-v2-cc-panel-body">
 				{items.length === 0 ? (
 					<p className="aos-v2-cc-mono aos-v2-cc-dim">
-						&gt; no radar data yet — press ▶ or run /outlier-radar
+						&gt; sem dados no radar — clique em ▶ ou execute /outlier-radar
 					</p>
 				) : (
 					<ul className="aos-v2-cc-feed-list">

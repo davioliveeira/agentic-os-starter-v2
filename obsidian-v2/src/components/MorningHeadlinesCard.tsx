@@ -45,7 +45,7 @@ export function MorningHeadlinesCard({ app, limit = 3 }: Props) {
 		<div className="aos-v2-cc-panel">
 			<div className="aos-v2-cc-panel-head">
 				<span className="aos-v2-cc-panel-label">
-					Morning Headlines
+					Manchetes da manhã
 					{snap ? (
 						<button
 							type="button"
@@ -62,7 +62,7 @@ export function MorningHeadlinesCard({ app, limit = 3 }: Props) {
 						type="button"
 						className="aos-v2-cc-refresh aos-v2-cc-refresh-inline"
 						onClick={refresh}
-						title="re-read latest morning report"
+						title="reler o último boletim"
 					>
 						↻
 					</button>
@@ -74,7 +74,7 @@ export function MorningHeadlinesCard({ app, limit = 3 }: Props) {
 			<div className="aos-v2-cc-panel-body">
 				{items.length === 0 ? (
 					<p className="aos-v2-cc-mono aos-v2-cc-dim">
-						&gt; no intel brief yet — run /morning-intel
+						&gt; nenhum boletim — execute /morning-intel
 					</p>
 				) : (
 					<ul className="aos-v2-cc-feed-list">

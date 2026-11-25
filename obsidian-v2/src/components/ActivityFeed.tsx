@@ -41,7 +41,7 @@ export function ActivityFeed({ app, runs, onDismiss }: Props) {
 		const menu = new Menu();
 		menu.addItem((item) =>
 			item
-				.setTitle("Dismiss")
+				.setTitle("Dispensar")
 				.setIcon("x")
 				.onClick(() => void onDismiss([run.id])),
 		);
@@ -49,14 +49,14 @@ export function ActivityFeed({ app, runs, onDismiss }: Props) {
 		if (errorIds.length > 1) {
 			menu.addItem((item) =>
 				item
-					.setTitle(`Dismiss all errors (${errorIds.length})`)
+					.setTitle(`Dispensar todos os erros (${errorIds.length})`)
 					.setIcon("x-circle")
 					.onClick(() => void onDismiss(errorIds)),
 			);
 		}
 		menu.addItem((item) =>
 			item
-				.setTitle(`Dismiss all (${runs.length})`)
+				.setTitle(`Dispensar tudo (${runs.length})`)
 				.setIcon("trash")
 				.onClick(() => void onDismiss(runs.map((r) => r.id))),
 		);
@@ -89,7 +89,7 @@ export function ActivityFeed({ app, runs, onDismiss }: Props) {
 	return (
 		<div className="aos-v2-cc-panel">
 			<div className="aos-v2-cc-panel-head">
-				<span className="aos-v2-cc-panel-label">Activity Feed</span>
+				<span className="aos-v2-cc-panel-label">Atividade recente</span>
 				<span className="aos-v2-cc-panel-count aos-v2-cc-dim">
 					{runs.length} run{runs.length === 1 ? "" : "s"}
 				</span>
@@ -97,7 +97,7 @@ export function ActivityFeed({ app, runs, onDismiss }: Props) {
 			<div className="aos-v2-cc-panel-body">
 				{runs.length === 0 ? (
 					<p className="aos-v2-cc-mono aos-v2-cc-dim">
-						&gt; no runs yet — click an action button
+						&gt; nenhum fluxo executado — clique em um botão
 					</p>
 				) : (
 					<ul className="aos-v2-cc-feed">
@@ -109,7 +109,7 @@ export function ActivityFeed({ app, runs, onDismiss }: Props) {
 								onContextMenu={(e) =>
 									showContextMenu(r, e as MouseEvent)
 								}
-								title={`open ${r.deliverable_path || r.md_path || r.id} · right-click to dismiss`}
+								title={`open ${r.deliverable_path || r.md_path || r.id} · clique com o botão direito para dispensar`}
 							>
 								<span
 									className={`aos-v2-cc-chip ${statusClass(r.status)}`}
@@ -126,7 +126,7 @@ export function ActivityFeed({ app, runs, onDismiss }: Props) {
 										type="button"
 										className="aos-v2-cc-feed-jsonbtn"
 										onClick={(e) => openLog(r, e as MouseEvent)}
-										title="open raw run log"
+										title="abrir log da execução"
 									>
 										log
 									</button>
@@ -134,7 +134,7 @@ export function ActivityFeed({ app, runs, onDismiss }: Props) {
 										type="button"
 										className="aos-v2-cc-feed-jsonbtn"
 										onClick={(e) => openJson(r, e as MouseEvent)}
-										title="open status JSON"
+										title="abrir status em JSON"
 									>
 										{`{}`}
 									</button>

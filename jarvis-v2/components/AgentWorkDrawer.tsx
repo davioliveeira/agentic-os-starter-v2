@@ -41,7 +41,7 @@ function LiveTerminal({id,onError,readOnly=false}:{id:string;onError:(message:st
     resize();void poll();const timer=setInterval(()=>void poll(),200);
     return()=>{gone=true;clearInterval(timer);observer.disconnect();element.removeEventListener('focusin',resize);input.dispose();term.dispose()};
   },[id,onError,readOnly]);
-  return <div className="agent-terminal" ref={host} aria-label="Interactive agent terminal"/>;
+  return <div className="agent-terminal" ref={host} aria-label="Terminal interativo do agente"/>;
 }
 
 // Keystrokes captured for a terminal and not yet delivered to the bridge. A close request waits for them, so the
@@ -85,7 +85,7 @@ export default function AgentWorkDrawer({tasks,activityTasks,tasksLoaded,target,
   const newStorageKey=draftKey('jarvis',vaultRoot,null);
   useEffect(()=>{if(vaultRoot)setRecovered(readRecoveredDraft(localStorage,newStorageKey))},[vaultRoot,newStorageKey]);
   useEffect(()=>{if(vaultRoot)setDrafts(v=>({...v,[key]:readDraft(localStorage,storageKey)}))},[vaultRoot,key,storageKey]);
-  const edit=(text:string)=>{setDrafts(v=>({...v,[key]:text}));try{if(!target)setRecovered(updateRecoveryText(localStorage,storageKey,recovered,text));else if(!saveDraft(localStorage,storageKey,text))throw new Error('Draft could not be saved locally. Copy it before reloading.')}catch(e){setError(e instanceof Error?e.message:String(e))}};
+  const edit=(text:string)=>{setDrafts(v=>({...v,[key]:text}));try{if(!target)setRecovered(updateRecoveryText(localStorage,storageKey,recovered,text));else if(!saveDraft(localStorage,storageKey,text))throw new Error('Não foi possível salvar o rascunho neste dispositivo. Copie-o antes de recarregar.')}catch(e){setError(e instanceof Error?e.message:String(e))}};
   const active=tasks.filter(isOpenWork).length;
   useEffect(()=>{if(open&&target)setHidden(v=>v.filter(id=>id!==target));setError('')},[target,open]);
   const action=async(name:string,data:Record<string,unknown>={})=>{if(!current||!begin())return;try{await workRequest('/'+name,{id:current.id,...data});setReadyCheck(false)}catch(e){setError(e instanceof Error?e.message:String(e))}finally{end()}};
@@ -148,10 +148,10 @@ export default function AgentWorkDrawer({tasks,activityTasks,tasksLoaded,target,
   const submit=async()=>{
     if(!prompt.trim()||!begin())return;
     try{
-      if(target){if(!current)throw new Error('This conversation is no longer available. Your unsent draft is still saved.');await workRequest('/send',{id:target,text:prompt})}
+      if(target){if(!current)throw new Error('Esta conversa não está mais disponível. Seu rascunho continua salvo.');await workRequest('/send',{id:target,text:prompt})}
       else{
         const recovery=readRecoveredDraft(localStorage,newStorageKey);
-        if(recovered&&!recovery)throw new Error('This recovered request changed outside the composer. Recover it again before starting a task.');
+        if(recovered&&!recovery)throw new Error('A solicitação recuperada mudou fora da caixa de mensagem. Recupere-a de novo antes de iniciar uma tarefa.');
         const chosen=recovery?.selection||await getWorkSelection(),selection={provider:chosen.provider,model:chosen.model};
         if(recovery?.skill){
           const run=await workRequest('/skill',{id:crypto.randomUUID(),selection,skill:recovery.skill,args:recovery.args||{}});
@@ -171,56 +171,56 @@ export default function AgentWorkDrawer({tasks,activityTasks,tasksLoaded,target,
   const [liveMode,setLiveMode]=useState(false);
   useEffect(()=>voice.onLive(setCall),[]);
   useEffect(()=>{const read=()=>setLiveMode(voicePrefs.getSnapshot().prefs.voiceMode==='live');read();return voicePrefs.subscribe(read)},[]);
-  return <section className={`agent-drawer ${open?'is-open':''}`} aria-label="Terminals">
+  return <section className={`agent-drawer ${open?'is-open':''}`} aria-label="Terminais">
     <header className="agent-drawer-bar">
-      <button className="agent-drawer-toggle" aria-expanded={open} aria-controls="agent-work-content" onClick={()=>setOpen(!open)}><span aria-hidden="true">⌘</span> Terminals <small>{connectionError?'Bridge offline':`${active} open`}</small><span aria-hidden="true">{open?'⌄':'⌃'}</span></button>
+      <button className="agent-drawer-toggle" aria-expanded={open} aria-controls="agent-work-content" onClick={()=>setOpen(!open)}><span aria-hidden="true">⌘</span> Terminais <small>{connectionError?'Bridge offline':`${active} open`}</small><span aria-hidden="true">{open?'⌄':'⌃'}</span></button>
       <TaskActivityBar tasks={activityTasks} ready={tasksLoaded} viewing={open?target:null}/>
-      <button onClick={()=>void voice.toggle()} title={voiceTask?`Conversation: ${shortConversationTitle(voiceTask)}`:voiceTarget?'Selected conversation unavailable':'New voice conversation'}>{liveMode&&call?liveToggleLabel(call):voiceMode==='listening'?'Send recording':voiceMode==='working'?'Cancel voice':voiceMode==='speaking'?'Interrupt & talk':'Tap to talk'}</button>
-      <button onClick={()=>{void select(null);setHistoryOpen(false);setOpen(true)}}>+ New terminal</button>
+      <button onClick={()=>void voice.toggle()} title={voiceTask?`Conversation: ${shortConversationTitle(voiceTask)}`:voiceTarget?'Selected conversation unavailable':'New voice conversation'}>{liveMode&&call?liveToggleLabel(call):voiceMode==='listening'?'Send recording':voiceMode==='working'?'Cancel voice':voiceMode==='speaking'?'Interrupt & talk':'Clique para falar'}</button>
+      <button onClick={()=>{void select(null);setHistoryOpen(false);setOpen(true)}}>+ Novo terminal</button>
     </header>
     {voiceMessage&&<p className="agent-voice-status" role="status">{voiceMessage}</p>}
-    {armed&&<p className="agent-voice-status" role="status">This terminal is still busy. Press “Stop?” again to end it. Text typed in the CLI but not sent will be lost; the conversation stays in History.</p>}
+    {armed&&<p className="agent-voice-status" role="status">Este terminal ainda está ocupado. Clique de novo em “Parar?” para encerrá-lo. Texto não enviado será perdido e a conversa ficará no histórico.</p>}
     {open&&<div id="agent-work-content" className="agent-work-content">
       <TerminalTabs tabs={tabs} history={tasks} target={target} historyOpen={historyOpen} loaded={tasksLoaded} onHistory={setHistoryOpen} onSelect={selectTab} onClose={closeTab} armed={armed}/>
       {current&&<div className="agent-work-meta">
-        <span title={current.execution==='script'?'Direct source refresh; no model':current.model}>{current.execution==='script'?'Source refresh':current.provider==='codex'?'Codex':'Claude Code'} · {taskStatus(current)}</span>
+        <span title={current.execution==='script'?'Atualização direta da fonte, sem IA':current.model}>{current.execution==='script'?'Atualização da fonte':current.provider==='codex'?'Codex':'Claude Code'} · {taskStatus(current)}</span>
         <div>
-          {!receipt&&<button aria-expanded={showComposer} aria-controls="terminal-message-box" disabled={sending} onClick={()=>setMessageTarget(showComposer?null:current.id)}>Message box{prompt.trim()?' · draft':''}</button>}
-          {current.turns.length>0&&<button aria-expanded={answerTarget===current.id} aria-controls="terminal-saved-answer" onClick={()=>setAnswerTarget(answerTarget===current.id?null:current.id)}>Saved answer</button>}
-          <button className="agent-keep" aria-pressed={!!current.keep} disabled={sending||!!connectionError} title={current.keep?'Allow this task to clear after 7 stopped days':'Keep this task in history'} onClick={()=>void toggleKeep()}>{current.keep?'✓ Kept':'Keep'}</button>
-          {!terminalLive&&!receipt&&current.sessionId&&<button disabled={sending} onClick={()=>void action('resume')}>Resume</button>}
+          {!receipt&&<button aria-expanded={showComposer} aria-controls="terminal-message-box" disabled={sending} onClick={()=>setMessageTarget(showComposer?null:current.id)}>Caixa de mensagem{prompt.trim()?' · draft':''}</button>}
+          {current.turns.length>0&&<button aria-expanded={answerTarget===current.id} aria-controls="terminal-saved-answer" onClick={()=>setAnswerTarget(answerTarget===current.id?null:current.id)}>Resposta salva</button>}
+          <button className="agent-keep" aria-pressed={!!current.keep} disabled={sending||!!connectionError} title={current.keep?'Allow this task to clear after 7 stopped days':'Keep this task in history'} onClick={()=>void toggleKeep()}>{current.keep?'✓ Kept':'Manter'}</button>
+          {!terminalLive&&!receipt&&current.sessionId&&<button disabled={sending} onClick={()=>void action('resume')}>Retomar</button>}
           {!terminalLive&&current.recoveryAvailable&&!receipt&&<button disabled={sending||!vaultRoot} onClick={()=>void recover()}>{current.workflow?'Review retry':'Recover request'}</button>}
-          {(terminalLive||scriptActive)&&<button disabled={sending||current.state==='stopping'} onClick={()=>void action('stop')}>{current.state==='stopping'?'Stopping…':'Stop'}</button>}
+          {(terminalLive||scriptActive)&&<button disabled={sending||current.state==='stopping'} onClick={()=>void action('stop')}>{current.state==='stopping'?'Parando…':'Parar'}</button>}
         </div>
       </div>}
       {alert&&<p className="agent-error" role="alert">{alert}</p>}
-      {current?.state==='needs input'&&<p className="agent-input-needed" role="status">Needs your input: {current.inputReason||current.error||'Review the prompt in the terminal below.'}</p>}
+      {current?.state==='needs input'&&<p className="agent-input-needed" role="status">Precisa da sua resposta: {current.inputReason||current.error||'Revise a solicitação no terminal abaixo.'}</p>}
       {current?<>
         {terminalLive?<LiveTerminal id={current.id} onError={setError} readOnly={current.state==='stopping'}/>:<div className="agent-stopped" role="status">
-          {current.execution==='headless'?(scriptActive?'Running the workflow…':current.error?'The workflow failed.':'The workflow finished. See its result on the dashboard.'):
-            current.execution==='script'?(scriptActive?'Running the source refresh…':current.error||current.state==='error'?'The source refresh needs attention.':'This source refresh is closed.'):
-            current.sessionId?'This terminal is closed. Resume when you want to continue.':current.recoveryAvailable?'This terminal closed before its conversation was saved. Recover the request to review it.':'This terminal is closed.'}
+          {current.execution==='headless'?(scriptActive?'Executando o fluxo…':current.error?'O fluxo falhou.':'O fluxo terminou. Veja o resultado no painel.'):
+            current.execution==='script'?(scriptActive?'Atualizando a fonte…':current.error||current.state==='error'?'A atualização da fonte precisa de atenção.':'A atualização da fonte foi encerrada.'):
+            current.sessionId?'O terminal foi fechado. Use Retomar para continuar.':current.recoveryAvailable?'O terminal foi fechado antes de salvar a conversa. Recupere a solicitação para revisá-la.':'O terminal foi fechado.'}
         </div>}
-        {answerTarget===current.id&&current.turns.length>0&&<section className="agent-answer" id="terminal-saved-answer" aria-label="Saved answer"><pre>{answer||current.turns.at(-1)?.text}</pre></section>}
+        {answerTarget===current.id&&current.turns.length>0&&<section className="agent-answer" id="terminal-saved-answer" aria-label="Resposta salva"><pre>{answer||current.turns.at(-1)?.text}</pre></section>}
       </>:<div className="agent-empty" role={unavailable?'status':undefined}>
-        <strong>{unavailable?'This terminal is no longer saved.':target?'Opening terminal…':`New ${provider==='codex'?'Codex':'Claude Code'} terminal`}</strong>
-        <p>{unavailable?'Your unsent draft stays here. Copy it into a new request to start again; the previous conversation will not carry over.':target?'Connecting to the shared terminal.':'Describe the work below. Each independent request opens its own terminal tab.'}</p>
-        {unavailable&&former&&prompt.trim()&&<button type="button" disabled={sending||!vaultRoot} onClick={copyExpiredDraft}>Use draft in new terminal</button>}
+        <strong>{unavailable?'Este terminal não está mais salvo.':target?'Abrindo terminal…':`New ${provider==='codex'?'Codex':'Claude Code'} terminal`}</strong>
+        <p>{unavailable?'Seu rascunho continua aqui. Copie-o para uma nova solicitação para recomeçar em outra conversa.':target?'Conectando ao terminal compartilhado.':'Descreva a tarefa abaixo. Cada solicitação independente abre uma aba de terminal.'}</p>
+        {unavailable&&former&&prompt.trim()&&<button type="button" disabled={sending||!vaultRoot} onClick={copyExpiredDraft}>Usar rascunho em novo terminal</button>}
       </div>}
-      {!target&&recovered&&<p className="agent-recovered" role="status">Recovered: {recovered.title} · {recovered.selection.provider} / {recovered.selection.model}. Review before starting. <button type="button" disabled={sending} onClick={()=>edit('')}>Clear recovery</button></p>}
+      {!target&&recovered&&<p className="agent-recovered" role="status">Recuperado: {recovered.title} · {recovered.selection.provider} / {recovered.selection.model}. Revise antes de começar. <button type="button" disabled={sending} onClick={()=>edit('')}>Limpar recuperação</button></p>}
       {showComposer&&!receipt&&<div id="terminal-message-box" className="agent-message-box">
         {terminalLive&&!['ready','stopping'].includes(current!.state)&&<div className="agent-message-guard">
-          <p>Use the CLI directly, or wait until it is idle with an empty input box. This does not answer approval prompts.</p>
-          <button disabled={sending} onClick={()=>setReadyCheck(!readyCheck)}>I want to use the message box</button>
-          {readyCheck&&<button disabled={sending} onClick={()=>void action('ready',{confirmedEmpty:true})}>I checked: CLI idle and input empty</button>}
+          <p>Use o terminal diretamente ou aguarde até que ele esteja livre e com o campo de entrada vazio. Responda a pedidos de aprovação no terminal.</p>
+          <button disabled={sending} onClick={()=>setReadyCheck(!readyCheck)}>Quero usar a caixa de mensagem</button>
+          {readyCheck&&<button disabled={sending} onClick={()=>void action('ready',{confirmedEmpty:true})}>Conferi: terminal livre e campo vazio</button>}
         </div>}
         <form className="agent-compose" onSubmit={e=>{e.preventDefault();void submit()}}>
-          <textarea readOnly={!target&&!!recovered?.skill} disabled={sending||!vaultRoot} aria-label={target?'Terminal follow-up':'New terminal request'} value={prompt} placeholder={target?'Continue this conversation…':'Describe a request…'} maxLength={12000} onChange={e=>edit(e.target.value)}/>
-          <button disabled={sending||!prompt.trim()||!!connectionError||!!target&&current?.state!=='ready'}>{target?'Send':recovered?.skill?'Retry workflow':'Start terminal'}</button>
+          <textarea readOnly={!target&&!!recovered?.skill} disabled={sending||!vaultRoot} aria-label={target?'Continuação no terminal':'Nova solicitação no terminal'} value={prompt} placeholder={target?'Continuar esta conversa…':'Descreva uma solicitação…'} maxLength={12000} onChange={e=>edit(e.target.value)}/>
+          <button disabled={sending||!prompt.trim()||!!connectionError||!!target&&current?.state!=='ready'}>{target?'Enviar':recovered?.skill?'Tentar fluxo de novo':'Iniciar terminal'}</button>
         </form>
       </div>}
-      <footer><span title={voiceTask?.title}>Voice conversation: {voiceTask?shortConversationTitle(voiceTask):voiceTarget?'Unavailable':'New conversation'}</span><span>Closing a tab ends its terminal. The conversation stays in History and voice can continue it.</span></footer>
-      <details className="agent-services" onToggle={e=>{if(e.currentTarget.open)void workRequest('/services').then(setServices).catch(e=>setError(String(e)))}}><summary>Connections & draft safety</summary><p>Message-box drafts are saved on this device. Unsent text inside the CLI itself can be lost when stopped. Stopped tasks clear after 7 days; Keep saves them.</p>{services&&<><p>Terminal bridge online · {services.bridge.memoryMiB} MiB · {active} open sessions. Speech: {services.speech.health?.ok?'online':'unavailable'}{services.speech.shared?' (shared with V1)':''}. Connectors use the selected CLI’s sign-in. To stop idle V2 services, run <code>scripts/services.ps1 -Action Stop</code> from Obsidian V2. Active tasks must be stopped first.</p>{Object.entries(services.providers||{}).map(([name,value])=>{const cli=value as {installed:boolean;version?:string;command?:string;source?:string;detail?:string};return <p key={name}><strong>{name==='codex'?'Codex':'Claude Code'}</strong> · {cli.installed?cli.version||'Version unavailable':'Not installed'}{cli.source?` · ${cli.source}`:''}{cli.command&&<code>{cli.command}</code>}{cli.detail&&<span>{cli.detail}</span>}</p>})}</>}</details>
+      <footer><span title={voiceTask?.title}>Conversa por voz: {voiceTask?shortConversationTitle(voiceTask):voiceTarget?'Indisponível':'Nova conversa'}</span><span>Fechar a aba encerra o terminal. A conversa fica no histórico e pode ser retomada por voz.</span></footer>
+      <details className="agent-services" onToggle={e=>{if(e.currentTarget.open)void workRequest('/services').then(setServices).catch(e=>setError(String(e)))}}><summary>Conexões e rascunhos</summary><p>Os rascunhos da caixa de mensagem ficam neste dispositivo. Ao parar o terminal, texto não enviado pode se perder. Tarefas paradas expiram em 7 dias, a menos que você use Manter.</p>{services&&<><p>Ponte do terminal conectada · {services.bridge.memoryMiB} MiB · {active} sessões abertas. Voz: {services.speech.health?.ok?'online':'unavailable'}{services.speech.shared?' (compartilhada com o V1)':''}. Os conectores usam a sessão do terminal selecionado. Para parar os serviços ociosos do V2, execute <code>scripts/services.ps1 -Action Stop</code> na pasta do Obsidian V2. Encerre as tarefas ativas primeiro.</p>{Object.entries(services.providers||{}).map(([name,value])=>{const cli=value as {installed:boolean;version?:string;command?:string;source?:string;detail?:string};return <p key={name}><strong>{name==='codex'?'Codex':'Claude Code'}</strong> · {cli.installed?cli.version||'Versão indisponível':'Não instalado'}{cli.source?` · ${cli.source}`:''}{cli.command&&<code>{cli.command}</code>}{cli.detail&&<span>{cli.detail}</span>}</p>})}</>}</details>
     </div>}
   </section>;
 }

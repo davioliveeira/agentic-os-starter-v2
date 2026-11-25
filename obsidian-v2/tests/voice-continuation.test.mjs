@@ -154,7 +154,7 @@ for(const provider of ['codex','claude']){
    assert.equal(f.calls.length,before+1,state);
    assert.equal(f.calls.at(-1).kind,'workflow',state);assert.equal(f.calls.at(-1).skill,'weekly-review');
    assert.equal(result.action,'task');assert.notDeepEqual(result.workIds,[task.id],'the busy conversation is not the one doing it');
-   assert.equal(result.reply,'Running Weekly Review on its own while that task finishes.');
+   assert.equal(result.reply,'Running Revisão semanal on its own while that task finishes.');
    assert.equal(task.state,state,'the busy conversation is left exactly as it was');
    assert.equal(f.updates.some(update=>update.id===result.workIds[0]),false,'the selection stays on the task the caller was on');
   }
@@ -212,13 +212,13 @@ for(const provider of ['codex','claude']){
   // No model is asked (the default executor fails the test), nothing is sent, queued or started.
   const result=await f.speak("What's going on? Why is this taking so long",page.id,undefined,mine);
   assert.equal(f.calls.length,0);assert.equal(result.action,'reply');assert.deepEqual(result.workIds,[]);
-  assert.equal(result.reply,'Your request “Build me a one-pager on the Riemann hypothesis” is still running, 3 min in. Inbox Brief is done.');
+  assert.equal(result.reply,'Your request “Build me a one-pager on the Riemann hypothesis” is still running, 3 min in. Resumo da caixa de entrada is done.');
   assert.equal(result.decision.rule,'router.taskStatus');assert.doesNotMatch(result.reply,/yesterday/,'only what is running or what this call started');
   // Waiting for an approval comes first; a conversation on a follow-up gives no misleading age, and says what is waiting.
   page.state='needs input';
   const follow=f.add({state:'working',title:'Draft the launch post',created:now-3600000,turns:[{id:'t2',ts:now-120000,text:'Draft ready.'}],queuedFollowups:1});
   const second=await f.speak('Hey, where are we at with all that',follow.id,undefined,{...mine,liveTaskIds:[page.id,brief.id,follow.id]});
-  assert.equal(second.reply,'Your request “Build me a one-pager on the Riemann hypothesis” needs your OK. It’s in the terminal tray. Your request “Draft the launch post” is still working on your follow-up. One more request is waiting behind it. Inbox Brief is done.');
+  assert.equal(second.reply,'Your request “Build me a one-pager on the Riemann hypothesis” needs your OK. It’s in the terminal tray. Your request “Draft the launch post” is still working on your follow-up. One more request is waiting behind it. Resumo da caixa de entrada is done.');
   assert.equal(f.calls.length,0);
  });
  test(`${provider}: a status question with nothing to report, one that also asks for something, and one off a call all go on as before`,async t=>{

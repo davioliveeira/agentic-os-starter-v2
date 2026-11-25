@@ -21,15 +21,15 @@ export function isHistoryWork(task:WorkPresentationTask|null|undefined):boolean 
 }
 
 const statusLabels:Record<string,string>={
- starting:'Starting',working:'Working','needs input':'Needs input',ready:'Ready',
- editing:'Editing',stopping:'Stopping',stopped:'Closed',error:'Needs attention',
+ starting:'Iniciando',working:'Em execução','needs input':'Precisa de resposta',ready:'Pronto',
+ editing:'Editando',stopping:'Parando',stopped:'Encerrado',error:'Precisa de atenção',
 };
 
 /** Closed describes the terminal lifecycle, never the success of an old answer. */
 export function taskStatus(task:WorkPresentationTask|null|undefined):string {
- if(!task)return 'No task selected';
- if(task.state==='stopped'&&typeof task.idleStoppedAt==='number'&&Number.isFinite(task.idleStoppedAt))return 'Closed (idle)';
- const label=statusLabels[task.state];return typeof label==='string'?label:'Status unknown';
+ if(!task)return 'Nenhuma tarefa selecionada';
+ if(task.state==='stopped'&&typeof task.idleStoppedAt==='number'&&Number.isFinite(task.idleStoppedAt))return 'Encerrado por inatividade';
+ const label=statusLabels[task.state];return typeof label==='string'?label:'Estado desconhecido';
 }
 export const workLabel=taskStatus;
 
