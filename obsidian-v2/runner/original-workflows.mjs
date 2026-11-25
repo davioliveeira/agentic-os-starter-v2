@@ -64,11 +64,11 @@ export function originalPrompt(intent) {
   const args = intent.args || {};
   switch (intent.skill) {
     case 'plan-today':
-      return "Propose today's complete daily note using the attached planning rubric and the vault's daily-note schema. Read the last three daily notes, recent active/due projects, and today's authenticated calendar. Preserve existing user priorities and checked items. The bridge applies only the schedule and empty priority slots.";
+      return "Propose today's complete daily note using the attached planning rubric and the vault's daily-note schema. Use Portuguese headings in a new note. Read the last three daily notes, recent active/due projects, and today's authenticated calendar. Preserve existing user priorities and checked items. The bridge applies only the schedule and empty priority slots.";
     case 'refresh-schedule':
-      return "Return today's complete daily note with a refreshed ## Schedule using the authenticated calendar in "+TIME_ZONE+". Sort timed events in 24-hour format; label all-day events. Retain the current note's other content exactly. A confirmed empty calendar is an empty schedule; unavailable access is blocked, not an empty calendar.";
+      return "Return today's complete daily note with a refreshed calendar section (## Agenda, or ## Schedule in an older note) using the authenticated calendar in "+TIME_ZONE+". Sort timed events in 24-hour format; label all-day events. Retain the current note's other content exactly. A confirmed empty calendar is an empty schedule; unavailable access is blocked, not an empty calendar.";
     case 'plan-tomorrow':
-      return "Create tomorrow's complete daily note only when absent, using the attached frozen-schema rubric: unfinished work, due projects, documented commitments, and tomorrow's authenticated calendar. STOP if tomorrow's note already exists; leave it unchanged and report its path. Return the complete new note for the bridge to validate and save; do not merge, overwrite or delete an existing note.";
+      return "Create tomorrow's complete daily note only when absent, using the attached rubric and Portuguese section headings: unfinished work, due projects, documented commitments, and tomorrow's authenticated calendar. STOP if tomorrow's note already exists; leave it unchanged and report its path. Return the complete new note for the bridge to validate and save; do not merge, overwrite or delete an existing note.";
     case 'morning':
       return 'Produce one consolidated morning briefing from the attached Morning Report and Inbox Brief rubrics. Research the trends and read-only inbox triage concurrently when supported; combine the complete results and number proposed follow-up actions.';
     case 'morning-report':

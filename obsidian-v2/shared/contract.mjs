@@ -39,7 +39,7 @@ export const SKILLS = {
   },
   "refresh-schedule": {
     "label": "Atualizar agenda",
-    "about": "Lê novamente o calendário e atualiza a seção Schedule da nota de hoje.",
+    "about": "Lê novamente o calendário e atualiza a seção de agenda da nota de hoje.",
     "needs": ["Google Agenda conectado à sua ferramenta de código","nota diária de hoje"],
     "instruction": "Complete the Refresh Schedule workflow."
   },

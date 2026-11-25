@@ -4,6 +4,7 @@ import type { App } from "obsidian";
 import { Notice } from "obsidian";
 import type { DriverItem } from "../lib/vault";
 import { toggleTaskByText, addTaskToSection } from "../lib/vault-writer";
+import { DAILY_HEADINGS } from "../../shared/daily-note.mjs";
 
 interface Props {
 	app: App;
@@ -19,7 +20,7 @@ export function DailyDriversChecklist({ app, path, items }: Props) {
 	const pct = items.length === 0 ? 0 : (doneCount / items.length) * 100;
 
 	const toggle = async (text: string) => {
-		const ok = await toggleTaskByText(app, path, "Daily Drivers", text);
+		const ok = await toggleTaskByText(app, path, DAILY_HEADINGS.drivers, text);
 		if (!ok) new Notice(`Não foi possível alterar: ${text}`);
 	};
 
@@ -27,9 +28,9 @@ export function DailyDriversChecklist({ app, path, items }: Props) {
 		e.preventDefault();
 		const text = newTask.trim();
 		if (!text) return;
-		const ok = await addTaskToSection(app, path, "Daily Drivers", text);
+		const ok = await addTaskToSection(app, path, DAILY_HEADINGS.drivers, text);
 		if (!ok) {
-			new Notice("Não foi possível adicionar: falta a seção Daily Drivers na nota diária");
+			new Notice(`Não foi possível adicionar à seção ${DAILY_HEADINGS.drivers} da nota diária`);
 			return;
 		}
 		setNewTask("");

@@ -30,9 +30,9 @@ python "<pasta da skill>/scripts/close_day.py" \
   --text "Concluí o painel e comecei a preparar a próxima entrega."
 ```
 
-O script lê os itens marcados na seção `Top 3 Priorities` e atualiza `effort`, `focus_blocks`, `posts_shipped`, `videos_shipped_today` e `top3_done`. Informe `--videos` para gravar explicitamente o total de vídeos publicados. A reflexão fica em `## EOD Reflection`. Preserve os nomes dessas seções e campos para que o painel consiga ler a nota.
+O script lê os itens marcados em `## 3 prioridades` ou `## Top 3 Priorities` e atualiza `effort`, `focus_blocks`, `posts_shipped` e `top3_done`. Informe `--videos` para atualizar `videos_shipped_today` com o total de vídeos publicados.
 
-Uma nova execução no mesmo dia substitui os valores anteriores dessa rotina e preserva as demais seções, como `Activity Log`, `Notes` e `Schedule`.
+O script grava a reflexão na seção existente, em `## Reflexão do dia` ou `## EOD Reflection`, e mantém seu título. Se a seção estiver ausente, acrescenta `## Reflexão do dia`. Uma nova execução no mesmo dia substitui os valores registrados por essa rotina e preserva as demais seções.
 
 ## 4. Confirmar
 

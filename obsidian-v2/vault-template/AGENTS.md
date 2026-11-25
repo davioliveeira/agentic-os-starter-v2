@@ -48,10 +48,10 @@ O Bases filtra projetos concluídos e arquivados. Ao acrescentar um valor ao esq
 
 ## Agentic OS V2
 
-- **Nota diária:** `system/schemas/daily-note.md` define `schema_version: 1` e a ordem das seções. Escreva texto livre em `## Notes`. Em `## Top 3 Priorities`, use `1. [ ] item` ou `1. [x] item`. A posição corresponde a `top3_done[]`. Seções novas que o leitor desconhece podem coexistir.
+- **Nota diária.** Crie notas com `schema_version: 1` e os títulos em português na ordem de `system/schemas/daily-note.md`. Em notas existentes, reconheça os títulos em ambos os idiomas conforme o esquema e preserve os cabeçalhos originais. Escreva texto livre na seção de notas. Para prioridades, use `1. [ ] item` ou `1. [x] item`. A posição corresponde a `top3_done[]`. Seções novas que o leitor desconhece podem coexistir.
 - **Métricas:** `system/metrics/metrics.csv` é incremental e usa `timestamp,source,metric,value,status,error`.
 - **Estado do V2:** a ponte grava registros em `system/v2/`. `profile.json` guarda preferências. Use `{"dailyDrivers":["Triar a caixa de entrada","Revisar o dia"],"speechLanguage":"pt"}` para configurar rotinas e voz. `pt` é português brasileiro. Para alterar o idioma da voz, aplique a configuração pelo instalador com o serviço parado.
-- **Planejar hoje e Atualizar agenda:** o planejamento de uma nota existente acrescenta apenas prioridades em posições vazias e atualiza `## Schedule`. Atualizar agenda mexe só em `## Schedule`.
+- **Planejar hoje e Atualizar agenda.** O planejamento de uma nota existente acrescenta apenas prioridades em posições vazias e atualiza a seção de agenda. Atualizar agenda edita somente essa seção. Use os títulos presentes na nota.
 - **Planejar amanhã:** cria uma nota apenas quando ela ainda não existe.
 - **Boletins, revisões, triagem, pesquisas e rascunhos:** gravam relatórios novos em `inbox/reports/` ou `inbox/research/`. O GitHub Trends e a coleta de métricas usam scripts. Respostas longas de voz ficam em `inbox/voice/`.
 - **Jarvis e Obsidian:** usam a ponte para alterar caixas e prioridades da nota de hoje.

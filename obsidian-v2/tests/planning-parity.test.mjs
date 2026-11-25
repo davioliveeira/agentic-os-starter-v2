@@ -6,6 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {prepareWorkflow,saveWorkflowResult} from '../runner/terminal-workflows.mjs';
 import {destinationFor} from '../runner/workflows.mjs';
+import {DAILY_HEADINGS,dailySections} from '../shared/daily-note.mjs';
 
 const selection={provider:'codex',model:'astra'};
 function fixture(t,skill='plan-tomorrow'){
@@ -61,21 +62,26 @@ Yesterday's blocker was the missing recording outline. Preserve this context.
 ## EOD Reflection
 `}
 
-test('new plans retain frozen frontmatter, conditional drivers and Notes in the actual saved file',t=>{
+const inPortuguese = text => [...dailySections(text)].reverse().reduce((out, {key,start,headingEnd}) =>
+ out.slice(0,start)+'## '+DAILY_HEADINGS[key]+out.slice(headingEnd),text);
+
+test('new plans save localized headings, frozen frontmatter and unchanged body content',t=>{
  for(const skill of ['plan-today','plan-tomorrow']){
-  const f=fixture(t,skill),answer=note(f.date),run=saveWorkflowResult(f.root,f.record,answer);
+  const f=fixture(t,skill),original=note(f.date);
+  const answer=skill==='plan-tomorrow'?original.replace('## Notes','## Notas'):inPortuguese(original);
+  const run=saveWorkflowResult(f.root,f.record,answer);
   assert.equal(run.status,'ok',run.summary);
-  assert.equal(fs.readFileSync(f.file,'utf8'),answer.trim());
+  assert.equal(fs.readFileSync(f.file,'utf8'),inPortuguese(original).trim());
   assert.equal(fs.readFileSync(path.join(f.root,run.artifact_path),'utf8'),answer);
   assert.equal(fs.existsSync(path.join(f.root,'system/v2/backups',f.record.id+'.md')),false);
  }
 });
 
 test('a stray <markdown> wrapper tag around a new plan is dropped, not rejected',t=>{
- for(const wrap of [text=>text+'</markdown>',text=>text+'\n</markdown>\n',text=>'<markdown>\n'+text+'\n</markdown>',text=>'<markdown>\n'+text]){
+ for(const wrap of [text=>text+'</markdown>',text=>text+'\n</markdown>\n',text=>'<markdown>\n'+text+'\n</markdown>',text=>'<markdown>\n'+text,text=>'```markdown\n'+text+'```']){
   const f=fixture(t,'plan-today'),answer=wrap(note(f.date)),run=saveWorkflowResult(f.root,f.record,answer);
   assert.equal(run.status,'ok',run.summary);
-  assert.equal(fs.readFileSync(f.file,'utf8'),note(f.date).trim());
+  assert.equal(fs.readFileSync(f.file,'utf8'),inPortuguese(note(f.date)).trim());
  }
  // Real text in the reflection is still refused; only a bare wrapper line at the very end is dropped.
  for(const tail of ['Invented reflection','Invented reflection\n</markdown>','</markdown>\nInvented reflection']){
@@ -103,7 +109,7 @@ test('invalid frozen fields, duplicate YAML, section order and automatic complet
  ];
  for(const mutate of mutations){
   const f=fixture(t),answer=mutate(note(f.date)),run=saveWorkflowResult(f.root,f.record,answer);
-  assert.equal(run.status,'error');assert.match(run.summary,/frozen|YAML/);assert.equal(fs.existsSync(f.file),false);
+  assert.equal(run.status,'error');assert.match(run.summary,/esquema v1|YAML|frontmatter obrigatório/);assert.equal(fs.existsSync(f.file),false);
   assert.equal(fs.readFileSync(path.join(f.root,run.artifact_path),'utf8'),answer);
  }
 });
@@ -112,7 +118,7 @@ test('plan tomorrow refuses an existing note before instructions or work are cre
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'v2-tomorrow-existing-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
  const id=crypto.randomUUID(),skill='plan-tomorrow',relative=destinationFor({id,skill,args:{}}),file=path.join(root,relative),before='User plan that must remain byte exact\r\n';
  fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,before);
- assert.throws(()=>prepareWorkflow(root,{id,skill,selection,args:{}}),/Tomorrow's note already exists/);
+ assert.throws(()=>prepareWorkflow(root,{id,skill,selection,args:{}}),/A nota de amanhã já existe/);
  assert.equal(fs.readFileSync(file,'utf8'),before);
  assert.equal(fs.existsSync(path.join(root,'system/v2/task-instructions',id+'.md')),false);
 });
@@ -121,7 +127,7 @@ test('a note created after planning started survives completion with the proposa
  const f=fixture(t),existing='A concurrent user-created tomorrow plan\r\n';
  fs.mkdirSync(path.dirname(f.file),{recursive:true});fs.writeFileSync(f.file,existing);
  const run=saveWorkflowResult(f.root,f.record,note(f.date));
- assert.equal(run.status,'error');assert.match(run.summary,/changed/);assert.equal(fs.readFileSync(f.file,'utf8'),existing);
+ assert.equal(run.status,'error');assert.match(run.summary,/mudou durante a execução/);assert.equal(fs.readFileSync(f.file,'utf8'),existing);
  assert.match(fs.readFileSync(path.join(f.root,run.artifact_path),'utf8'),/Preserve this context/);
 });
 
@@ -130,7 +136,7 @@ test('exclusive daily creation preserves a file appearing after the last compari
  fs.linkSync=(source,destination)=>{assert.equal(destination,f.file);fs.writeFileSync(destination,existing,{flag:'wx'});return link(source,destination)};
  t.after(()=>{fs.linkSync=link});
  const run=saveWorkflowResult(f.root,f.record,note(f.date));
- assert.equal(run.status,'error');assert.match(run.summary,/created while this task ran/);
+ assert.equal(run.status,'error');assert.match(run.summary,/foi criada durante a execução/);
  assert.equal(fs.readFileSync(f.file,'utf8'),existing);assert.equal(fs.existsSync(f.file+'.'+f.record.id+'.tmp'),false);
  assert.match(fs.readFileSync(path.join(f.root,run.artifact_path),'utf8'),/Prepare the recording/);
 });

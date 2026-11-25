@@ -4,7 +4,7 @@ Para rotina pessoal, use sete dias no calendário de America/Chicago, de seis di
 
 ## Evidências pessoais
 
-Leia as notas diárias sem alterá-las. Extraia `effort` (1–10), `focus_blocks`, `posts_shipped` por plataforma, `videos_shipped_today`, estados de Top 3 e Daily Drivers e reflexões. Quando houver divergência, use o estado das caixas no corpo. Diferencie nota ausente, esforço sem registro e valor zero.
+Leia as notas diárias sem alterá-las. Extraia `effort` (1–10), `focus_blocks`, `posts_shipped` por plataforma e `videos_shipped_today`. Use as seções `## 3 prioridades`, `## Rotinas diárias` e `## Reflexão do dia` ou seus títulos legados `## Top 3 Priorities`, `## Daily Drivers` e `## EOD Reflection`. Reconheça o título de cada seção mesmo em notas que misturam idiomas. Quando houver divergência, use o estado das caixas no corpo. Diferencie nota ausente, esforço sem registro e valor zero.
 
 Mostre média e tendência de esforço sobre valores registrados, total e média dos blocos com denominador, publicações por plataforma, total de vídeos, prioridades concluídas de 21 possíveis e rotinas concluídas sobre itens observados. Identifique dias ausentes e cobertura limitada com menos de três notas. Liste de dois a quatro padrões, como bloqueios que apareceram três vezes ou mais, resultados, variações de energia e atritos. Relacione compromissos parados e esforço às entregas documentadas.
 

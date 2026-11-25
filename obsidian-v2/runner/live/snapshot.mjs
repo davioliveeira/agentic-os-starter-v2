@@ -112,7 +112,7 @@ export async function liveSnapshot(root,{now=new Date(),usage={claude:getClaudeU
  const cards=[...usable.filter(youtube),...usable.filter(m=>!youtube(m))].slice(0,8);
  const date=on.today&&section('Today',[`daily-notes/${today}.md, ${today}`,'system/v2/profile.json'],[
   ...(!daily?.isToday?['No daily note for today yet, so the schedule and top 3 are unknown.']:[]),
-  `Daily Drivers: ${dailyDrivers(root).join(', ')}`,
+  `Rotinas diárias: ${dailyDrivers(root).join(', ')}`,
   ...(daily?.isToday?[...daily.top3.slice(0,3).map(item=>`${item.done?'Done':'Open'}: ${item.text}`),...daily.schedule.slice(0,10).map(item=>`${item.time} ${item.item}`)]:[])
  ],900);
  const work=liveShareWork?workRows(tasks(),now):[];

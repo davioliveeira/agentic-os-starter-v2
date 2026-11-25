@@ -28,27 +28,27 @@ videos_shipped_today: 0
 
 # <% dateIso %>
 
-## Current Focus
+## Foco atual
 
 
-## Top 3 Priorities
+## 3 prioridades
 1. [ ] 
 2. [ ] 
 3. [ ] 
 
-## Schedule
+## Agenda
 - 
 
-## Daily Drivers
+## Rotinas diárias
 - [ ] Triar a caixa de entrada
 - [ ] Separar um bloco de foco
 - [ ] Revisar o dia
 
-## Activity Log
+## Registro de atividades
 
 
-## Notes
+## Notas
 
 
-## EOD Reflection
+## Reflexão do dia
 

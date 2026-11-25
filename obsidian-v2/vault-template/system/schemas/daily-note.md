@@ -45,47 +45,50 @@ videos_shipped_today: 0
 
 ## Corpo em Markdown
 
-Mantenha os títulos abaixo exatamente escritos e na ordem indicada. O texto de cada seção pode ficar em português.
+Em notas novas, use os títulos em português exatamente como aparecem abaixo, na ordem indicada.
 
 ```
 # YYYY-MM-DD
 
-## Current Focus
+## Foco atual
 <um parágrafo>
 
-## Top 3 Priorities
+## 3 prioridades
 1. [ ] ...
 2. [ ] ...
 3. [ ] ...
 
-## Schedule
+## Agenda
 - HH:MM — <título do evento>
+- 00:00 — (dia inteiro) <título do evento>
 
-## Daily Drivers
+## Rotinas diárias
 - [ ] Triar a caixa de entrada
 - [ ] Separar um bloco de foco
 - [ ] Revisar o dia
 
-## Activity Log
+## Registro de atividades
 <registro acrescentado pelo hook PostToolUse>
 
-## Notes
+## Notas
 <texto livre>
 
-## EOD Reflection
+## Reflexão do dia
 <reflexão registrada por /close-day>
 ```
 
-| Seção | Quem escreve | Onde aparece |
-|---|---|---|
-| `# YYYY-MM-DD` | Modelo | Título |
-| `## Current Focus` | Pessoa ou planejamento | Cartão de foco |
-| `## Top 3 Priorities` | Pessoa ou planejamento | Cartão de prioridades |
-| `## Schedule` | Planejamento ou sincronização do calendário | Agenda |
-| `## Daily Drivers` | Modelo e pessoa | Lista de rotinas |
-| `## Activity Log` | Hook de atividade | Registro opcional |
-| `## Notes` | Pessoa | Nota |
-| `## EOD Reflection` | `/close-day` | Nota |
+Ao ler ou editar notas existentes, reconheça os dois títulos de cada seção, inclusive em notas que misturam idiomas. Preserve os títulos já presentes.
+
+| Título em notas novas | Título legado | Quem escreve | Onde aparece |
+|---|---|---|---|
+| `# YYYY-MM-DD` | `# YYYY-MM-DD` | Modelo | Título |
+| `## Foco atual` | `## Current Focus` | Pessoa ou planejamento | Cartão de foco |
+| `## 3 prioridades` | `## Top 3 Priorities` | Pessoa ou planejamento | Cartão de prioridades |
+| `## Agenda` | `## Schedule` | Planejamento ou sincronização do calendário | Agenda |
+| `## Rotinas diárias` | `## Daily Drivers` | Modelo e pessoa | Lista de rotinas |
+| `## Registro de atividades` | `## Activity Log` | Hook de atividade | Registro opcional |
+| `## Notas` | `## Notes` | Pessoa | Nota |
+| `## Reflexão do dia` | `## EOD Reflection` | `/close-day` | Nota |
 
 O leitor preserva espaços do conteúdo e ignora seções que não conhece. Sem uma seção de foco, prioridades ou rotinas, o cartão correspondente pode aparecer vazio. Em prioridades, use linhas como `1. [ ] tarefa` ou `1. [x] tarefa`. A posição da linha corresponde ao índice de `top3_done`. As rotinas usam caixas sem numeração. Na agenda, separe horário e evento com travessão e use relógio de 24 horas.
 

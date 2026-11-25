@@ -1,4 +1,5 @@
 import {TIME_ZONE} from '../shared/timezone.mjs';
+import {DAILY_HEADINGS,findDailySection} from '../shared/daily-note.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -56,17 +57,26 @@ export async function calendarFor(date){
  const events=[];let pageToken;
  do{const result=await googleRead('calendar','events','list',{calendarId:'primary',timeMin:start.toISOString(),timeMax:end.toISOString(),singleEvents:true,orderBy:'startTime',maxResults:250,...(pageToken?{pageToken}:{})});events.push(...(result.items||[]));pageToken=result.nextPageToken;if(events.length>5000)throw new Error('Calendar response exceeded limit')}while(pageToken);
  const fmt=new Intl.DateTimeFormat('en-CA',{timeZone:TIME_ZONE}),time=new Intl.DateTimeFormat('en-GB',{timeZone:TIME_ZONE,hour:'2-digit',minute:'2-digit',hour12:false});
- return events.filter(e=>e.status!=='cancelled'&&(e.start?.date?e.start.date<=date&&e.end?.date>date:fmt.format(new Date(e.start.dateTime))===date)).map(e=>`- ${e.start.date?'00:00':time.format(new Date(e.start.dateTime))} — ${e.start.date?'(all-day) ':''}${String(e.summary||'Busy').replace(/[\r\n]+/g,' ')}`).join('\n');
+ return events.filter(e=>e.status!=='cancelled'&&(e.start?.date?e.start.date<=date&&e.end?.date>date:fmt.format(new Date(e.start.dateTime))===date)).map(e=>`- ${e.start.date?'00:00':time.format(new Date(e.start.dateTime))} — ${e.start.date?'(dia inteiro) ':''}${String(e.summary||'Ocupado').replace(/[\r\n]+/g,' ')}`).join('\n');
 }
 // macOS and most Linux installs have no bare `python`.
 export const pythonCommand=(env=process.env,platform=process.platform)=>env.AOS_V2_PYTHON||(platform==='win32'?'python':'python3');
 export function mergeDaily(before,date,schedule,priorities=[],drivers=DEFAULT_DRIVERS){
- if(!before)before=`---\ndate: ${date}\nschema_version: 1\n---\n# ${date}\n\n## Current Focus\n\n## Top 3 Priorities\n1. [ ] \n2. [ ] \n3. [ ] \n\n## Schedule\n\n## Daily Drivers\n${drivers.map(label=>'- [ ] '+label).join('\n')}\n\n## Activity Log\n\n## Notes\n\n## EOD Reflection\n`;
- if(!/^schema_version:\s*1\s*$/m.test(before))throw new Error('Daily note schema is missing or unsupported; original left unchanged');
- if(!/^## Schedule\s*$/m.test(before))throw new Error('Daily note Schedule section missing; original left unchanged');
- const nl=before.includes('\r\n')?'\r\n':'\n';
- let result=before.replace(/(^## Schedule[^\r\n]*\r?\n)[\s\S]*?(?=^## |$(?![\s\S]))/m,(_match,heading)=>heading+schedule.replace(/\r?\n/g,nl)+nl+nl);
- if(priorities.length){let cursor=0;result=result.replace(/(^## Top 3 Priorities[^\r\n]*\r?\n)([\s\S]*?)(?=^## |$(?![\s\S]))/m,(_m,heading,body)=>heading+body.replace(/^(\d+\. \[ \])[^\S\r\n]*(\r?)$/gm,(line,prefix,cr)=>cursor<priorities.length?prefix+' '+priorities[cursor++]+cr:line));}
+ const headings=DAILY_HEADINGS;
+ if(!before)before=`---\ndate: ${date}\nschema_version: 1\n---\n# ${date}\n\n## ${headings.focus}\n\n## ${headings.priorities}\n1. [ ] \n2. [ ] \n3. [ ] \n\n## ${headings.schedule}\n\n## ${headings.drivers}\n${drivers.map(label=>'- [ ] '+label).join('\n')}\n\n## ${headings.activity}\n\n## ${headings.notes}\n\n## ${headings.reflection}\n`;
+ if(!/^schema_version:\s*1\s*$/m.test(before))throw new Error('O esquema da nota diária está ausente ou é incompatível. A nota original foi preservada.');
+ const section=findDailySection(before,'schedule');
+ if(!section)throw new Error('A seção Agenda da nota diária está ausente. A nota original foi preservada.');
+ const {headingEnd,bodyStart,end}=section;
+ const nl=before.slice(headingEnd,bodyStart)||(before.includes('\r\n')?'\r\n':'\n');
+ const headingBreak=bodyStart===headingEnd?nl:'';
+ let result=before.slice(0,bodyStart)+headingBreak+schedule.replace(/\r?\n/g,nl)+nl+nl+before.slice(end);
+ const target=priorities.length?findDailySection(result,'priorities'):null;
+ if(target){
+  let cursor=0;
+  const body=result.slice(target.bodyStart,target.end).replace(/^(\d+\. \[ \])[^\S\r\n]*(\r?)$/gm,(line,prefix,cr)=>cursor<priorities.length?prefix+' '+priorities[cursor++]+cr:line);
+  result=result.slice(0,target.bodyStart)+body+result.slice(target.end);
+ }
  return result;
 }
 const referenceDependencies={

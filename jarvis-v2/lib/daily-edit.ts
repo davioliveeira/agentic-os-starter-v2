@@ -1,6 +1,6 @@
 import { TIME_ZONE } from '../../obsidian-v2/shared/timezone.mjs';
 import { serverBridge as bridge } from './bridge-server';
-import { invalidateVaultSnapshot } from './vault';
+import { invalidateVaultSnapshot, parseDailyPriorities } from './vault';
 import { sameOrigin } from './preview';
 
 type Bridge = (path: string, body?: unknown) => Promise<any>;
@@ -21,23 +21,13 @@ function parseDirective(value: unknown, today: string): Directive {
 }
 
 function updatePriority(before: string, directive: Directive): string {
-  // Keep every byte outside the checkbox, including mixed line endings and BOM.
-  const lines = before.split('\n');
-  let section = '', seen = -1;
-  for (let i = 0; i < lines.length; i++) {
-    const heading = lines[i].match(/^##\s+(.*)/);
-    if (heading) { section = heading[1].trim(); continue; }
-    if (section !== 'Top 3 Priorities') continue;
-    const item = lines[i].match(/^(\d+\.\s+)\[( |x)\](\s+)(.*)/);
-    if (!item || ++seen !== directive.index) continue;
-    if (item[4].trim() !== directive.text.trim()) {
-      throw new DirectiveError('A prioridade mudou desde que apareceu no painel. As edições recentes foram preservadas. Atualize o painel e tente novamente.', 409);
-    }
-    const checkbox = item[1].length + 1;
-    lines[i] = lines[i].slice(0, checkbox) + (directive.done ? 'x' : ' ') + lines[i].slice(checkbox + 1);
-    return lines.join('\n');
+  const item = parseDailyPriorities(before)[directive.index];
+  if (!item) throw new DirectiveError('A prioridade não foi encontrada na nota de hoje. Atualize o painel e tente novamente.', 404);
+  if (item.text !== directive.text.trim()) {
+    throw new DirectiveError('A prioridade mudou desde que apareceu no painel. As edições recentes foram preservadas. Atualize o painel e tente novamente.', 409);
   }
-  throw new DirectiveError('A prioridade não foi encontrada na nota de hoje. Atualize o painel e tente novamente.', 404);
+  // Keep every byte outside the checkbox, including mixed line endings and BOM.
+  return before.slice(0, item.offset) + (directive.done ? 'x' : ' ') + before.slice(item.offset + 1);
 }
 
 export function createDailyPost({ requestBridge = bridge, invalidate = invalidateVaultSnapshot, now = () => new Date() }: {

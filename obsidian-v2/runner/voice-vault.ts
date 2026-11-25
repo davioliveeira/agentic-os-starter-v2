@@ -1,5 +1,6 @@
 // Vault parsers ported from the original Jarvis router; root is request-scoped.
 import { TIME_ZONE } from "../shared/timezone.mjs";
+import { appendDailyDriver, dailyCheckboxes, dailySections } from "../shared/daily-note.mjs";
 import fs from "fs";
 import path from "path";
 
@@ -11,7 +12,7 @@ import path from "path";
 
 import { voiceContext } from "./voice-context.mjs";
 import { vaultPath } from "./core.mjs";
-import { appendDailyDriver, dailyCheckboxEdit, replaceDaily } from "./note-edits.mjs";
+import { dailyCheckboxEdit, replaceDaily } from "./note-edits.mjs";
 import { parseHackerNews } from "./brief-voice.mjs";
 const vaultRoot = () => voiceContext().root;
 function writeDaily(file: string, before: string, after: string, describe: () => object) {
@@ -359,7 +360,7 @@ export function readQueue(): QueueEntry[] {
 
 // --- daily note -----------------------------------------------------------------
 // Today's note if present, else the most recent. Parser contract: frozen v1
-// schema — `## Top 3 Priorities` numbered checkboxes + `## Schedule` bullets.
+// schema — numbered priorities and calendar entries in either language.
 export function readDailyNote(now: Date = new Date()): DailyNote | null {
   const dir = path.join(vaultRoot(), "daily-notes");
   // local (America/Chicago) date — toISOString() is UTC and flips to
@@ -392,25 +393,19 @@ export function readDailyNote(now: Date = new Date()): DailyNote | null {
   const raw = safeRead(file);
   if (!raw) return null;
 
-  const top3: { text: string; done: boolean }[] = [];
+  const sections = dailySections(raw);
+  const top3 = dailyCheckboxes(raw, sections).filter(item => item.key === "priorities" && item.numbered)
+    .map(({text, done}) => ({text, done}));
   const schedule: { time: string; item: string }[] = [];
   let focus = "";
-
-  let section = "";
-  for (const line of raw.split(/\r?\n/)) {
-    const h = line.match(/^##\s+(.*)/);
-    if (h) {
-      section = h[1].trim();
-      continue;
-    }
-    if (section === "Top 3 Priorities") {
-      const m = line.match(/^\d+\.\s+\[( |x)\]\s+(.*)/);
-      if (m) top3.push({ text: m[2].trim(), done: m[1] === "x" });
-    } else if (section === "Schedule") {
-      const m = line.match(/^-\s+(\d{1,2}:\d{2})\s*[—–-]+\s*(.*)/);
-      if (m) schedule.push({ time: m[1], item: m[2].trim() });
-    } else if (section === "Current Focus") {
-      if (line.trim() && !focus) focus = line.trim();
+  for (const section of sections) {
+    const body = raw.slice(section.bodyStart, section.end);
+    if (section.key === "focus" && !focus) {
+      focus = body.split(/\r?\n/).find(line => line.trim())?.trim() ?? "";
+    } else if (section.key === "schedule") {
+      for (const match of body.matchAll(/^-\s+(\d{1,2}:\d{2})[ \t]*[—–-]+[ \t]*([^\r\n]*)/gm)) {
+        schedule.push({ time: match[1], item: match[2].trim() });
+      }
     }
   }
 
@@ -419,7 +414,7 @@ export function readDailyNote(now: Date = new Date()): DailyNote | null {
 
 // --- daily note write — flip a Top 3 checkbox -----------------------------------
 // Only today's note is writable (stale notes are history). Index = nth
-// checkbox under `## Top 3 Priorities`, matching the parser above.
+// checkbox in the priorities section, matching the parser above.
 export function toggleTop3(index: number, done: boolean): boolean {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(
     new Date()
@@ -428,29 +423,10 @@ export function toggleTop3(index: number, done: boolean): boolean {
   const raw = safeRead(file);
   if (!raw) return false;
 
-  const eol = raw.includes("\r\n") ? "\r\n" : "\n";
-  const lines = raw.split(/\r?\n/);
-  let section = "";
-  let seen = -1;
-  for (let i = 0; i < lines.length; i++) {
-    const h = lines[i].match(/^##\s+(.*)/);
-    if (h) {
-      section = h[1].trim();
-      continue;
-    }
-    if (section !== "Top 3 Priorities") continue;
-    const m = lines[i].match(/^(\d+\.\s+)\[( |x)\](\s+.*)/);
-    if (!m) continue;
-    seen++;
-    if (seen === index) {
-      const replacement = `${m[1]}[${done ? "x" : " "}]${m[3]}`;
-      const updated = lines.slice();
-      updated[i] = replacement;
-      writeDaily(file, raw, updated.join(eol), () => dailyCheckboxEdit(lines, i, replacement));
-      return true;
-    }
-  }
-  return false;
+  const item = dailyCheckboxes(raw).filter(item => item.key === "priorities" && item.numbered)[index];
+  if (!item) return false;
+  writeDailyCheckbox(file, raw, item, done);
+  return true;
 }
 
 // --- daily note write — driver toggles + quick-add --------------------------------
@@ -465,6 +441,15 @@ function todayNotePath(): string {
   return path.join(vaultRoot(), "daily-notes", `${today}.md`);
 }
 
+function writeDailyCheckbox(file: string, raw: string, item: ReturnType<typeof dailyCheckboxes>[number], done: boolean) {
+  const mark = item.offset - item.start;
+  const replacement = item.line.slice(0, mark) + (done ? "x" : " ") + item.line.slice(mark + 1);
+  writeDaily(file, raw, raw.slice(0, item.start) + replacement + raw.slice(item.end),
+    () => dailyCheckboxEdit(item, replacement));
+}
+
+const foldTaskText = (text: string) => text.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
+
 /** fuzzy checkbox toggle across Top 3 (numbered) and Daily Drivers (dashed).
  *  Scores word overlap between the spoken target and each item's text. */
 export function toggleTaskFuzzy(
@@ -474,51 +459,30 @@ export function toggleTaskFuzzy(
   const raw = safeRead(file);
   if (!raw) return { ok: false };
 
-  const wanted = target
-    .toLowerCase()
+  const wanted = foldTaskText(target)
     .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/)
-    .filter((w) => w.length > 2);
-  if (wanted.length === 0) return { ok: false };
+    .filter(word => word.length > 2);
+  if (!wanted.length) return { ok: false };
 
-  const eol = raw.includes("\r\n") ? "\r\n" : "\n";
-  const lines = raw.split(/\r?\n/);
-  let section = "";
-  let bestLine = -1;
+  let best: ReturnType<typeof dailyCheckboxes>[number] | undefined;
   let bestScore = 0;
-  let bestSection = "";
-  const CHECKBOX = /^(?:\d+\.|-)\s+\[( |x)\]\s+(.*)/;
-  for (let i = 0; i < lines.length; i++) {
-    const h = lines[i].match(/^##\s+(.*)/);
-    if (h) {
-      section = h[1].trim();
-      continue;
-    }
-    if (section !== "Top 3 Priorities" && section !== "Daily Drivers") continue;
-    const m = lines[i].match(CHECKBOX);
-    if (!m) continue;
-    const hay = m[2].toLowerCase();
-    const score = wanted.reduce((s, w) => s + (hay.includes(w) ? 1 : 0), 0);
+  for (const item of dailyCheckboxes(raw)) {
+    const hay = foldTaskText(item.text);
+    const score = wanted.reduce((total, word) => total + (hay.includes(word) ? 1 : 0), 0);
     if (score > bestScore) {
+      best = item;
       bestScore = score;
-      bestLine = i;
-      bestSection = section;
     }
   }
-  // require a real match — at least half the content words, min 1
-  if (bestLine < 0 || bestScore < Math.max(1, Math.ceil(wanted.length / 2))) {
-    return { ok: false };
-  }
-  const m = lines[bestLine].match(/^((?:\d+\.|-)\s+)\[( |x)\](\s+)(.*)/)!;
-  const nowDone = m[2] !== "x";
-  const replacement = `${m[1]}[${nowDone ? "x" : " "}]${m[3]}${m[4]}`;
-  const updated = lines.slice();
-  updated[bestLine] = replacement;
-  writeDaily(file, raw, updated.join(eol), () => dailyCheckboxEdit(lines, bestLine, replacement));
-  return { ok: true, item: m[4].trim(), done: nowDone, section: bestSection };
+  if (!best || bestScore < Math.max(1, Math.ceil(wanted.length / 2))) return { ok: false };
+
+  const done = !best.done;
+  writeDailyCheckbox(file, raw, best, done);
+  return { ok: true, item: best.text, done, section: best.section };
 }
 
-/** append `- [ ] text` under ## Daily Drivers in today's note */
+/** Append a checkbox to the drivers section of today's note. */
 export function addDriver(text: string): boolean {
   const trimmed = text.replace(/[\r\n]+/g, " ").trim();
   if (!trimmed) return false;

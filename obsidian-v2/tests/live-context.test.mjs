@@ -84,7 +84,7 @@ test('overfull inputs fit the snapshot and section budgets with whole-word cuts'
  assert.ok(bytes(text)<=SNAPSHOT_MAX_BYTES);
  assert.ok(bytes(about.split('\n').slice(1).join('\n'))<=2000);
  for(const [value,limit] of [[today,900],[work,700],[inbox,250],[numbers,900],[news,1400],[radar,900]])assert.ok(bytes(value)<=limit,value);
- assert.match(today,/Daily Drivers: Hydrate, Review notes/);
+ assert.match(today,/Rotinas diárias: Hydrate, Review notes/);
  assert.equal((work.match(/\(Claude, working, \d+ min\)/g)||[]).length,5);
  assert.match(numbers,/2026-11-19, stale\)/);assert.match(numbers,/Metrics were last pulled 2026-11-19; say so if asked\./);
  assert.match(numbers,/published 2026-11-18: Latest upload, 120 views/);
@@ -106,7 +106,7 @@ test('only task titles and metadata and recent inbox counts reach the session bo
  write('system/v2/profile.json',JSON.stringify({dailyDrivers:['Personal driver']}));
  const text=await snapshot({tasks}),body=liveSessionBody({sdp:'fixture',prefs:{liveVoice:'marin'},snapshot:text,history:''});
  assert.match(text,/No daily note for today yet, so the schedule and top 3 are unknown\./);
- assert.match(text,/Daily Drivers: Personal driver/);
+ assert.match(text,/Rotinas diárias: Personal driver/);
  assert.match(text,/\n- In progress \(Claude, working, 12 min\)\n- Needs review \(Codex, needs input, 30 min\)\n- Closed task \(Claude, stopped, 40 min\)\n- Recent result \(Claude, finished, 2 h\)\n- Long running \(Claude, working, 5 h\)/);
  assert.match(text,/\nNew vault notes \([^\n]+; not email\)\n- reports 1, research 1\n/);
  assert.doesNotMatch(text,/Too old|Setup/);

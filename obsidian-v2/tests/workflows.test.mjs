@@ -1,6 +1,7 @@
 import test,{after} from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import crypto from 'node:crypto';
 import {SKILLS,ROOT,validateIntent} from '../shared/contract.mjs';
 import {mergeDaily,destinationFor} from '../runner/workflows.mjs';
+import {appendDailyDriver,dailyCheckboxes,dailySections} from '../shared/daily-note.mjs';
 import {processJob,writeJson,buildPrompt} from '../runner/core.mjs';
 import {routeVoice} from '../runner/bridge-core.mjs';
 import {parseWorkerResult} from '../runner/adapters.mjs';
@@ -23,7 +24,19 @@ test('daily merge fills empty slots and preserves all other content and checked 
  assert.equal(out.slice(out.indexOf('## Daily Drivers')),note.slice(note.indexOf('## Daily Drivers')));
  assert.equal(out.slice(0,out.indexOf('## Top 3')),note.slice(0,note.indexOf('## Top 3')));
  const windows=mergeDaily(note.replace(/\n/g,'\r\n'),'2026-09-06','- 14:00 — Event',['New priority']);assert.match(windows,/3\. \[ \] New priority\r\n/);assert.equal(windows.slice(windows.indexOf('## Daily Drivers')),note.slice(note.indexOf('## Daily Drivers')).replace(/\n/g,'\r\n'));
- assert.throws(()=>mergeDaily(note.replace('schema_version: 1','schema_version: 2'),'2026-09-06',''),/unsupported/);
+ assert.throws(()=>mergeDaily(note.replace('schema_version: 1','schema_version: 2'),'2026-09-06',''),/esquema da nota diária está ausente ou é incompatível/);
+});
+test('daily edits use mixed headings and leave fenced examples and surrounding bytes intact',()=>{
+ const before='\uFEFF---\r\nschema_version: 1\r\n---\r\n## Notas\r\n```md\r\n## Agenda\r\n- Exemplo\r\n```\r\n\r\n## Top 3 Priorities\r\n1. [ ] \r\n\r\n## Agenda\r\n- 10:00 — Evento antigo\r\n\r\n## Rotinas diárias\r\n- [x] Revisão\t\r\n\r\n## Reflection draft\r\nManter.\r\n';
+ assert.deepEqual(dailySections(before).map(section=>section.key),['notes','priorities','schedule','drivers',undefined]);
+ assert.equal(mergeDaily(before,'2026-09-06','- 14:00 — Evento novo',['Preparar apresentação']),before
+   .replace('1. [ ] \r\n','1. [ ] Preparar apresentação\r\n')
+   .replace('10:00 — Evento antigo','14:00 — Evento novo'));
+ const after=appendDailyDriver(before,'Preparar relatório');
+ assert.equal(after,before.replace('- [x] Revisão\t\r\n','- [x] Revisão\t\r\n- [ ] Preparar relatório\r\n'));
+ const checkbox=dailyCheckboxes(after).find(item=>item.text==='Revisão');
+ assert.equal(after[checkbox.offset],'x');
+ assert.equal(appendDailyDriver('## Notas\nSem rotinas.\n','Tarefa'),null);
 });
 test('calendar failure never changes the daily note or calls a planner',async()=>{
  const root=temp(),j=job('plan-today'),file=path.join(root,destinationFor(j));fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,note);

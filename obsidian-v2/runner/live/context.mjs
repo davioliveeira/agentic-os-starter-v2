@@ -16,7 +16,7 @@ import {clip} from './clip.mjs';
 
 export const LIVE_CONTEXT_FILE='system/v2/live-context.json';
 export const LIVE_SECTIONS=Object.freeze({
- today:'Hoje: três prioridades, agenda e Daily Drivers da nota de hoje (Planejar hoje)',
+ today:'Hoje: três prioridades, agenda e rotinas diárias da nota de hoje (Planejar hoje)',
  inbox:'Notas novas no cofre: quantas notas chegaram a cada pasta em inbox/ nas últimas 24 horas',
  numbers:'Números: métricas e seu vídeo mais recente (Atualizar métricas)',
  news:'Notícias: principais manchetes do boletim da manhã (Boletim de IA)',

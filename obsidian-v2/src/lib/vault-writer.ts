@@ -1,22 +1,33 @@
 import type { App, TFile } from "obsidian";
-import {Notice} from 'obsidian';
-import {assertVoiceVault,v2VoiceTransport} from './v2-voice';
-async function guardedModify(app:App,file:TFile,before:string,after:string){
- try{
- await assertVoiceVault(app);
- const r=await v2VoiceTransport('/notes/replace',{method:'POST',body:JSON.stringify({path:file.path,before,after})});
- if(r.status!==200)throw new Error(r.json?.error||'Note edit failed');
- return true;
- }catch(e){new Notice(String(e));return false}
+import { Notice } from "obsidian";
+import { appendDailySectionLine, dailySectionKey, dailySections, findDailySection } from "../../shared/daily-note.mjs";
+import { assertVoiceVault, v2VoiceTransport } from "./v2-voice";
+
+async function guardedModify(app: App, file: TFile, before: string, after: string): Promise<boolean> {
+	try {
+		await assertVoiceVault(app);
+		const response = await v2VoiceTransport("/notes/replace", {
+			method: "POST",
+			body: JSON.stringify({ path: file.path, before, after }),
+		});
+		if (response.status !== 200) throw new Error(response.json?.error || "Não foi possível editar a nota");
+		return true;
+	} catch (error) {
+		new Notice(String(error));
+		return false;
+	}
 }
 
-/**
- * Toggle the first checkbox line whose visible text matches `text`
- * inside the section under `## <heading>`.
- *
- * Used by both `## Daily Drivers` (flat `- [ ]` checklist) and
- * `## Top 3 Priorities` (numbered `1. [ ]` list — see toggleTop3 below).
- */
+function findTaskSection(raw: string, heading: string) {
+	const key = dailySectionKey(heading);
+	return key ? findDailySection(raw, key) : dailySections(raw).find((section) => section.name === heading.trim());
+}
+
+function toggleCheckbox(state: string): string {
+	return state.toLowerCase() === "x" ? " " : "x";
+}
+
+/** Toggle the first matching checkbox in a bulleted list under `heading`. */
 export async function toggleTaskByText(
 	app: App,
 	path: string,
@@ -27,38 +38,19 @@ export async function toggleTaskByText(
 	if (!file || !("extension" in file)) return false;
 	const tfile = file as TFile;
 	const raw = await app.vault.read(tfile);
-    const original = raw;
+	const section = findTaskSection(raw, heading);
+	if (!section) return false;
 
-	const headingMarker = `## ${heading}`;
-	const idx = raw.indexOf(headingMarker);
-	if (idx < 0) return false;
-
-	const afterHeading = idx + headingMarker.length;
-	const nextSection = raw.indexOf("\n## ", afterHeading);
-	const sectionStart = afterHeading;
-	const sectionEnd = nextSection < 0 ? raw.length : nextSection;
-
-	const before = raw.slice(0, sectionStart);
-	const after = raw.slice(sectionEnd);
-	const section = raw.slice(sectionStart, sectionEnd);
-
-	const lines = section.split("\n");
-	let toggled = false;
-	for (let i = 0; i < lines.length; i++) {
-		const m = lines[i]!.match(/^(\s*-\s+\[)([ xX])(\]\s+)(.*?)(\r?)$/);
-		if (!m) continue;
-		const visibleText = m[4]!.trim();
-		if (visibleText === text.trim()) {
-			const nextState = m[2]!.toLowerCase() === "x" ? " " : "x";
-			lines[i] = `${m[1]}${nextState}${m[3]}${m[4]}${m[5]}`;
-			toggled = true;
-			break;
-		}
+	const target = text.trim();
+	const { bodyStart, end } = section;
+	const lines = raw.slice(bodyStart, end).split("\n");
+	for (const [i, line] of lines.entries()) {
+		const m = line.match(/^([ \t]*-[ \t]+\[)([ xX])(\][ \t]+)(.*?)(\r?)$/);
+		if (!m || m[4]!.trim() !== target) continue;
+		lines[i] = `${m[1]}${toggleCheckbox(m[2]!)}${m[3]}${m[4]}${m[5]}`;
+		return guardedModify(app, tfile, raw, raw.slice(0, bodyStart) + lines.join("\n") + raw.slice(end));
 	}
-	if (!toggled) return false;
-
-	const newRaw = before + lines.join("\n") + after;
-	return guardedModify(app, tfile, original, newRaw);
+	return false;
 }
 
 /**
@@ -78,23 +70,52 @@ export async function addTaskToSection(
 	if (!file || !("extension" in file)) return false;
 	const tfile = file as TFile;
 	const raw = await app.vault.read(tfile);
-    const original = raw;
+	const section = findTaskSection(raw, heading);
+	if (!section) return false;
+	return guardedModify(app, tfile, raw, appendDailySectionLine(raw, section, `- [ ] ${trimmed}`));
+}
 
-	const headingMarker = `## ${heading}`;
-	const idx = raw.indexOf(headingMarker);
-	if (idx < 0) return false;
+function editPriorityLine(
+	raw: string,
+	section: NonNullable<ReturnType<typeof findDailySection>>,
+	index: number,
+	edit: (match: RegExpMatchArray) => string,
+): string | undefined {
+	const { bodyStart, end } = section;
+	const lines = raw.slice(bodyStart, end).split("\n");
+	for (const [i, line] of lines.entries()) {
+		const m = line.match(/^([ \t]*(\d+)\.[ \t]+\[)([ xX])(\][ \t]+)(.*?)(\r?)$/);
+		if (!m || Number(m[2]) !== index + 1) continue;
+		lines[i] = edit(m);
+		return raw.slice(0, bodyStart) + lines.join("\n") + raw.slice(end);
+	}
+	return undefined;
+}
 
-	const afterHeading = idx + headingMarker.length;
-	const nextSection = raw.indexOf("\n## ", afterHeading);
-	const insertAt = nextSection < 0 ? raw.length : nextSection;
+function updateTop3Frontmatter(raw: string, index: number, text: string): string {
+	const opening = raw.match(/^\uFEFF?---[ \t]*\r?\n/);
+	if (!opening) return raw;
+	const start = opening[0].length;
+	const rest = raw.slice(start);
+	const end = rest.search(/^---[ \t]*\r?$/m);
+	if (end < 0) return raw;
 
-	// Walk back from insertAt to find the last non-blank line in this section.
-	const sectionContent = raw.slice(afterHeading, insertAt);
-	const trimmedSection = sectionContent.replace(/\s+$/, "");
-	const newSection = `${trimmedSection}\n- [ ] ${trimmed}\n`;
-
-	const newRaw = raw.slice(0, afterHeading) + newSection + raw.slice(insertAt);
-	return guardedModify(app, tfile, original, newRaw);
+	const lines = rest.slice(0, end).split("\n");
+	let inTop3 = false;
+	let slot = 0;
+	for (const [i, line] of lines.entries()) {
+		if (/^top3:[ \t]*\r?$/.test(line)) {
+			inTop3 = true;
+			slot = 0;
+		} else if (inTop3 && line.startsWith("  - ")) {
+			if (slot++ !== index) continue;
+			lines[i] = `  - ${JSON.stringify(text)}${line.endsWith("\r") ? "\r" : ""}`;
+			return raw.slice(0, start) + lines.join("\n") + rest.slice(end);
+		} else if (inTop3 && /^\S/.test(line)) {
+			break;
+		}
+	}
+	return raw;
 }
 
 /**
@@ -112,73 +133,13 @@ export async function setTop3TextByIndex(
 	const file = app.vault.getAbstractFileByPath(path);
 	if (!file || !("extension" in file)) return false;
 	const tfile = file as TFile;
-	let raw = await app.vault.read(tfile);
-    const original = raw;
+	const raw = await app.vault.read(tfile);
+	const section = findDailySection(raw, "priorities");
+	if (!section) return false;
 	const trimmed = text.trim();
-
-	// 1. Update the body's numbered list line.
-	const headingMarker = "## Top 3 Priorities";
-	const idx = raw.indexOf(headingMarker);
-	if (idx < 0) return false;
-
-	const afterHeading = idx + headingMarker.length;
-	const nextSection = raw.indexOf("\n## ", afterHeading);
-	const sectionEnd = nextSection < 0 ? raw.length : nextSection;
-	const before = raw.slice(0, afterHeading);
-	const after = raw.slice(sectionEnd);
-	const section = raw.slice(afterHeading, sectionEnd);
-
-	const lines = section.split("\n");
-	let found = false;
-	for (let i = 0; i < lines.length; i++) {
-		const m = lines[i]!.match(/^(\s*)(\d+)(\.\s+\[)([ xX])(\]\s+)(.*?)(\r?)$/);
-		if (!m) continue;
-		const lineIdx = parseInt(m[2]!, 10) - 1;
-		if (lineIdx === index) {
-			lines[i] = `${m[1]}${m[2]}${m[3]}${m[4]}${m[5]}${trimmed}${m[7]}`;
-			found = true;
-			break;
-		}
-	}
-	if (!found) {
-		// Re-emit 3 lines from scratch if structure is degraded.
-		// Conservative: just append at end of section.
-		lines.push(`${index + 1}. [ ] ${trimmed}`);
-	}
-
-	raw = before + lines.join("\n") + after;
-
-	// 2. Update frontmatter `top3` array if present.
-	if (raw.startsWith("---")) {
-		const fmEnd = raw.indexOf("\n---", 3);
-		if (fmEnd > 0) {
-			const fmBlock = raw.slice(3, fmEnd);
-			const fmLines = fmBlock.split("\n");
-			let inTop3 = false;
-			let arrIdx = 0;
-			for (let i = 0; i < fmLines.length; i++) {
-				const line = fmLines[i]!;
-				if (line.startsWith("top3:")) {
-					inTop3 = true;
-					arrIdx = 0;
-					continue;
-				}
-				if (inTop3) {
-					if (line.startsWith("  - ")) {
-						if (arrIdx === index) {
-							fmLines[i] = `  - ${JSON.stringify(trimmed)}`;
-						}
-						arrIdx++;
-					} else if (line.length > 0 && !line.startsWith(" ")) {
-						inTop3 = false;
-					}
-				}
-			}
-			raw = `---${fmLines.join("\n")}\n---` + raw.slice(fmEnd + 4);
-		}
-	}
-
-	return guardedModify(app, tfile, original, raw);
+	const edited = editPriorityLine(raw, section, index, (m) => `${m[1]}${m[3]}${m[4]}${trimmed}${m[6]}`)
+		?? appendDailySectionLine(raw, section, `${index + 1}. [ ] ${trimmed}`);
+	return guardedModify(app, tfile, raw, updateTop3Frontmatter(edited, index, trimmed));
 }
 
 /**
@@ -195,35 +156,8 @@ export async function toggleTop3ByIndex(
 	if (!file || !("extension" in file)) return false;
 	const tfile = file as TFile;
 	const raw = await app.vault.read(tfile);
-    const original = raw;
-
-	const headingMarker = "## Top 3 Priorities";
-	const idx = raw.indexOf(headingMarker);
-	if (idx < 0) return false;
-
-	const afterHeading = idx + headingMarker.length;
-	const nextSection = raw.indexOf("\n## ", afterHeading);
-	const sectionEnd = nextSection < 0 ? raw.length : nextSection;
-
-	const before = raw.slice(0, afterHeading);
-	const after = raw.slice(sectionEnd);
-	const section = raw.slice(afterHeading, sectionEnd);
-
-	const lines = section.split("\n");
-	let found = -1;
-	for (let i = 0; i < lines.length; i++) {
-		const m = lines[i]!.match(/^(\s*)(\d+)(\.\s+\[)([ xX])(\]\s+)(.*?)(\r?)$/);
-		if (!m) continue;
-		const lineIdx = parseInt(m[2]!, 10) - 1;
-		if (lineIdx === index) {
-			const nextState = m[4]!.toLowerCase() === "x" ? " " : "x";
-			lines[i] = `${m[1]}${m[2]}${m[3]}${nextState}${m[5]}${m[6]}${m[7]}`;
-			found = i;
-			break;
-		}
-	}
-	if (found < 0) return false;
-
-	const newRaw = before + lines.join("\n") + after;
-	return guardedModify(app, tfile, original, newRaw);
+	const section = findDailySection(raw, "priorities");
+	if (!section) return false;
+	const edited = editPriorityLine(raw, section, index, (m) => `${m[1]}${toggleCheckbox(m[3]!)}${m[4]}${m[5]}${m[6]}`);
+	return edited === undefined ? false : guardedModify(app, tfile, raw, edited);
 }

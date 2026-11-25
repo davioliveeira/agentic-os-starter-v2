@@ -130,7 +130,7 @@ for(const changed of ['target','selection','epoch','task state','note moved','no
  if(changed==='note moved')put(f.root,daily,note.replace('1. [ ] Publish the newsletter\n2. [ ] Record the demo','2. [ ] Record the demo\n1. [ ] Publish the newsletter'));
  if(changed==='note renamed')put(f.root,daily,note.replace('Record the demo','Record a tutorial'));
  const before=tree(f.root);
- await assert.rejects(handleVoiceRequest(f.ctx,commitRequest,{source:'live',phase:'commit',plannedAction:planned.action,guard:()=>assert.fail('validated too late')}),changed.startsWith('note')?/changed/:/a seleção ou a conversa mudou/);
+ await assert.rejects(handleVoiceRequest(f.ctx,commitRequest,{source:'live',phase:'commit',plannedAction:planned.action,guard:()=>assert.fail('validated too late')}),changed.startsWith('note')?/na nota diária mudou/:/a seleção ou a conversa mudou/);
  assert.deepEqual(tree(f.root),before);assert.deepEqual(f.calls,[]);
 });
 

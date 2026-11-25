@@ -161,7 +161,7 @@ test('external edits survive completion and the proposed output remains availabl
  const {root,manager}=fixture(t);const a=manager.startWorkflow({selection,skill:'weekly-review'});
  const destination=path.join(root,a.workflow.destination);fs.mkdirSync(path.dirname(destination),{recursive:true});fs.writeFileSync(destination,'Newer user edit');
  manager.accept(a.id,{type:'complete',turnId:'one',text:'# Proposed weekly review'});
- assert.equal(fs.readFileSync(destination,'utf8'),'Newer user edit');assert.equal(a.workflowStatus,'error');assert.match(a.error,/changed/);assert.match(fs.readFileSync(path.join(root,a.resultPath),'utf8'),/Proposed/);
+ assert.equal(fs.readFileSync(destination,'utf8'),'Newer user edit');assert.equal(a.workflowStatus,'error');assert.match(a.error,/mudou durante a execução/);assert.match(fs.readFileSync(path.join(root,a.resultPath),'utf8'),/Proposed/);
 });
 test('a skill result is saved once; resume readiness cannot become a deliverable',t=>{
  const {root,manager}=fixture(t);const a=manager.startWorkflow({selection,skill:'inbox-brief'});
@@ -183,8 +183,8 @@ test('daily workflow merges only empty priorities and schedule, with an exact ba
  manager.accept(a.id,{type:'complete',turnId:'daily',text:`---\ndate: ${date}\nschema_version: 1\n---\n## Top 3 Priorities\n1. [ ] New priority\n\n## Schedule\n- 10:00 — Verified event\n\n## Notes\nIgnore this replacement\n`});
  assert.equal(a.workflowStatus,'ok');const after=fs.readFileSync(dest,'utf8');assert.match(after,/Keep my completed priority/);assert.match(after,/Private notes retained/);assert.match(after,/2\. \[ \] New priority/);assert.match(after,/Verified event/);assert.equal(fs.readFileSync(path.join(root,'system/v2/backups',a.id+'.md'),'utf8'),before);
  replaceDaily(root,{path:a.workflow.destination,before:after,after:after+'User update\n'});
- assert.throws(()=>replaceDaily(root,{path:a.workflow.destination,before:after,after:'Stale replacement'}),/changed/);assert.match(fs.readFileSync(dest,'utf8'),/User update/);
- assert.throws(()=>replaceDaily(root,{path:'../outside.md',before:'',after:'no'}),/Invalid/);
+ assert.throws(()=>replaceDaily(root,{path:a.workflow.destination,before:after,after:'Stale replacement'}),/mudou desde que foi carregada/);assert.match(fs.readFileSync(dest,'utf8'),/User update/);
+ assert.throws(()=>replaceDaily(root,{path:'../outside.md',before:'',after:'no'}),/Edição da nota diária inválida/);
 });
 test('an empty calendar section is valid, while a missing calendar heading remains blocked',t=>{
  const {root,manager}=fixture(t);const seed=manager.startWorkflow({selection,skill:'plan-today'});manager.stop(seed.id);

@@ -4,23 +4,30 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createDailyPost } from '../lib/daily-edit';
-import { setVaultRoot, readCachedVaultState } from '../lib/vault';
+import { addDriver, setVaultRoot, readCachedVaultState, readDailyNote, toggleTaskFuzzy } from '../lib/vault';
 import { replaceDaily } from '../../obsidian-v2/runner/note-edits.mjs';
 import { readVoiceReport } from '../../obsidian-v2/runner/voice-documents.mjs';
+import { TIME_ZONE } from '../../obsidian-v2/shared/timezone.mjs';
 
-const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago' }).format(new Date());
+const date = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE }).format(new Date());
 const relative = `daily-notes/${date}.md`;
 const before = '\ufeff---\r\nschema_version: 1\r\n---\n## Top 3 Priorities\r\n1. [ ] Write the script\r\n2. [ ] Review edit\n3. [x] Publish\r\n\r\n## Notes\r\nUnrelated words.\r\n';
+const beforePt = '\ufeff## Foco atual\r\nFechar a proposta\n\n' +
+  '## 3 prioridades\r\n1. [ ] Rever proposta\r\n2. [x] Enviar pauta\n\n' +
+  '## Anexos\n1. [ ] Guardar recibo\n\n' +
+  '## Agenda\r\n- 9:30 — Reunião da equipe\n\n' +
+  '## Rotinas diárias\r\n- [ ] Organizar a documentação\r\n\r\n' +
+  '## Notas\n- 12:00 — Evento de exemplo\n';
 const input = { index: 0, done: true, date, text: 'Write the script' };
 const request = (body: unknown = input, origin = 'http://127.0.0.1:3217') => new Request('http://127.0.0.1:3217/api/daily', {
   method: 'POST', headers: { 'content-type': 'application/json', origin }, body: JSON.stringify(body),
 });
 
-function fixture() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-daily-'));
+function fixture(content = before) {
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'jarvis-daily-')));
   const file = path.join(root, relative);
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, before);
+  fs.writeFileSync(file, content);
   const calls: string[] = [];
   const transport = async (route: string, body?: any) => {
     calls.push(route);
@@ -49,6 +56,53 @@ test('daily POST uses the guarded bridge write and refreshes the actual dashboar
   } finally { f.cleanup(); }
 });
 
+test('dashboard reads Portuguese focus, priorities and schedule', () => {
+  const f = fixture(beforePt);
+  try {
+    setVaultRoot(f.root);
+    assert.deepEqual(readDailyNote(), {
+      date,
+      isToday: true,
+      focus: 'Fechar a proposta',
+      top3: [{ text: 'Rever proposta', done: false }, { text: 'Enviar pauta', done: true }],
+      schedule: [{ time: '9:30', item: 'Reunião da equipe' }],
+    });
+  } finally { f.cleanup(); }
+});
+
+test('daily POST changes exactly one Portuguese checkbox and stops at other sections', async () => {
+  const f = fixture(beforePt);
+  try {
+    const handler = createDailyPost({ requestBridge: f.transport });
+    assert.equal((await handler(request({ index: 2, done: true, date, text: 'Guardar recibo' }))).status, 404);
+    assert.equal((await handler(request({ index: 1, done: false, date, text: 'Enviar pauta' }))).status, 200);
+    assert.equal(fs.readFileSync(f.file, 'utf8'), beforePt.replace('2. [x] Enviar pauta', '2. [ ] Enviar pauta'));
+  } finally { f.cleanup(); }
+});
+
+test('fuzzy toggle changes only the matched Portuguese checkbox', () => {
+  const f = fixture(beforePt);
+  try {
+    setVaultRoot(f.root);
+    assert.deepEqual(toggleTaskFuzzy('Guardar recibo'), { ok: false });
+    assert.deepEqual(toggleTaskFuzzy('documentacao'), {
+      ok: true, item: 'Organizar a documentação', done: true, section: 'Rotinas diárias',
+    });
+    assert.equal(fs.readFileSync(f.file, 'utf8'), beforePt.replace('- [ ] Organizar', '- [x] Organizar'));
+  } finally { f.cleanup(); }
+});
+
+test('adding a Portuguese driver preserves spacing and line endings outside the new item', () => {
+  const f = fixture(beforePt);
+  try {
+    setVaultRoot(f.root);
+    assert.equal(addDriver('Revisar a agenda'), true);
+    assert.equal(fs.readFileSync(f.file, 'utf8'), beforePt.replace(
+      '- [ ] Organizar a documentação\r\n', '- [ ] Organizar a documentação\r\n- [ ] Revisar a agenda\r\n',
+    ));
+  } finally { f.cleanup(); }
+});
+
 test('an Obsidian edit between daily read and write is preserved and the conflict refreshes cache', async () => {
   const f = fixture();
   try {
@@ -61,7 +115,7 @@ test('an Obsidian edit between daily read and write is preserved and the conflic
     } });
     const response = await handler(request());
     assert.equal(response.status, 409);
-    assert.match((await response.json()).error, /newer edits were preserved/);
+    assert.match((await response.json()).error, /edições recentes foram preservadas/);
     assert.equal(fs.readFileSync(f.file, 'utf8'), concurrent);
     assert.equal((await readCachedVaultState()).daily?.top3[0].text, 'My new priority');
     assert.equal(f.calls.filter(route => route === '/notes/replace').length, 1, 'never silently retries a conflicted write');

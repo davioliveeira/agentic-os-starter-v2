@@ -1,4 +1,5 @@
 import { TIME_ZONE } from "../../obsidian-v2/shared/timezone.mjs";
+import { appendDailyDriver, dailyCheckboxes, dailySections } from "../../obsidian-v2/shared/daily-note.mjs";
 import {createResourceCache} from '../../obsidian-v2/shared/resource-cache.mjs';
 import fs from "fs";
 import path from "path";
@@ -348,8 +349,11 @@ export function readQueue(): QueueEntry[] {
 }
 
 // --- daily note -----------------------------------------------------------------
-// Today's note if present, else the most recent. Parser contract: frozen v1
-// schema — `## Top 3 Priorities` numbered checkboxes + `## Schedule` bullets.
+export function parseDailyPriorities(raw: string, sections = dailySections(raw)) {
+  return dailyCheckboxes(raw, sections).filter(({ key, numbered }) => key === "priorities" && numbered);
+}
+
+// Today's note if present, else the most recent.
 export function readDailyNote(): DailyNote | null {
   const dir = path.join(VAULT_ROOT, "daily-notes");
   // local (America/Chicago) date — toISOString() is UTC and flips to
@@ -382,25 +386,20 @@ export function readDailyNote(): DailyNote | null {
   const raw = safeRead(file);
   if (!raw) return null;
 
-  const top3: { text: string; done: boolean }[] = [];
+  const sections = dailySections(raw);
+  const top3 = parseDailyPriorities(raw, sections).map(({ text, done }) => ({ text, done }));
   const schedule: { time: string; item: string }[] = [];
   let focus = "";
 
-  let section = "";
-  for (const line of raw.split(/\r?\n/)) {
-    const h = line.match(/^##\s+(.*)/);
-    if (h) {
-      section = h[1].trim();
-      continue;
-    }
-    if (section === "Top 3 Priorities") {
-      const m = line.match(/^\d+\.\s+\[( |x)\]\s+(.*)/);
-      if (m) top3.push({ text: m[2].trim(), done: m[1] === "x" });
-    } else if (section === "Schedule") {
-      const m = line.match(/^-\s+(\d{1,2}:\d{2})\s*[—–-]+\s*(.*)/);
-      if (m) schedule.push({ time: m[1], item: m[2].trim() });
-    } else if (section === "Current Focus") {
-      if (line.trim() && !focus) focus = line.trim();
+  for (const { key, bodyStart, end } of sections) {
+    if (key !== "schedule" && key !== "focus") continue;
+    for (const line of raw.slice(bodyStart, end).split(/\r?\n/)) {
+      if (key === "schedule") {
+        const item = line.match(/^-\s+(\d{1,2}:\d{2})\s*[—–-]+\s*(.*)/);
+        if (item) schedule.push({ time: item[1], item: item[2].trim() });
+      } else if (line.trim() && !focus) {
+        focus = line.trim();
+      }
     }
   }
 
@@ -419,7 +418,7 @@ function todayNotePath(): string {
   return path.join(VAULT_ROOT, "daily-notes", `${today}.md`);
 }
 
-/** fuzzy checkbox toggle across Top 3 (numbered) and Daily Drivers (dashed).
+/** Fuzzy checkbox toggle across priorities and daily drivers.
  *  Scores word overlap between the spoken target and each item's text. */
 export function toggleTaskFuzzy(
   target: string
@@ -428,49 +427,35 @@ export function toggleTaskFuzzy(
   const raw = safeRead(file);
   if (!raw) return { ok: false };
 
-  const wanted = target
-    .toLowerCase()
+  const fold = (text: string) => text.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
+  const wanted = fold(target)
     .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/)
     .filter((w) => w.length > 2);
   if (wanted.length === 0) return { ok: false };
 
-  const eol = raw.includes("\r\n") ? "\r\n" : "\n";
-  const lines = raw.split(/\r?\n/);
-  let section = "";
-  let bestLine = -1;
+  const checkboxes = dailyCheckboxes(raw);
+  let best: (typeof checkboxes)[number] | undefined;
   let bestScore = 0;
-  let bestSection = "";
-  const CHECKBOX = /^(?:\d+\.|-)\s+\[( |x)\]\s+(.*)/;
-  for (let i = 0; i < lines.length; i++) {
-    const h = lines[i].match(/^##\s+(.*)/);
-    if (h) {
-      section = h[1].trim();
-      continue;
-    }
-    if (section !== "Top 3 Priorities" && section !== "Daily Drivers") continue;
-    const m = lines[i].match(CHECKBOX);
-    if (!m) continue;
-    const hay = m[2].toLowerCase();
+  for (const checkbox of checkboxes) {
+    const hay = fold(checkbox.text);
     const score = wanted.reduce((s, w) => s + (hay.includes(w) ? 1 : 0), 0);
     if (score > bestScore) {
+      best = checkbox;
       bestScore = score;
-      bestLine = i;
-      bestSection = section;
     }
   }
   // require a real match — at least half the content words, min 1
-  if (bestLine < 0 || bestScore < Math.max(1, Math.ceil(wanted.length / 2))) {
+  if (!best || bestScore < Math.ceil(wanted.length / 2)) {
     return { ok: false };
   }
-  const m = lines[bestLine].match(/^((?:\d+\.|-)\s+)\[( |x)\](\s+)(.*)/)!;
-  const nowDone = m[2] !== "x";
-  lines[bestLine] = `${m[1]}[${nowDone ? "x" : " "}]${m[3]}${m[4]}`;
-  fs.writeFileSync(file, lines.join(eol), "utf-8");
-  return { ok: true, item: m[4].trim(), done: nowDone, section: bestSection };
+  const { text: item, section, offset } = best;
+  const done = !best.done;
+  fs.writeFileSync(file, raw.slice(0, offset) + (done ? "x" : " ") + raw.slice(offset + 1), "utf-8");
+  return { ok: true, item, done, section };
 }
 
-/** append `- [ ] text` under ## Daily Drivers in today's note */
+/** Append a checkbox under daily drivers in today's note. */
 export function addDriver(text: string): boolean {
   const trimmed = text.trim();
   if (!trimmed) return false;
@@ -478,16 +463,9 @@ export function addDriver(text: string): boolean {
   const raw = safeRead(file);
   if (!raw) return false;
 
-  const eol = raw.includes("\r\n") ? "\r\n" : "\n";
-  const marker = "## Daily Drivers";
-  const idx = raw.indexOf(marker);
-  if (idx < 0) return false;
-  const afterHeading = idx + marker.length;
-  const nextSection = raw.indexOf("\n## ", afterHeading);
-  const insertAt = nextSection < 0 ? raw.length : nextSection;
-  const sectionContent = raw.slice(afterHeading, insertAt).replace(/\s+$/, "");
-  const newSection = `${sectionContent}${eol}- [ ] ${trimmed}${eol}`;
-  fs.writeFileSync(file, raw.slice(0, afterHeading) + newSection + raw.slice(insertAt), "utf-8");
+  const updated = appendDailyDriver(raw, trimmed);
+  if (updated === null) return false;
+  fs.writeFileSync(file, updated, "utf-8");
   return true;
 }
 

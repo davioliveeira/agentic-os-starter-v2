@@ -171,7 +171,7 @@ export function performWrite(w: VaultWrite, state: VaultState): string {
   }
   return addDriver(w.text)
     ? `Adicionei “${w.text}” às tarefas de hoje.`
-    : "Não encontrei a seção “Daily Drivers” na nota de hoje.";
+    : "Não encontrei a seção de rotinas diárias na nota de hoje.";
 }
 
 const RERUN_RE = /\b(again|another|re-?run|one more|fresh|new one)\b/;

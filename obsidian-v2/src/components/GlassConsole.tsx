@@ -7,6 +7,7 @@ import type ChaseCommandCenter from "../main";
 import type { MetricSnapshot } from "../lib/metrics";
 import type { DailyNoteRead } from "../lib/vault";
 import { toggleTaskByText } from "../lib/vault-writer";
+import { DAILY_HEADINGS } from "../../shared/daily-note.mjs";
 import type { LatestVideo } from "../lib/youtube";
 import { useProvider } from "../lib/provider";
 import { ActionBar } from "./ActionBar";
@@ -44,7 +45,7 @@ export function GlassConsole({
 
 	const toggleTask = async (text: string) => {
 		if (!daily) return;
-		const ok = await toggleTaskByText(plugin.app, daily.path, "Daily Drivers", text);
+		const ok = await toggleTaskByText(plugin.app, daily.path, DAILY_HEADINGS.drivers, text);
 		if (!ok) new Notice(`Não foi possível alterar: ${text}`);
 	};
 

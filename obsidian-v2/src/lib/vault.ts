@@ -1,4 +1,5 @@
 import type { App, TFile } from "obsidian";
+import { dailySections } from "../../shared/daily-note.mjs";
 
 export const SUPPORTED_SCHEMA_VERSION = 1;
 
@@ -55,39 +56,6 @@ export function todayPath(): string {
 	return `daily-notes/${todayIso()}.md`;
 }
 
-// Split a markdown body into a map keyed by exact section heading text (level 2).
-// Body must already be stripped of frontmatter and the leading H1.
-function splitSections(body: string): Map<string, string> {
-	const out = new Map<string, string>();
-	const lines = body.split(/\r?\n/);
-	let currentHeading: string | null = null;
-	let buf: string[] = [];
-	const flush = () => {
-		if (currentHeading !== null) {
-			out.set(currentHeading, buf.join("\n").trim());
-		}
-	};
-	for (const line of lines) {
-		const m = line.match(/^##\s+(.+?)\s*$/);
-		if (m) {
-			flush();
-			currentHeading = m[1]!;
-			buf = [];
-		} else if (currentHeading !== null) {
-			buf.push(line);
-		}
-	}
-	flush();
-	return out;
-}
-
-function stripFrontmatter(raw: string): string {
-	if (!raw.startsWith("---")) return raw;
-	const end = raw.indexOf("\n---", 3);
-	if (end < 0) return raw;
-	return raw.slice(end + 4).replace(/^\r?\n/, "");
-}
-
 function parseTop3(section: string, doneFromFm: boolean[] | undefined): Top3Item[] {
 	const items: Top3Item[] = [];
 	for (const line of section.split(/\r?\n/)) {
@@ -99,7 +67,7 @@ function parseTop3(section: string, doneFromFm: boolean[] | undefined): Top3Item
 			});
 		}
 	}
-	// Frontmatter `top3_done` wins on conflict — that's the canonical state if /close-day has run.
+	// Preserve completion recorded by /close-day in `top3_done`.
 	if (doneFromFm) {
 		for (let i = 0; i < items.length && i < doneFromFm.length; i++) {
 			const flag = doneFromFm[i];
@@ -142,8 +110,12 @@ export async function readDailyNote(
 		| undefined;
 
 	const raw = await app.vault.cachedRead(tfile);
-	const body = stripFrontmatter(raw);
-	const sections = splitSections(body);
+	const sections = new Map<string, string>();
+	for (const { key, bodyStart, end } of dailySections(raw)) {
+		if (key && !sections.has(key)) {
+			sections.set(key, raw.slice(bodyStart, end).replace(/\r\n/g, "\n").trim());
+		}
+	}
 
 	const schemaVersion = fmCache?.schema_version ?? 0;
 	const supported = schemaVersion === SUPPORTED_SCHEMA_VERSION;
@@ -153,12 +125,12 @@ export async function readDailyNote(
 		date: fmCache?.date ?? path.replace(/^.*\//, "").replace(/\.md$/, ""),
 		schemaVersion,
 		supported,
-		focus: (fmCache?.focus || sections.get("Current Focus") || "").trim(),
-		top3: parseTop3(sections.get("Top 3 Priorities") ?? "", fmCache?.top3_done),
-		schedule: parseSchedule(sections.get("Schedule") ?? ""),
-		drivers: parseDrivers(sections.get("Daily Drivers") ?? ""),
-		activityLog: sections.get("Activity Log") ?? "",
-		notes: sections.get("Notes") ?? "",
-		eodReflection: sections.get("EOD Reflection") ?? "",
+		focus: (fmCache?.focus || sections.get("focus") || "").trim(),
+		top3: parseTop3(sections.get("priorities") ?? "", fmCache?.top3_done),
+		schedule: parseSchedule(sections.get("schedule") ?? ""),
+		drivers: parseDrivers(sections.get("drivers") ?? ""),
+		activityLog: sections.get("activity") ?? "",
+		notes: sections.get("notes") ?? "",
+		eodReflection: sections.get("reflection") ?? "",
 	};
 }

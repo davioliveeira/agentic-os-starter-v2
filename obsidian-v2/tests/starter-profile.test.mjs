@@ -15,7 +15,7 @@ function vaultWith(profile){
  if(profile!==undefined){fs.mkdirSync(path.join(root,'system/v2'),{recursive:true});fs.writeFileSync(path.join(root,'system/v2/profile.json'),typeof profile==='string'?profile:JSON.stringify(profile))}
  return root;
 }
-const OWNER_NOTE='## Daily Drivers\n- [ ] Publicar no Skool\n- [ ] Gravar para o YouTube\n- [ ] Triar a caixa de entrada\n- [ ] Revisar o dia\n\n## Activity Log';
+const OWNER_NOTE='## Rotinas diárias\n- [ ] Publicar no Skool\n- [ ] Gravar para o YouTube\n- [ ] Triar a caixa de entrada\n- [ ] Revisar o dia\n\n## Registro de atividades';
 
 test('a vault without a profile uses the Brazilian Portuguese defaults',()=>{
  for(const root of [vaultWith(),vaultWith('not json'),vaultWith({dailyDrivers:[]}),vaultWith({dailyDrivers:['ok','two\nlines']}),vaultWith({dailyDrivers:['a','a']}),
@@ -24,19 +24,19 @@ test('a vault without a profile uses the Brazilian Portuguese defaults',()=>{
  assert.ok(mergeDaily(null,'2026-01-05','- 09:00 — Planning').includes(OWNER_NOTE));
  assert.ok(mergeDaily(null,'2026-01-05','- 09:00 — Planning',[],dailyDrivers(vaultWith())).includes(OWNER_NOTE));
  const prompt=workflowPrompt(vaultWith(),{skill:'plan-today',id:crypto.randomUUID(),args:{}},'');
- assert.ok(prompt.includes('Rotinas para uma nota nova: Publicar no Skool, Gravar para o YouTube, Triar a caixa de entrada, Revisar o dia.'));
+ assert.ok(prompt.includes('Use Publicar no Skool, Gravar para o YouTube, Triar a caixa de entrada, Revisar o dia para as rotinas da nota nova.'));
 });
 
 test('a vault with its own Daily Drivers gets them in the new note and in both planning rubrics',()=>{
  const root=vaultWith('\uFEFF'+JSON.stringify({dailyDrivers:['Inbox triage','Deep work block','Daily review']}));
  assert.deepEqual(dailyDrivers(root),['Inbox triage','Deep work block','Daily review']);
  const note=mergeDaily(null,'2026-01-05','- 09:00 — Planning',[],dailyDrivers(root));
- assert.ok(note.includes('## Daily Drivers\n- [ ] Inbox triage\n- [ ] Deep work block\n- [ ] Daily review\n\n## Activity Log'));
+ assert.ok(note.includes('## Rotinas diárias\n- [ ] Inbox triage\n- [ ] Deep work block\n- [ ] Daily review\n\n## Registro de atividades'));
  assert.equal(note.includes('Skool'),false);
  const today=workflowPrompt(root,{skill:'plan-today',id:crypto.randomUUID(),args:{}},'');
- assert.ok(today.includes('Rotinas para uma nota nova: Inbox triage, Deep work block, Daily review.'));
+ assert.ok(today.includes('Use Inbox triage, Deep work block, Daily review para as rotinas da nota nova.'));
  const tomorrow=workflowPrompt(root,{skill:'plan-tomorrow',id:crypto.randomUUID(),args:{}},'');
- assert.ok(tomorrow.includes('Rotinas para uma nota nova: Inbox triage, Deep work block, Daily review.'));
+ assert.ok(tomorrow.includes('Use Inbox triage, Deep work block, Daily review para as rotinas da nota nova.'));
  for(const prompt of [today,tomorrow])assert.equal(/Publicar no Skool|Gravar para o YouTube/.test(prompt),false);
  assert.equal(rubricWithDrivers('Rotinas para uma nota nova: {{DAILY_DRIVERS}}.',['Only one']),'Rotinas para uma nota nova: Only one.');
 });

@@ -2,8 +2,7 @@
 close_day.py — End-of-day write-back to today's daily note.
 
 Updates frontmatter (effort, focus_blocks, posts_shipped, videos_shipped_today,
-top3_done) and overwrites the ## EOD Reflection section. Preserves all other
-content verbatim.
+top3_done) and replaces the body of the daily reflection.
 """
 
 from __future__ import annotations
@@ -13,23 +12,22 @@ import json
 import os
 import re
 import sys
+from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
 
 # The vault: named by the environment when the dashboard starts this, otherwise the folder it is run from.
 VAULT_ROOT = Path(os.environ.get("AGENTIC_OS_VAULT") or os.environ.get("AOS_V2_VAULT") or os.getcwd())
 DAILY_DIR = VAULT_ROOT / "daily-notes"
+PRIORITY_TITLES = ("3 prioridades", "Top 3 Priorities")
+REFLECTION_TITLES = ("Reflexão do dia", "EOD Reflection")
+SECTION_HEADING = re.compile(r"^ {0,3}(#{1,2})(?:[ \t]+(.*))?$")
+CODE_FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
+PLATFORMS = ("youtube", "blog", "linkedin", "x", "instagram", "tiktok")
 
 
 def parse_posts(raw: str | None) -> dict[str, int]:
-    out = {
-        "youtube": 0,
-        "blog": 0,
-        "linkedin": 0,
-        "x": 0,
-        "instagram": 0,
-        "tiktok": 0,
-    }
+    out = dict.fromkeys(PLATFORMS, 0)
     if not raw:
         return out
     for chunk in raw.split(","):
@@ -45,28 +43,62 @@ def parse_posts(raw: str | None) -> dict[str, int]:
     return out
 
 
-def split_frontmatter(raw: str) -> tuple[str, str]:
-    """Returns (frontmatter_yaml_no_fences, body_starting_after_---)."""
-    if not raw.startswith("---"):
+def split_frontmatter(raw: str) -> tuple[str, str, str]:
+    """Return the YAML, the text after the closing delimiter, and the line ending."""
+    opening = re.match(r"---(\r?\n)", raw)
+    if opening is None:
         raise ValueError("a abertura do frontmatter falta no começo do arquivo")
-    end = raw.find("\n---", 3)
-    if end < 0:
+    closing = re.compile(r"^---(?=\r?$)", re.MULTILINE).search(raw, opening.end())
+    if closing is None:
         raise ValueError("falta o fechamento do frontmatter")
-    fm = raw[3:end].lstrip("\n")
-    body = raw[end + 4 :].lstrip("\n")
-    return fm, body
+    return raw[opening.end() : closing.start()], raw[closing.end() :], opening[1]
+
+
+def markdown_lines(body: str) -> Iterator[tuple[str, int, int]]:
+    """Yield lines outside fenced code with their original offsets."""
+    fence = ""
+    offset = 0
+    for raw_line in body.splitlines(keepends=True):
+        end = offset + len(raw_line)
+        line = raw_line.rstrip("\r\n")
+        match = CODE_FENCE.match(line)
+        if match:
+            marker, info = match.groups()
+            if not fence:
+                fence = marker
+            elif marker.startswith(fence) and not info.strip():
+                fence = ""
+        elif not fence:
+            yield line, offset, end
+        offset = end
+
+
+def section_bounds(body: str, titles: tuple[str, ...]) -> tuple[int, int] | None:
+    """Find the body of the first matching level-two heading."""
+    content_start = None
+    for line, start, end in markdown_lines(body):
+        match = SECTION_HEADING.match(line.rstrip())
+        if not match:
+            continue
+        if content_start is not None:
+            return content_start, start
+        level, title = match.groups()
+        title = re.sub(r"[ \t]+#+$", "", title or "").strip()
+        if level == "##" and title in titles:
+            content_start = end
+    if content_start is not None:
+        return content_start, len(body)
+    return None
 
 
 def parse_top3_done_from_body(body: str) -> list[bool]:
-    """Parse the `## Top 3 Priorities` section for `[x]` checkboxes (in order)."""
+    """Read the numbered priority checkboxes in the daily note."""
     out = [False, False, False]
-    in_section = False
-    for line in body.split("\n"):
-        if line.strip().startswith("## "):
-            in_section = line.strip() == "## Top 3 Priorities"
-            continue
-        if not in_section:
-            continue
+    bounds = section_bounds(body, PRIORITY_TITLES)
+    if bounds is None:
+        return out
+    start, end = bounds
+    for line, _, _ in markdown_lines(body[start:end]):
         m = re.match(r"^\s*(\d+)\.\s+\[([ xX])\]\s+", line)
         if m:
             idx = int(m.group(1)) - 1
@@ -82,90 +114,69 @@ def update_frontmatter(
     posts: dict[str, int],
     videos: int | None,
     top3_done: list[bool],
+    newline: str,
 ) -> str:
     """Crude line-based YAML edit. Schema is small + flat so this is safer than
     a full YAML round-trip (which may reorder + reflow user-edited keys)."""
-    lines = fm.split("\n")
     out: list[str] = []
-    i = 0
     in_posts_block = False
-    posts_replaced = False
-
-    while i < len(lines):
-        line = lines[i]
+    posts_start = None
+    posts_indent = None
+    for line in fm.splitlines():
         stripped = line.lstrip()
-
-        # Stay inside posts_shipped block until indent decreases
-        if in_posts_block:
-            if line.startswith("  ") and ":" in stripped:
-                # consumed by replacement; skip original lines
-                i += 1
-                continue
-            else:
+        if in_posts_block and stripped and not stripped.startswith("#"):
+            if line == stripped:
                 in_posts_block = False
+            else:
+                indent = line[: -len(stripped)]
+                if posts_indent is None:
+                    posts_indent = indent
+                if indent == posts_indent and stripped.partition(":")[0] in PLATFORMS:
+                    continue
 
-        if stripped.startswith("effort:") and effort is not None:
+        if line.startswith("effort:") and effort is not None:
             out.append(f"effort: {effort}")
-        elif stripped.startswith("focus_blocks:") and blocks is not None:
+        elif line.startswith("focus_blocks:") and blocks is not None:
             out.append(f"focus_blocks: {blocks}")
-        elif stripped.startswith("videos_shipped_today:") and videos is not None:
+        elif line.startswith("videos_shipped_today:") and videos is not None:
             out.append(f"videos_shipped_today: {videos}")
-        elif stripped.startswith("top3_done:"):
+        elif line.startswith("top3_done:"):
             done_lit = (
                 "[" + ", ".join("true" if v else "false" for v in top3_done) + "]"
             )
             out.append(f"top3_done: {done_lit}")
-        elif stripped.startswith("posts_shipped:"):
+        elif line.startswith("posts_shipped:"):
             out.append("posts_shipped:")
-            for k in ("youtube", "blog", "linkedin", "x", "instagram", "tiktok"):
-                out.append(f"  {k}: {posts.get(k, 0)}")
             in_posts_block = True
-            posts_replaced = True
+            posts_start = len(out)
         else:
             out.append(line)
-        i += 1
 
-    if not posts_replaced and any(posts.values()):
+    if posts_start is None and any(posts.values()):
         out.append("posts_shipped:")
-        for k in ("youtube", "blog", "linkedin", "x", "instagram", "tiktok"):
-            out.append(f"  {k}: {posts.get(k, 0)}")
+        posts_start = len(out)
+    if posts_start is not None:
+        indent = posts_indent or "  "
+        out[posts_start:posts_start] = [f"{indent}{k}: {posts.get(k, 0)}" for k in PLATFORMS]
 
-    return "\n".join(out)
+    return newline.join(out) + newline if out else ""
 
 
-def replace_eod_section(body: str, text: str) -> str:
-    lines = body.split("\n")
-    out: list[str] = []
-    in_eod = False
-    replaced = False
-    for line in lines:
-        if line.strip().startswith("## "):
-            if line.strip() == "## EOD Reflection":
-                out.append(line)
-                out.append("")
-                out.append(text.strip())
-                out.append("")
-                in_eod = True
-                replaced = True
-                continue
-            else:
-                in_eod = False
-                out.append(line)
-                continue
-        if in_eod:
-            continue  # discard old EOD content
-        out.append(line)
+def replace_eod_section(body: str, text: str, newline: str) -> str:
+    reflection = newline.join(text.strip().splitlines())
+    bounds = section_bounds(body, REFLECTION_TITLES)
+    if bounds is None:
+        separator = ""
+        if not body.endswith(newline * 2):
+            separator = newline if body.endswith(newline) else newline * 2
+        return f"{body}{separator}## {REFLECTION_TITLES[0]}{newline * 2}{reflection}{newline}"
 
-    if not replaced:
-        # Append a new section at end.
-        if out and out[-1].strip() != "":
-            out.append("")
-        out.append("## EOD Reflection")
-        out.append("")
-        out.append(text.strip())
-        out.append("")
-
-    return "\n".join(out)
+    start, end = bounds
+    before, after = body[:start], body[end:]
+    if not before.endswith("\n"):
+        before += newline
+    separator = newline if after else ""
+    return f"{before}{newline}{reflection}{newline}{separator}{after}"
 
 
 def main() -> int:
@@ -197,8 +208,8 @@ def main() -> int:
         )
         return 1
 
-    raw = path.read_text(encoding="utf-8")
-    fm, body = split_frontmatter(raw)
+    raw = path.read_bytes().decode("utf-8")
+    fm, body, newline = split_frontmatter(raw)
     posts = parse_posts(args.posts)
     top3_done = parse_top3_done_from_body(body)
 
@@ -211,12 +222,11 @@ def main() -> int:
         posts=posts,
         videos=args.videos,
         top3_done=top3_done,
+        newline=newline,
     )
-    body_new = replace_eod_section(body, args.text)
+    body_new = replace_eod_section(body, args.text, newline)
 
-    rebuilt = f"---\n{fm_new}\n---\n\n{body_new}"
-    if not rebuilt.endswith("\n"):
-        rebuilt += "\n"
+    rebuilt = f"---{newline}{fm_new}---{body_new}"
 
     if args.dry_run:
         print(
@@ -236,7 +246,7 @@ def main() -> int:
         )
         return 0
 
-    path.write_text(rebuilt, encoding="utf-8")
+    path.write_bytes(rebuilt.encode("utf-8"))
     print(
         json.dumps(
             {
