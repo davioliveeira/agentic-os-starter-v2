@@ -72,6 +72,8 @@ const routes=[
  {name:'model-proposed note edit',said:'Mark whichever priority involves recording',description:/Concluir “Record the demo”/,options:{model:{tier:2,write:{kind:'top3',index:1}}},model:true,sites:['editDaily']},
  {name:'fuzzy note edit',said:'Mark review comments done',description:/Concluir “Review comments”/,sites:['editDaily']},
  {name:'add note item',said:'Add proofread the draft to my tasks',description:/Adicionar “proofread the draft”/,sites:['editDaily']},
+ {name:'add a Portuguese task without losing accents or case',said:'Adicione a tarefa Revisar a apresentação da Lívia à nota de hoje.',description:/Adicionar “Revisar a apresentação da Lívia”/,sites:['editDaily']},
+ {name:'complete a task by name in Portuguese',said:'Marque a tarefa Record the demo como concluída.',description:/Concluir “Record the demo”/,sites:['editDaily']},
  {name:'conversation reset',said:'Start a new task',description:/Iniciar uma nova conversa/,options:{target:true},sites:['updateCurrent']},
  {name:'legacy enqueue',said:'Run morning intel',request:{terminalMode:false},description:/Colocar “Boletim de IA” na fila/,sites:['enqueue']},
  {name:'artifact reopen',said:'Pull it up',description:/Reabrir “Preview”/,options:{target:true},seed:f=>f.task.turns.push({id:'output',artifacts:[artifact]}),sites:['reopenArtifact']}
@@ -119,6 +121,34 @@ for(const item of routes)test(`plan and commit: ${item.name}`,async t=>{
  assert.deepEqual(replay,committed);
 });
 
+test('Portuguese daily commands set the requested state without switching completed or ambiguous matches',async t=>{
+ const f=fixture(t,{staleCurrent:false,model:{tier:2,reply:'Considere dividir esse pedido.'}});
+ const original='# Hoje\n\n## 3 prioridades\n1. [ ] Conferir pauta\n\n## Rotinas diárias\n- [x] Revisar apresentação\n- [ ] Conferir pauta\n';
+ put(f.root,daily,original);
+ const completed=await f.route(f.request('Conclua a tarefa Revisar apresentacao.'));
+ assert.match(completed.reply,/já está concluída/);
+ assert.equal(tree(f.root).get(daily),original);
+ const ambiguous=await f.route(f.request('Conclua a tarefa Conferir pauta.'));
+ assert.match(ambiguous.reply,/mais de uma tarefa/);
+ assert.equal(tree(f.root).get(daily),original);
+ const reopened=await f.route(f.request('Desmarque a tarefa Revisar apresentação.'));
+ assert.match(reopened.reply,/Reabri a tarefa “Revisar apresentação”/);
+ const updated=original.replace('[x] Revisar','[ ] Revisar');
+ assert.equal(tree(f.root).get(daily),updated);
+ const compound=await f.route(f.request('Adicione a tarefa Revisar o orçamento à nota de hoje e envie um e-mail.'));
+ assert.equal(compound.reply,'Considere dividir esse pedido.');
+ assert.equal(tree(f.root).get(daily),updated);
+ assert.equal(f.models(),1);
+});
+
+test('a Portuguese write request for a past note cannot change the current one',async t=>{
+ const f=fixture(t,{staleCurrent:false,model:{tier:2,write:{kind:'task',target:'Record the demo'}}});
+ const result=await f.route(f.request('Conclua a tarefa Record the demo na nota de ontem.'));
+ assert.equal(result.decision.rule,'router.dailyEditClarification');
+ assert.equal(tree(f.root).get(daily),note);
+ assert.deepEqual(f.calls,[]);
+});
+
 for(const changed of ['target','selection','epoch','task state','note moved','note renamed'])test(`commit refuses changed ${changed} before effects`,async t=>{
  const f=fixture(t,{target:true,staleCurrent:false}),request=f.request(changed.startsWith('note')?'Check off priority two':'Continue the newsletter');
  const planned=await handleVoiceRequest(f.ctx,request,{source:'live',phase:'plan'});
@@ -151,7 +181,7 @@ test('Local receipts and older receipts share Local replay and offer semantics',
  assert.equal((await f.route(f.request(old.transcript,{id:oldId}))).transport,'local');
  assert.equal(voiceMemory(f.root,'claude').at(-1).you,old.transcript);
  assert.equal(readVoiceReport(f.root,report,[],[old]).content,'local report');
- assert.throws(()=>readVoiceReport(f.root,report,[],[{...old,transport:'live'}]),/Only referenced notes/);
+ assert.throws(()=>readVoiceReport(f.root,report,[],[{...old,transport:'live'}]),/notas referenciadas/);
  const liveOffer={...old,id:crypto.randomUUID(),transport:'live'};
  writeJson(f.root,`${ROOT}/voice-results/${liveOffer.id}.json`,liveOffer);
  const live=await f.route(f.request('yes'),{transport:'live',phase:'plan',guard:()=>assert.fail('affirmation reached guard')});

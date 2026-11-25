@@ -155,7 +155,7 @@ test('referential repo and document opening use conversation without arbitrary f
  const f=fixture(t);writeJson(f.root,'system/v2/voice-results/ref.json',{ts:Date.now(),provider:'codex',transcript:'Which repo?',reply:'acme/aurora is promising.'});
  assert.equal((await f.speak('codex','Bring up that repo')).obsidian.slug,'acme/aurora');
  f.write('projects/Aurora launch.md','# Launch');const result=await f.speak('codex','Open the Aurora launch note',async()=>({text:JSON.stringify({tier:2,reply:'',obsidian:{op:'open-note',query:'Aurora launch'}})}));assert.equal(result.obsidian.query,'projects/Aurora launch.md');assert.match(readVoiceReport(f.root,result.obsidian.query,[],[result]).content,/Launch/);
- assert.throws(()=>readVoiceReport(f.root,'projects/Aurora launch.md',[],[]),/referenced/);assert.throws(()=>readVoiceReport(f.root,'../outside.md',[],[{deliverable:'../outside.md'}]),/escaped/);
+ assert.throws(()=>readVoiceReport(f.root,'projects/Aurora launch.md',[],[]),/notas referenciadas/);assert.throws(()=>readVoiceReport(f.root,'../outside.md',[],[{deliverable:'../outside.md'}]),/escaped/);
 });
 test('invalid model actions and nonimperative writes fail without work or edits',async t=>{
  const f=fixture(t),before=fs.readFileSync(path.join(f.root,`daily-notes/${date()}.md`),'utf8');

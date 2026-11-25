@@ -35,6 +35,7 @@ const reports = [
  [/^resumo da caixa de entrada$/, 'inbox brief'],
  [/^revis[aã]o semanal$/, 'weekly review'],
  [/^(?:an[aá]lise|revis[aã]o) semanal do youtube$/, 'youtube weekly review'],
+ [/^resumo do cofre$/, 'vault summary'],
 ];
 const dates = [
  [/ (?:de hoje|desta manh[ãa])$/, 'today'],
@@ -73,6 +74,14 @@ export function portugueseFileIntent(transcript) {
  name = undated.replace(/^(?:nota|arquivo|documento) (?:(?:chamad[oa]|intitulad[oa]) )?/, '').trim();
  if (!name || /^(?:isso|isto|ess[ea]|est[ea]|el[ea])(?: |$)/.test(name)) return null;
  return { target: name + (date ? ` ${date[1]}` : ''), where, ...(date ? { title: name } : {}) };
+}
+
+export function portugueseReportReadCommand(transcript) {
+ const read = /^(?:leia(?: para mim)?|(?:voc[eê] )?pode ler)(?: em voz alta)? (.+?)(?: em voz alta)?$/.exec(cleanNavigation(transcript));
+ if (!read) return null;
+ const command = `abra ${read[1]}`;
+ const intent = portugueseFileIntent(command);
+ return intent?.report && !intent.where ? command : null;
 }
 
 const workspace = [

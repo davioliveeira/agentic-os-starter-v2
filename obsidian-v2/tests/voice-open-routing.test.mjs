@@ -160,6 +160,29 @@ test('what was just read aloud can be pulled up next, and questions are untouche
  assert.equal(f.calls.length,0);
 });
 
+for(const {provider,appScope} of [{provider:'codex',appScope:'native'},{provider:'claude',appScope:'web'}])test(`${appScope}: Portuguese reading speaks the requested saved report without opening it`,async t=>{
+ const f=fixture(t);
+ f.write(f.intel.yesterday,'\uFEFF---\ntitle: metadado reservado\n---\n## Destaque de ontem\nO artigo confirma a hipótese.\n<!-- comentário reservado -->\n```txt\ncódigo reservado\n```\n');
+ f.write(f.intel.today,'## Outro boletim\nTexto do relatório de hoje.');
+ const played=await f.speak('Jarvis, leia em voz alta o boletim da manhã de ontem.',{provider,appScope});
+ assert.equal(played.deliverable,f.intel.yesterday);
+ assert.equal(played.reveal,null);
+ for(const reply of [played.reply,played.spokenReply]){
+  assert.match(reply,/O artigo confirma a hipótese\./);
+  assert.doesNotMatch(reply,/reservado|relatório de hoje/);
+ }
+ assert.equal(played.model,null);
+ assert.deepEqual(f.calls,[]);
+ const missing=await f.speak('Leia em voz alta o boletim de anteontem.',{provider,appScope});
+ assert.equal(missing.deliverable,null);
+ assert.match(missing.reply,/Não encontrei o relatório para/);
+ const saved=f.write('inbox/reports/v2/resumo-do-cofre.md','# Resumo do cofre\nA documentação descreve a integração.');
+ f.write('system/v2/runs/example.json',JSON.stringify({id:'example',status:'ok',skill:'vault-summary',deliverable_path:saved,ts_completed:new Date().toISOString()}));
+ const summary=await f.speak('Leia o resumo do cofre em voz alta.',{provider,appScope});
+ assert.equal(summary.deliverable,saved);
+ assert.match(summary.reply,/A documentação descreve a integração\./);
+});
+
 for(const {provider,appScope} of [{provider:'codex',appScope:'native'},{provider:'claude',appScope:'web'}])test(`${provider} on ${appScope}: a work request that only mentions open goes to the worker whole with the open promised, and never opens a saved run`,async t=>{
  const f=fixture(t);
  // The live vault on September 16: the newest run in the ledger was a content

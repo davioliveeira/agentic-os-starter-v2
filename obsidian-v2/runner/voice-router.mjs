@@ -230,6 +230,15 @@ async function classify(root,{id,transcript,chosen,terminals,workTarget,appScope
  const live=transport==='live';
  const status=live&&taskStatusReply(transcript,()=> (terminals?.list?.()||[]).filter(task=>taskInScope(task,appScope)),liveTaskIds);
  if(status)return via('router.taskStatus',{tier:2,engine:'rules',reply:status.reply,context:''});
+ const dailyEdit=rules.portugueseDailyWrite(transcript);
+ const deferredDailyEdit=dailyEdit==='defer';
+ if(dailyEdit&&!deferredDailyEdit){
+  const reply=withVoiceContext({root,exchanges:[],editDaily},()=>rules.performWrite(dailyEdit,{daily:vault.readDailyNote()}));
+  if(!planning)invalidateVoiceSnapshot(root);
+  return via('rules.vaultWrite',{tier:2,engine:'rules',reply,context:'',panels:['priorities']},'rules',{performed:['write-attempt']});
+ }
+ const reportRead=rules.routePortugueseReportRead(root,transcript);
+ if(reportRead)return via('router.reportRead',{...reportRead,context:''});
  const workspace=rules.portugueseWorkspaceAction(transcript);
  if(workspace)return via('router.obsidianControl',{tier:2,engine:'rules',reply:'',context:'',obsidian:workspace});
  const memory=()=>voiceMemory(root,chosen.provider,appScope,transport,liveCallId);
@@ -257,7 +266,7 @@ async function classify(root,{id,transcript,chosen,terminals,workTarget,appScope
  // ("which one?" / "want me to open that one?") from the previous turn.
  const ordinaryReply=transcript.normalize('NFKC').trim();
  const shortReply=/^(?:(?:hey|ok|okay|yes|yeah|yep|sure|please|jarvis)[,\s]+)*(?:yes|yeah|yep|sure|ok(?:ay)?|absolutely|go ahead|do it|please do|that one|that works|sim(?:,? por favor)?|(?:the |number )?(?:first|second|third|fourth|fifth|1st|2nd|3rd|top|last)(?: one)?|the \S+(?: \S+)? one)[.!?\s]*$/i.test(ordinaryReply);
- if(!newConversation&&(shortReply||PORTUGUESE_OPEN_ORDINAL.test(ordinaryReply)||PORTUGUESE_OPEN_CHOICE.test(ordinaryReply)||openIntent(transcript))){
+ if(!deferredDailyEdit&&!newConversation&&(shortReply||PORTUGUESE_OPEN_ORDINAL.test(ordinaryReply)||PORTUGUESE_OPEN_CHOICE.test(ordinaryReply)||openIntent(transcript))){
   const opened=openRequest(root,transcript,{terminals:live?null:terminals,appScope,selected:selected(true),exchanges:memory()});
   if(opened)return via('router.openRequest',opened);
  }
@@ -272,7 +281,7 @@ async function classify(root,{id,transcript,chosen,terminals,workTarget,appScope
  }
  // A question that also carries work is never answered by a reader: the
  // classifier sees the whole sentence, so neither half can be dropped.
- const compound=!separateTasks&&compoundHint(transcript);
+ const compound=deferredDailyEdit||!separateTasks&&compoundHint(transcript);
  // The saved ranking already contains this answer. Read only its source;
  // conversation history, metrics and background work are irrelevant here.
  const directSection=inspectBriefSectionRequest(transcript),directBrief=inspectBriefRequest(transcript),directLocal=inspectLocalLookup(transcript);
@@ -355,7 +364,7 @@ async function classify(root,{id,transcript,chosen,terminals,workTarget,appScope
   // If a multi-part news question is outside the saved lookup vocabulary,
   // preserve the whole request for the model. Broad quota/metric rules must
   // not answer one fragment and silently discard the other requested work.
-  const compoundBrief=!accepted&&compoundBriefRequest(transcript,{compound,guarded});
+  const compoundBrief=!accepted&&(deferredDailyEdit||compoundBriefRequest(transcript,{compound,guarded}));
   if(signal?.aborted)throw new Error('Voice request cancelled');
   if(!compoundBrief&&/^(?:(?:hey|please|so)\s+)*(?:what|how|tell|check|show)\b/i.test(transcript)&&/\b(usage|quota|tokens?|allowance)\b/i.test(transcript)&&!/\b(research|write|draft|compare|analy[sz]e)\b/i.test(transcript)){
    const provider=/\bclaude\b/i.test(transcript)?'claude':/\bcodex\b/i.test(transcript)?'codex':chosen.provider;
@@ -417,6 +426,7 @@ async function classify(root,{id,transcript,chosen,terminals,workTarget,appScope
    if(legacy==='task'&&!(typeof parsed.skill==='string'&&Object.hasOwn(SKILLS,parsed.skill)))throw new Error('Ação de voz inválida. Uma tarefa no formato antigo precisa indicar um fluxo compatível.');
    legacySchema=!!legacy;
    if(legacy&&!parsed.tier){parsed.tier=legacy==='task'||legacy==='tasks'?(parsed.skill&&parsed.skill!=='voice-ask'?1:3):2;if(legacy==='tasks'&&!parsed.tasks)throw new Error('A divisão em tarefas é inválida')}
+   if(parsed.write&&deferredDailyEdit)return via('router.dailyEditClarification',{tier:2,engine:'rules',reply:'Para editar a nota de hoje, diga o nome de uma tarefa e o que você quer mudar nela.',context:'',panels:['priorities']});
    result=extension(parsed,rules.validateRouted(parsed,engineName,transcript),transcript);
    if(accepted&&!accepted.work&&(result.tier===1||result.tier===3||result.write))return {tier:2,engine:'rules',reply:infoOfferGuard,context,decision:{...decision,rule:'router.acceptedInfoGuard'}};
    if(legacy==='cockpit')result.obsidian={op:'cockpit'};

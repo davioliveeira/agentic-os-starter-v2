@@ -451,6 +451,19 @@ function writeDailyCheckbox(file: string, raw: string, item: ReturnType<typeof d
 
 const foldTaskText = (text: string) => text.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
 
+export function setDailyTaskState(target: string, done: boolean) {
+  const file = todayNotePath();
+  const raw = safeRead(file);
+  const name = foldTaskText(target);
+  const matches = raw ? dailyCheckboxes(raw).filter(item => foldTaskText(item.text) === name) : [];
+  if (matches.length > 1) return { status: "ambiguous" } as const;
+  const [item] = matches;
+  if (!raw || !item) return { status: "missing" } as const;
+  if (item.done === done) return { status: "unchanged", item: item.text } as const;
+  writeDailyCheckbox(file, raw, item, done);
+  return { status: "changed", item: item.text } as const;
+}
+
 /** fuzzy checkbox toggle across Top 3 (numbered) and Daily Drivers (dashed).
  *  Scores word overlap between the spoken target and each item's text. */
 export function toggleTaskFuzzy(

@@ -79,6 +79,10 @@ Para consultar a nota diária, pergunte “Quais são minhas prioridades de hoje
 
 Para abrir o arquivo, diga “Abra minha nota diária de hoje”, “Abra o boletim da manhã de ontem” ou “Abra a nota [título da nota]”. “Abra o painel” e “Abra o terminal” também funcionam nos dois aplicativos. No Obsidian, você pode dizer “Busque no cofre por [termo]”, “Feche esta aba” ou pedir que uma nota abra “na barra lateral esquerda”.
 
+Para ouvir o início de um relatório salvo, diga “Leia em voz alta o boletim da manhã de ontem” ou “Leia o resumo do cofre em voz alta”. A resposta inclui o link para ler o restante do relatório.
+
+Na nota de hoje, diga “Adicione a tarefa Revisar a apresentação à nota de hoje”, “Conclua a tarefa Revisar a apresentação” ou “Desmarque a tarefa Revisar a apresentação”. Use o nome completo da tarefa para concluir ou reabrir o item.
+
 Durante uma chamada, pergunte “Qual o status da tarefa?” para acompanhar o trabalho. Para pedir a interrupção de uma tarefa, diga “Pare essa tarefa do Codex” ou “Cancele a tarefa atual”. A confirmação segue o modo configurado no painel.
 
 <a id="data-and-costs"></a>

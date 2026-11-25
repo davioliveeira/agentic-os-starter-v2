@@ -1,20 +1,22 @@
 import { TIME_ZONE } from "../shared/timezone.mjs";
 import { SKILLS } from "../shared/contract.mjs";
+import { reportHeadingLines } from "../shared/report-headings.mjs";
 const ALLOWED_SKILLS = new Set(Object.keys(SKILLS));
 import {
   addDriver,
   latestReportIn,
   readMorningReport,
   readVaultMarkdown,
+  setDailyTaskState,
   toggleTaskFuzzy,
   toggleTop3,
   type VaultState,
   type Metric,
 } from "./voice-vault.ts";
-import { recentExchanges } from "./voice-context.mjs";
+import { recentExchanges, withVoiceContext } from "./voice-context.mjs";
 import { localDate } from "./brief-voice.mjs";
-import { openIntent } from "./voice-targets.mjs";
-import { portugueseFileIntent, portugueseWorkspaceIntent } from "./voice-navigation-pt.mjs";
+import { openIntent, resolveOpenTarget } from "./voice-targets.mjs";
+import { portugueseFileIntent, portugueseReportReadCommand, portugueseWorkspaceIntent } from "./voice-navigation-pt.mjs";
 
 // Ported from Jarvis lib/router.ts: shared rules, snapshot prompt and action validation.
 // Model execution, provider isolation and terminal dispatch live in voice-router.mjs.
@@ -46,7 +48,7 @@ export interface RouteResult {
 
 export type VaultWrite =
   | { kind: "top3"; index: number; undo: boolean }
-  | { kind: "task"; target: string }
+  | { kind: "task"; target: string; done?: boolean }
   | { kind: "add"; text: string };
 
 export interface Reveal {
@@ -152,7 +154,7 @@ function workflowLabel(skill: string): string {
   return SKILLS[skill]?.label ?? skill;
 }
 
-export function performWrite(w: VaultWrite, state: VaultState): string {
+export function performWrite(w: VaultWrite, state: Pick<VaultState, "daily">): string {
   if (!state.daily?.isToday) {
     return NO_DAILY_NOTE;
   }
@@ -166,6 +168,13 @@ export function performWrite(w: VaultWrite, state: VaultState): string {
       : `Concluí a prioridade ${w.index + 1}${tail}`;
   }
   if (w.kind === "task") {
+    if (w.done !== undefined) {
+      const result = setDailyTaskState(w.target, w.done);
+      if (result.status === "ambiguous") return `Encontrei mais de uma tarefa chamada “${w.target}” na nota de hoje.`;
+      if (result.status === "missing") return `Não encontrei a tarefa “${w.target}” na nota de hoje.`;
+      if (result.status === "unchanged") return `A tarefa “${result.item}” já está ${w.done ? "concluída" : "aberta"}.`;
+      return `${w.done ? "Marquei como concluída" : "Reabri"} a tarefa “${result.item}”.`;
+    }
     const res = toggleTaskFuzzy(w.target);
     if (!res.ok) return `Não encontrei uma tarefa que corresponda a “${w.target}” no plano de hoje.`;
     return `${res.done ? "Marquei como concluída" : "Reabri"} a tarefa “${res.item}”.`;
@@ -721,12 +730,32 @@ const ABBREVIATION = /\b(?:Dr|Mr|Mrs|Ms|Jr|Sr|Prof|St)\.(?=\s+[A-Z])/g;
 const WRITE_SKIP =
   /\b(inbox|email|mail|queue|schedule|metrics?|runner|numbers|stats|out)\b/;
 
+const DAILY_DESTINATION_PT = /\s+(?:(?:[àa]|na|para a) nota (?:di[aá]ria )?de hoje|(?:[àa]s|nas) (?:minhas )?(?:tarefas|rotinas)(?: di[aá]rias)?(?: de hoje)?)$/i;
+const DAILY_CONSTRAINT_PT = /\b(?:ontem|amanh[ãa]|anteontem|na pr[oó]xima semana|somente se|se (?:eu|voc[eê])|quando (?:eu |voc[eê] )?(?:terminar|concluir|aprovar)|depois que|mais tarde|sem (?:marcar|adicionar))\b|\b(?:e|depois|em seguida|tamb[eé]m|mas|ou)[, ]+(?:depois +|por favor[, ]+)?(?:me )?(?:envie|mande|diga|mostre|abra|escreva|crie|gere|pesquise|adicione|conclua|desmarque|marque|reabra|leia|pergunte|o que|qual)\b/i;
+
+export function portugueseDailyWrite(transcript: string): VaultWrite | "defer" | null {
+  const text = transcript.normalize("NFKC").trim().replace(/\s+/g, " ")
+    .replace(/^(?:(?:oi|ol[aá]|jarvis|por favor)[, ]+)+/i, "").replace(/[.!]+$/, "").replace(/,? por favor$/i, "");
+  if (!/^(?:adicione|acrescente|inclua|conclua|marque|desmarque|reabra) (?:(?:uma|a) )?tarefa\b/i.test(text)) return null;
+  if (transcript.length > 300 || /[;\r\n?]|[.!]\s+\S/.test(transcript.trim()) || DAILY_CONSTRAINT_PT.test(transcript)) return "defer";
+  const named = text.replace(DAILY_DESTINATION_PT, "");
+  const add = /^(?:adicione|acrescente|inclua) (?:uma |a )?tarefa (.+)$/i.exec(named);
+  if (add) return { kind: "add", text: add[1] };
+  const complete = /^(?:conclua (?:a )?tarefa (.+)|marque (?:a )?tarefa (.+) como conclu[ií]da)$/i.exec(named);
+  if (complete) return { kind: "task", target: complete[1] ?? complete[2], done: true };
+  const reopen = /^(desmarque|reabra) (?:a )?tarefa (.+)$/i.exec(named);
+  if (reopen && (reopen[1].toLowerCase() === "desmarque" || named !== text)) return { kind: "task", target: reopen[2], done: false };
+  return "defer";
+}
+
 function vaultWriteAnswer(
   t: string,
   state: VaultState,
   original: string = t
 ): { text: string; panels: PanelId[] } | null {
   const panels: PanelId[] = ["priorities"];
+  const localized = portugueseDailyWrite(original);
+  if (localized && localized !== "defer") return { text: performWrite(localized, state), panels };
   // A second sentence is a second request; the normaliser above has already
   // erased the boundary, so judge the original words.
   if (/[.!?;]\s+\S/.test(original.trim().replace(ABBREVIATION, (m) => m.slice(0, -1)))) return null;
@@ -811,15 +840,30 @@ function readAloudAnswer(t: string, state: VaultState): StateAnswer | null {
   };
 }
 
+export function routePortugueseReportRead(root: string, transcript: string): RouteResult | null {
+  const command = portugueseReportReadCommand(transcript);
+  if (!command) return null;
+  const resolved = resolveOpenTarget(root, command);
+  const base = { tier: 2 as const, engine: "rules" as const, panels: ["documents"] as PanelId[] };
+  if (resolved?.kind !== "report") {
+    const date = resolved?.kind === "missing" && resolved.dateLabel ? ` para ${resolved.dateLabel}` : "";
+    return { ...base, reply: `Não encontrei o relatório${date} nos arquivos salvos.` };
+  }
+  const raw = withVoiceContext({ root, exchanges: [] }, () => readVaultMarkdown(resolved.path));
+  const text = raw ? speakable(raw) : "";
+  return text ? { ...base, reply: `O relatório “${resolved.label}” diz o seguinte — ${text}`, deliverable: resolved.path }
+    : { ...base, reply: "Não encontrei texto legível nesse relatório.", deliverable: resolved.path };
+}
+
 // markdown → something a TTS voice can read without stumbling
 function speakable(raw: string): string {
-  let s = raw;
+  let s = raw.replace(/^\uFEFF/, "");
   if (s.startsWith("---")) {
     const end = s.indexOf("\n---");
     if (end > 0) s = s.slice(end + 4);
   }
-  s = s
-    .replace(/```[\s\S]*?```/g, " ")
+  const { lines, hidden } = reportHeadingLines(s);
+  s = lines.map((line: string, index: number) => hidden.has(index) ? "" : line).join("")
     .replace(/^\|.*\|\s*$/gm, " ") // tables read as word salad
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
     .replace(/https?:\/\/\S+/g, "")

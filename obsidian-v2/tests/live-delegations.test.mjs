@@ -504,7 +504,7 @@ test('Live report references do not authorize an ordinary report read or a Local
  fs.mkdirSync(path.join(f.root,'notes'));fs.writeFileSync(path.join(f.root,readReportPath),'fixture');
  const receipt={id:randomUUID(),provider:'claude',requestedWorkerModel:'sonnet',transport:'live',liveCallId:f.call.callId,deliverable:readReportPath};
  writeJson(f.root,`${ROOT}/voice-results/${receipt.id}.json`,receipt);
- assert.throws(()=>readVoiceReport(f.root,readReportPath,[],[receipt]),/Only referenced/);
+ assert.throws(()=>readVoiceReport(f.root,readReportPath,[],[receipt]),/notas referenciadas/);
  const ctx={root:f.root,active:f.active};
  const request={id:receipt.id,selection:chosen,transcript:'Attempt replay'};
  await assert.rejects(handleVoiceRequest(ctx,request,{source:'text'}),/outra seleção/);
