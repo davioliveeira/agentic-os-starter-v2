@@ -14,7 +14,7 @@ import {explainLookup,GAP_REPLY,directGeneralWork,compoundWork,compoundHint} fro
 import {selectedTaskContext} from './voice-task-context.mjs';
 import {SPOKEN_REPLY_STYLE} from './spoken-answer.mjs';
 import {readConversationEpoch,taskInScope} from './current-conversations.mjs';
-import {resolveOpenTarget,openIntent,searchTargets,describeCandidates,uniqueLabels,PORTUGUESE_OPEN_ORDINAL} from './voice-targets.mjs';
+import {resolveOpenTarget,openIntent,searchTargets,describeCandidates,openCandidates,PORTUGUESE_OPEN_CHOICE,PORTUGUESE_OPEN_ORDINAL} from './voice-targets.mjs';
 import {hedgeClassifier,jevState} from './jev.mjs';
 import {strictRules} from './voice-strict-rules.mjs';
 import {taskStatusReply} from './task-updates.mjs';
@@ -23,6 +23,7 @@ import {voiceReceiptTransport} from './voice-receipts.mjs';
 // tier/engine/model meaning; provenance never travels through those fields.
 const via=(rule,result,boundary='rules',extra={})=>result&&{...result,decision:{boundary,source:'rules',rule,...extra,...(result.decision||{})}};
 const jiti=createJiti(import.meta.url);
+const candidateQuestion=candidates=>`Encontrei ${candidates.length} opções: ${describeCandidates(candidates)}. Qual delas?`;
 // "Open / show / pull up X" is resolved against the vault and the selected
 // conversation before any brief reader, classifier or worker sees it. Every
 // outcome here is a dashboard action or one short question, never a worker turn.
@@ -31,7 +32,7 @@ function openRequest(root,transcript,{terminals,appScope,selected,exchanges}){
  try{resolved=resolveOpenTarget(root,transcript,{exchanges,selectedTask:selected,appScope,taskById:id=>{try{const task=terminals?.get(id);return task&&taskInScope(task,appScope)?task:null}catch{return null}}})}catch{return null}
  if(!resolved)return null;
  const base={tier:2,engine:'rules',context:'',panels:['documents'],lookupRoute:'open'};
- const typeName=type=>type==='image'?'an image':type==='pdf'?'a PDF':type==='canvas'?'a canvas':'a';
+ const fileTypes={image:'uma imagem',pdf:'um PDF',canvas:'um canvas'};
  switch(resolved.kind){
   case 'report':case 'daily':
    // Saved reports use the deliverable channel like the named-report shortcut.
@@ -42,25 +43,25 @@ function openRequest(root,transcript,{terminals,appScope,selected,exchanges}){
    // exact path already resolved; placements ride along for Obsidian.
    if(resolved.referent&&!resolved.where)return {...base,reply:'',deliverable:resolved.path,reveal:'open'};
    if(resolved.type==='note'||appScope==='native')return {...base,reply:'',obsidian:{op:'open-note',query:resolved.path,...(resolved.where?{where:resolved.where}:{})}};
-   return {...base,reply:`${resolved.label} is ${typeName(resolved.type)} file. I can open it in Obsidian; the dashboard shows Markdown notes only.`,lookupRoute:'clarification'};
+   return {...base,reply:`${resolved.label} é ${fileTypes[resolved.type]||'um arquivo'}. Posso abrir no Obsidian. O painel exibe apenas notas em Markdown.`,lookupRoute:'clarification'};
   case 'artifact':
    if(resolved.selected)return {...base,reply:'',reopenArtifact:{taskId:resolved.taskId,artifact:resolved.artifact,label:resolved.label}};
    if(appScope==='native')return {...base,reply:'',obsidian:{op:'open-note',query:resolved.artifact.path}};
-   return {...base,reply:`That file came from the conversation "${resolved.taskTitle||'another task'}". Select that conversation and ask again, and I'll open it.`,lookupRoute:'clarification'};
+   return {...base,reply:`Esse arquivo veio da conversa “${resolved.taskTitle||'Outra tarefa'}”. Selecione essa conversa e peça de novo para eu abrir o arquivo.`,lookupRoute:'clarification'};
   case 'undisplayable':
-   return {...base,reply:`The file from that conversation is a .${resolved.ext||'file'} file, which I can't display in Obsidian or the dashboard. It's saved at ${resolved.path}.`,lookupRoute:'clarification'};
+   return {...base,reply:`O arquivo dessa conversa${resolved.ext?` está no formato ${resolved.ext}`:' está em um formato sem suporte à visualização'} e não pode ser exibido no Obsidian nem no painel. Ele está salvo em ${resolved.path}.`,lookupRoute:'clarification'};
   case 'ambiguous':
-   return {...base,reply:`I found ${resolved.candidates.length} that could match: ${describeCandidates(resolved.candidates)}. Which one?`,lookup:{source:'open-candidates',candidates:resolved.candidates},lookupRoute:'clarification'};
+   return {...base,reply:candidateQuestion(resolved.candidates),lookup:{source:'open-candidates',candidates:resolved.candidates},lookupRoute:'clarification'};
   case 'missing':{
-   const what=`${resolved.label}${resolved.dateLabel?` for ${resolved.dateLabel}`:''}`,article=/^[aeiou]/i.test(what)?'an':'a';
-   if(resolved.nearest)return {...base,reply:`I don't have ${article} ${what}. The closest is the ${resolved.nearest.label}. Want me to open that one?`,lookup:{source:'open-offer',path:resolved.nearest.path,label:resolved.nearest.label},lookupRoute:'clarification'};
-   return {...base,reply:`I don't have ${article} ${what} on file.`,lookupRoute:'clarification'};
+   const what=`${resolved.label}${resolved.dateLabel?` para ${resolved.dateLabel}`:''}`;
+   if(resolved.nearest)return {...base,reply:`Não encontrei ${what}. Encontrei esta versão anterior, ${resolved.nearest.label}. Quer que eu abra essa opção?`,lookup:{source:'open-offer',path:resolved.nearest.path,label:resolved.nearest.label},lookupRoute:'clarification'};
+   return {...base,reply:`Não encontrei ${what} nos arquivos salvos.`,lookupRoute:'clarification'};
   }
   case 'unresolved':
    // A bare "pull it up" with nothing to point at keeps the existing
    // conversation handling, which asks what to work with.
    if(resolved.referential)return null;
-   return {...base,reply:`I couldn't find anything named "${resolved.target}"${resolved.dateLabel?` for ${resolved.dateLabel}`:''}. Try the note's title.`,lookupRoute:'clarification'};
+   return {...base,reply:`Não encontrei nada com o nome "${resolved.target}"${resolved.dateLabel?` para ${resolved.dateLabel}`:''}. Tente dizer o título da nota.`,lookupRoute:'clarification'};
  }
  return null;
 }
@@ -146,58 +147,69 @@ function hasRecentReference(exchanges){
    (String(e.jarvis||'').trim()&&!AFFIRM.test(String(e.you||''))&&!DECLINE.test(String(e.you||''))&&!/^(?:hey|hi|hello|thanks|thank you|how are you|can you hear me|are you there)[.!?\s]*$/i.test(String(e.you||''))&&!needsConversationReference(String(e.you||'')))));
 }
 const asksWorkHistory=text=>/^(?:(?:hey|please|so)[,\s]+)*(?:(?:can|could) you (?:tell me|check)\s+)?(?:what|which|how|is|are|did|check|show|tell)\b/i.test(text.trim())&&/\b(?:running|working|tasks?|terminals?|jobs?|runs?|status|finished|completed|happened to)\b/i.test(text);
-const affirmWords="yes(?: please)?(?: (?:do (?:it|that)|go ahead))?|yeah|yep|sure|absolutely|go ahead|do (?:it|that)|let'?s do (?:it|that)|please do(?: (?:it|that))?|go for it|sounds good";
+const affirmWords="yes(?: please)?(?: (?:do (?:it|that)|go ahead))?|yeah|yep|sure|absolutely|go ahead|do (?:it|that)|let'?s do (?:it|that)|please do(?: (?:it|that))?|go for it|sounds good|sim(?: por favor)?";
 const affirmEnd='(?: please)?(?: jarvis)?[.!?\\s]*$';
 const AFFIRM=new RegExp(`^(?:${affirmWords})${affirmEnd}`,'i');
 export const AFFIRM_RE=new RegExp(`^(?:ok(?:ay)?[,\\s]+)?(?:${affirmWords}|ok(?:ay)?|that works)${affirmEnd}`,'i');
 export const liveAffirmation=text=>AFFIRM_RE.test(text.trim().replace(/,/g,' ').replace(/\s+/g,' ').replace(/[’]/g,"'"));
-export const LIVE_NO_OFFER="Tell me what you'd like me to do.";
-const DECLINE=/^(?:no(?: thanks)?|nope|nah|(?:no|nah) that['’]?s (?:okay|ok|fine|alright|all right)|(?:(?:no|nah) )?i['’]?m (?:good|all set)(?: for now)?|not (?:right )?now|not yet|later|maybe later|hold off|skip it|never ?mind|don'?t do (?:it|that)|no[ ,]+(?:not that|don'?t do that))(?: thanks| thank you)?(?: jarvis)?[.!?\s]*$/i;
+export const LIVE_NO_OFFER='Diga o que você quer que eu faça.';
+const DECLINE=/^(?:no(?: thanks)?|nope|nah|(?:no|nah) that['’]?s (?:okay|ok|fine|alright|all right)|(?:(?:no|nah) )?i['’]?m (?:good|all set)(?: for now)?|not (?:right )?now|not yet|later|maybe later|hold off|skip it|never ?mind|don'?t do (?:it|that)|no[ ,]+(?:not that|don'?t do that)|não(?: obrigad[oa])?)(?: thanks| thank you)?(?: jarvis)?[.!?\s]*$/i;
 const WORK_OFFER=/^(?:dig(?: deeper)? into|look(?: deeper)? into|research|investigate|build|draft|write|create|generate|analy[sz]e|compare|review|audit|run|pull|refresh|revise|edit|update|change|make|find|check|look up)\b/i;
 const INFO_OFFER=/^(?:explain|summari[sz]e|read|open|show|tell)\b/i;
+const WORK_OFFER_PT=/^(?:consulte|pesquise|verifique|investigue|atualize)\b/i;
+const INFO_OFFER_PT=/^(?:explique|resuma|leia|abra|mostre)\b/i;
+const offerClarification='O que você quer que eu faça?';
+const infoOfferGuard='A sugestão era explicar ou mostrar as informações salvas. Diga qual tarefa você quer que eu faça.';
+const argumentLabels={url:'link da fonte',topic:'tema',prompt:'instrução'};
+const askForArgument=(skill,arg)=>`Qual ${argumentLabels[arg]||arg} devo usar no fluxo ${SKILLS[skill].label}?`;
 function acceptedOffer(last,workTarget){
- if(!last||Date.now()-Date.parse(last.ts)>=180000)return {reply:'What would you like me to go ahead with?'};
- if((last.workTarget||null)!==(workTarget||null))return {reply:'That offer belongs to a different conversation. Please say what you want done in the selected conversation.'};
- if(last.pendingSkill&&SKILLS[last.pendingSkill]?.arg){const arg=SKILLS[last.pendingSkill].arg;return {reply:`What ${arg==='url'?'source URL':arg} should I use for ${SKILLS[last.pendingSkill].label.toLowerCase()}?`,pendingSkill:last.pendingSkill}}
+ if(!last||Date.now()-Date.parse(last.ts)>=180000)return {reply:offerClarification};
+ if((last.workTarget||null)!==(workTarget||null))return {reply:'Essa sugestão pertence a outra conversa. Diga o que você quer que eu faça na conversa selecionada.'};
+ if(last.pendingSkill&&SKILLS[last.pendingSkill]?.arg)return {reply:askForArgument(last.pendingSkill,SKILLS[last.pendingSkill].arg),pendingSkill:last.pendingSkill};
  const text=String(last.jarvis||''),offers=[];
- for(const match of text.matchAll(/\b(?:(?:do|would) you (?:want|like) me to|want me to|shall I|should I|can I)\s+/gi)){
+ for(const match of text.matchAll(/\b(?:(?:do|would) you (?:want|like) me to|want me to|shall I|should I|can I|(quer que eu))\s+/gi)){
   // Only an actual offered question at a sentence boundary, not a quoted
   // question inside a report or an old offer buried elsewhere in memory.
-  const before=text.slice(0,match.index).replace(/\bor\s*$/i,'');
+  const before=text.slice(0,match.index).replace(/\b(?:or|ou)\s*$/i,'');
   if(before.trim()&&!/[.!?]\s*$/.test(before))continue;
   const rest=text.slice(match.index+match[0].length),end=rest.indexOf('?');
-  offers.push((end<0?rest:rest.slice(0,end)).trim());
+  const portuguese=Boolean(match[1]);
+  if(portuguese&&end<0)continue;
+  offers.push({text:(end<0?rest:rest.slice(0,end)).trim(),portuguese});
  }
- if(offers.length!==1)return {reply:offers.length>1?'Which of those actions would you like me to do?':'What would you like me to go ahead with?'};
+ if(offers.length!==1)return {reply:offers.length>1?'Qual dessas ações você quer que eu faça?':offerClarification};
  // The original morning offer has this open-ended tail, not a second action.
- const request=offers[0].replace(/,?\s+or do you have anything else in mind[.!]?$/i,'').replace(/[.!]+$/,'').trim();
- if(!request||/\bor\b|[;\n]/i.test(request))return {reply:'Please name the specific action you want me to take.'};
- const action=WORK_OFFER.exec(request)||INFO_OFFER.exec(request);
- if(!action)return {reply:'Please say what you would like me to do.'};
- const subject=request.slice(action[0].length).replace(/\s+for you$/i,'').trim();
- if(!subject)return {reply:'What should I work on?'};
- const referential=/^(?:(?:deeper|further|more|about|into|at|up|over|through|on|to|for)\s+)*(?:it|that|this|those|them|more|deeper|further|the (?:same|first|second|third|other) (?:one|item|thing))$/i.test(subject);
+ const [{text:offerText,portuguese}]=offers;
+ const request=offerText.replace(/,?\s+or do you have anything else in mind[.!]?$/i,'').replace(/[.!]+$/,'').trim();
+ if(!request||(portuguese?/\bou\b|[;\n]/i:/\bor\b|[;\n]/i).test(request))return {reply:'Diga qual ação específica você quer que eu faça.'};
+ const work=(portuguese?WORK_OFFER_PT:WORK_OFFER).exec(request);
+ const action=work||(portuguese?INFO_OFFER_PT:INFO_OFFER).exec(request);
+ if(!action)return {reply:offerClarification};
+ const subject=request.slice(action[0].length).replace(/\s+(?:for you|para voc[eê])$/i,'').trim();
+ if(!subject)return {reply:'Em que você quer que eu trabalhe?'};
+ if(portuguese&&/^(?:(?:mais|sobre|a respeito de)\s+)*(?:isso|isto|aquilo|esse assunto|essa opç[aã]o|o mesmo)$/i.test(subject))return {reply:'O que você quer que eu veja em mais detalhes?'};
+ const referential=!portuguese&&/^(?:(?:deeper|further|more|about|into|at|up|over|through|on|to|for)\s+)*(?:it|that|this|those|them|more|deeper|further|the (?:same|first|second|third|other) (?:one|item|thing))$/i.test(subject);
  let title=request.charAt(0).toUpperCase()+request.slice(1);
  if(referential){
   // Resolve a pronoun only against the immediately preceding user request.
   // Never revive an unrelated task from older exchanges or background runs.
   const previous=String(last.you||'');
   const topic=previous.replace(/\b(?:what|which|who|why|how|when|where|is|are|was|were|do|does|did|you|your|i|my|me|we|our|can|could|would|should|will|a|an|the|of|to|for|on|in|about|and|or|it|that|this|those|them|there|anything|something|else|more|other|first|second|third|one|item|thing|think|say|said|tell|explain|mean|means|yes|yeah|yep|sure|please|go|ahead|sounds|good|no|thanks)\b/gi,'').replace(/[^\p{L}\p{N}]+/gu,'').trim();
-  if(!topic)return {reply:'What specifically should I look into?'};
+  if(!topic)return {reply:'O que você quer que eu veja em mais detalhes?'};
   title=`${title} — ${previous}`;
  }
- return {request,title:title.slice(0,240),work:WORK_OFFER.test(request),exchange:last};
+ return {request,title:title.slice(0,240),work:Boolean(work),exchange:last};
 }
 function extension(parsed,base,transcript){
- if(!base)throw new Error('Voice router returned an invalid response. Please rephrase.');
+ if(!base)throw new Error('O roteador de voz retornou uma resposta inválida. Reformule o pedido.');
  if(base.tier===1){
   const requirement=SKILLS[base.skill]?.arg;
   const args=requirement&&typeof parsed.args?.[requirement]==='string'?{[requirement]:parsed.args[requirement].trim()}:{};
-  if(requirement&&!args[requirement])return {tier:2,engine:base.engine,reply:`What ${requirement==='url'?'source URL':requirement} should I use for ${SKILLS[base.skill].label.toLowerCase()}?`,pendingSkill:base.skill};
+  if(requirement&&!args[requirement])return {tier:2,engine:base.engine,reply:askForArgument(base.skill,requirement),pendingSkill:base.skill};
   return {...base,args};
  }
  if(base.tier===3&&parsed.tasks){
-  if(!Array.isArray(parsed.tasks)||!parsed.tasks.length||parsed.tasks.length>12||parsed.tasks.some(t=>typeof t.prompt!=='string'||!t.prompt.trim()||t.prompt.length>4000))throw new Error('Invalid task breakdown. Please rephrase.');
+  if(!Array.isArray(parsed.tasks)||!parsed.tasks.length||parsed.tasks.length>12||parsed.tasks.some(t=>typeof t.prompt!=='string'||!t.prompt.trim()||t.prompt.length>4000))throw new Error('A divisão em tarefas é inválida. Reformule o pedido.');
   return {...base,tasks:parsed.tasks};
  }
  return base;
@@ -228,12 +240,12 @@ async function classify(root,{id,transcript,chosen,terminals,workTarget,appScope
   const task=workTarget?terminals?.get(workTarget):null;
   if(!taskInScope(task,appScope))return null;
   if(!live)return task;
-  if(forOpen)return {id:task.id,provider:task.provider,model:task.model,state:task.state,title:'Selected conversation',
+  if(forOpen)return {id:task.id,provider:task.provider,model:task.model,state:task.state,title:'Conversa selecionada',
    turns:task.turns?.map(turn=>({artifacts:turn.artifacts}))};
   // A terminal can mix typed and spoken turns on the same ID. Only the
   // receipt records provenance reliably enough to share conversational text.
   const exchanges=conversationExchanges(memory(),workTarget);
-  return {id:task.id,provider:task.provider,model:task.model,state:task.state,title:'Selected conversation',prompt:exchanges[0]?.you,
+  return {id:task.id,provider:task.provider,model:task.model,state:task.state,title:'Conversa selecionada',prompt:exchanges[0]?.you,
    turns:exchanges.map(exchange=>({ts:exchange.ts,prompt:exchange.you,text:exchange.jarvis}))};
  }catch{return null}};
  // Dated reports, notes, files and a selected conversation's saved outputs
@@ -241,8 +253,9 @@ async function classify(root,{id,transcript,chosen,terminals,workTarget,appScope
  // memory; brief questions keep their memory-free fast path.
  // A short assent or ordinal may answer this resolver's own question
  // ("which one?" / "want me to open that one?") from the previous turn.
- const shortReply=/^(?:(?:hey|ok|okay|yes|yeah|yep|sure|please|jarvis)[,\s]+)*(?:yes|yeah|yep|sure|ok(?:ay)?|absolutely|go ahead|do it|please do|that one|that works|(?:the |number )?(?:first|second|third|fourth|fifth|1st|2nd|3rd|top|last)(?: one)?|the \S+(?: \S+)? one)[.!?\s]*$/i.test(transcript.trim());
- if(!newConversation&&(shortReply||PORTUGUESE_OPEN_ORDINAL.test(transcript.normalize('NFKC').trim())||openIntent(transcript))){
+ const ordinaryReply=transcript.normalize('NFKC').trim();
+ const shortReply=/^(?:(?:hey|ok|okay|yes|yeah|yep|sure|please|jarvis)[,\s]+)*(?:yes|yeah|yep|sure|ok(?:ay)?|absolutely|go ahead|do it|please do|that one|that works|sim(?:,? por favor)?|(?:the |number )?(?:first|second|third|fourth|fifth|1st|2nd|3rd|top|last)(?: one)?|the \S+(?: \S+)? one)[.!?\s]*$/i.test(ordinaryReply);
+ if(!newConversation&&(shortReply||PORTUGUESE_OPEN_ORDINAL.test(ordinaryReply)||PORTUGUESE_OPEN_CHOICE.test(ordinaryReply)||openIntent(transcript))){
   const opened=openRequest(root,transcript,{terminals:live?null:terminals,appScope,selected:selected(true),exchanges:memory()});
   if(opened)return via('router.openRequest',opened);
  }
@@ -253,7 +266,7 @@ async function classify(root,{id,transcript,chosen,terminals,workTarget,appScope
  const leadingClause=transcript.split(/\b(?:and then|and|then|also|plus|after that|afterwards)\b|[;.]/i)[0]||transcript;
  if(!separateTasks&&compoundWork(transcript)&&(workTarget||!needsConversationReference(leadingClause))){
   const exchanges=newConversation?[]:conversationExchanges(memory(),workTarget);
-  return via('router.compoundWork',{tier:3,engine:'rules',reply:'Working on that.',context:exchanges.map(e=>`User: ${e.you}\nAssistant: ${e.jarvis}${e.deliverable?`\nReferenced report: ${e.deliverable}`:''}`).join('\n').slice(-6500)});
+  return via('router.compoundWork',{tier:3,engine:'rules',reply:'Vou cuidar disso.',context:exchanges.map(e=>`User: ${e.you}\nAssistant: ${e.jarvis}${e.deliverable?`\nReferenced report: ${e.deliverable}`:''}`).join('\n').slice(-6500)});
  }
  // A question that also carries work is never answered by a reader: the
  // classifier sees the whole sentence, so neither half can be dropped.
@@ -271,11 +284,11 @@ async function classify(root,{id,transcript,chosen,terminals,workTarget,appScope
  // Millisecond timestamps can tie. Neither random receipt filenames nor
  // mutable filesystem mtimes establish which exchange actually came last.
  const latestExchange=exchanges.length>1&&exchanges.at(-2).ts===exchanges.at(-1).ts?null:exchanges.at(-1);
- if(DECLINE.test(acknowledgement))return via('router.decline',{tier:2,engine:'rules',reply:'Standing by.',context:''});
+ if(DECLINE.test(acknowledgement))return via('router.decline',{tier:2,engine:'rules',reply:'Fico à disposição.',context:''});
  const accepted=transport==='local'&&AFFIRM.test(acknowledgement)?acceptedOffer(newConversation?null:latestExchange,workTarget):null;
  if(accepted?.reply)return via('router.affirm',{tier:2,engine:'rules',reply:accepted.reply,context:'',...(accepted.pendingSkill?{pendingSkill:accepted.pendingSkill}:{})});
  if(accepted){
-  const task=selected();if(task&&task.provider!==chosen.provider)throw new Error('This conversation uses a different provider. Choose it in voice controls or start a new task.');
+  const task=selected();if(task&&task.provider!==chosen.provider)throw new Error('Essa conversa usa outro provedor. Selecione-o nos controles de voz ou inicie uma nova tarefa.');
   transcript=accepted.request;
  }
  const scopedExchanges=accepted?[accepted.exchange]:newConversation?[]:conversationExchanges(exchanges,workTarget);
@@ -287,7 +300,7 @@ async function classify(root,{id,transcript,chosen,terminals,workTarget,appScope
   const last=accepted?accepted.exchange:latestExchange,related=last&&scopedExchanges.includes(last)&&(last.workTarget||null)===(workTarget||null)&&Date.now()-Date.parse(last.ts)<180000?last:null;
   const previous=related?.lookup?.date===localDate()&&Array.isArray(related.lookup.plan)?related.lookup:null;
   const previousSection=related?.lookup?.date===localDate()&&related.lookup.source==='brief-section'?related.lookup:null;
-  if(!previous&&!previousSection&&/^(?:what|which|and|what about)\b/i.test(transcript.trim())&&/\b(?:number\s+(?:two|three|four|five|[2-5])|second|third|fourth|fifth|next)\b.*\b(?:that list|the list|those stories)\b/i.test(transcript)&&!/\b(?:create|research|write|draft|send|and then)\b/i.test(transcript))return via('router.listClarification',{tier:2,engine:'rules',reply:'Which saved list do you mean?',context:'',lookupRoute:'clarification'});
+  if(!previous&&!previousSection&&/^(?:what|which|and|what about)\b/i.test(transcript.trim())&&/\b(?:number\s+(?:two|three|four|five|[2-5])|second|third|fourth|fifth|next)\b.*\b(?:that list|the list|those stories)\b/i.test(transcript)&&!/\b(?:create|research|write|draft|send|and then)\b/i.test(transcript))return via('router.listClarification',{tier:2,engine:'rules',reply:'De qual lista salva você está falando?',context:'',lookupRoute:'clarification'});
   const sectionRequest=inspectBriefSectionRequest(transcript,{previous:previousSection}),briefRequest=inspectBriefRequest(transcript,{previous}),localRequest=accepted?inspectLocalLookup(transcript):directLocal;
   if(!compound&&sectionRequest.kind==='lookup')return via('lookup.section',{...sectionAnswer(sectionRequest),context:acceptedContext});
   const sectionOutside=!compound&&sectionRequest.kind==='outside'&&!sectionRequest.guarded;
@@ -298,10 +311,10 @@ async function classify(root,{id,transcript,chosen,terminals,workTarget,appScope
   // Expiration clears the selected destination and advances the voice epoch.
   // Do not treat an old task in the background catalog as the referent for a
   // fresh "make it larger" request, or launch a terminal just to ask what "it" is.
-  if(!accepted&&!workTarget&&!asksWorkHistory(transcript)&&!hasRecentReference(scopedExchanges)&&needsConversationReference(transcript))return via('router.needsReference',{tier:2,engine:'rules',reply:'What would you like me to work with?',context:'',lookupRoute:'clarification'});
+  if(!accepted&&!workTarget&&!asksWorkHistory(transcript)&&!hasRecentReference(scopedExchanges)&&needsConversationReference(transcript))return via('router.needsReference',{tier:2,engine:'rules',reply:'O que você quer que eu use para fazer isso?',context:'',lookupRoute:'clarification'});
   // Straightforward delegation needs neither a dashboard scan nor a classifier.
   // The worker receives the original utterance and recent voice references.
-  if(!accepted&&!separateTasks&&directGeneralWork(transcript))return via('router.directGeneralWork',{tier:3,engine:'rules',reply:'Working on that.',context:scopedExchanges.map(e=>`User: ${e.you}\nAssistant: ${e.jarvis}${e.deliverable?`\nReferenced report: ${e.deliverable}`:''}`).join('\n').slice(-6500)});
+  if(!accepted&&!separateTasks&&directGeneralWork(transcript))return via('router.directGeneralWork',{tier:3,engine:'rules',reply:'Vou cuidar disso.',context:scopedExchanges.map(e=>`User: ${e.you}\nAssistant: ${e.jarvis}${e.deliverable?`\nReferenced report: ${e.deliverable}`:''}`).join('\n').slice(-6500)});
   // Section questions choose their own source before the older broad news and
   // audience keywords. Only the requested section crosses a model boundary.
   if(!compound&&!accepted?.work&&sectionRequest.kind==='ambiguous'){
@@ -346,8 +359,9 @@ async function classify(root,{id,transcript,chosen,terminals,workTarget,appScope
    const provider=/\bclaude\b/i.test(transcript)?'claude':/\bcodex\b/i.test(transcript)?'codex':chosen.provider;
    const data=planning?await usage[provider]({wait:false,signal,cachedOnly:true}):await usage[provider]({wait:false,signal});
    const minutes=/\b(5|five)[ -]?hour\b/i.test(transcript)?300:10080;
-   const window=data.windows?.find(w=>w.windowDurationMins===minutes),label=minutes===300?'five-hour':'weekly';
-   return via('router.usage',{tier:2,engine:'rules',panels:['vitals'],context,reply:window?`${provider==='codex'?'Codex':'Claude'} ${label} usage is ${Math.round(window.usedPercent)} percent.${data.status==='stale'?' That is the last saved reading; refresh is unavailable.':''}`:`I don't have a ${provider} ${label} usage reading right now.`});
+   const window=data.windows?.find(w=>w.windowDurationMins===minutes),label=minutes===300?'da janela de cinco horas':'da semana';
+   const name=provider==='codex'?'Codex':'Claude';
+   return via('router.usage',{tier:2,engine:'rules',panels:['vitals'],context,reply:window?`O ${name} usou ${Math.round(window.usedPercent)} por cento da cota ${label}.${data.status==='stale'?' Essa é a última leitura salva. A atualização está indisponível.':''}`:`A leitura de uso do ${name} ${label} está indisponível no momento.`});
   }
   // Explicit work cannot be swallowed by broad state keywords (e.g. research
   // subscriber growth). Navigation and imperative daily-note edits stay fast.
@@ -357,7 +371,7 @@ async function classify(root,{id,transcript,chosen,terminals,workTarget,appScope
   // tails. Generic accepted work never depends on a model inventing a task list.
   let result=rules.rulesRoute(accepted?.work?'yes':explicitWork||compoundBrief?'__defer_to_model__':transcript,state);
   if(!accepted&&explicitWork&&transcript.split(/\s+/).length<=5){const short=rules.rulesRoute(transcript,state);if(short.tier===1)result=short}
-  if(accepted?.work&&result.tier!==1)result={tier:3,engine:'rules',reply:'Working on the accepted request.'};
+  if(accepted?.work&&result.tier!==1)result={tier:3,engine:'rules',reply:'Vou começar a tarefa que você confirmou.'};
   if(result.fallthrough){
    if(workTarget&&/^(?:follow up|continue|make (?:it|that)|change (?:it|that)|revise|try again|add to (?:it|that))\b/i.test(transcript.trim()))return via('router.selectedFollowUp',{tier:3,engine:'rules',reply:'',context});
    const model=VOICE_MODELS[chosen.provider];
@@ -397,16 +411,16 @@ async function classify(root,{id,transcript,chosen,terminals,workTarget,appScope
    // Accept the earlier V2 schema for older fixtures/engines while all new prompts
    // use the original intent schema. Invalid output never launches a task.
    const legacy=parsed.action;
-   if(legacy&&!['task','tasks','status','cockpit','reply'].includes(legacy))throw new Error('Invalid voice action');
-   if(legacy==='task'&&!(typeof parsed.skill==='string'&&Object.hasOwn(SKILLS,parsed.skill)))throw new Error('Invalid voice action: a legacy task must name a supported workflow');
+   if(legacy&&!['task','tasks','status','cockpit','reply'].includes(legacy))throw new Error('Ação de voz inválida');
+   if(legacy==='task'&&!(typeof parsed.skill==='string'&&Object.hasOwn(SKILLS,parsed.skill)))throw new Error('Ação de voz inválida. Uma tarefa no formato antigo precisa indicar um fluxo compatível.');
    legacySchema=!!legacy;
-   if(legacy&&!parsed.tier){parsed.tier=legacy==='task'||legacy==='tasks'?(parsed.skill&&parsed.skill!=='voice-ask'?1:3):2;if(legacy==='tasks'&&!parsed.tasks)throw new Error('Invalid task breakdown')}
+   if(legacy&&!parsed.tier){parsed.tier=legacy==='task'||legacy==='tasks'?(parsed.skill&&parsed.skill!=='voice-ask'?1:3):2;if(legacy==='tasks'&&!parsed.tasks)throw new Error('A divisão em tarefas é inválida')}
    result=extension(parsed,rules.validateRouted(parsed,engineName,transcript),transcript);
-   if(accepted&&!accepted.work&&(result.tier===1||result.tier===3||result.write))return {tier:2,engine:'rules',reply:'Please say the specific work you want me to do; the offer was only to explain or show the saved information.',context,decision:{...decision,rule:'router.acceptedInfoGuard'}};
+   if(accepted&&!accepted.work&&(result.tier===1||result.tier===3||result.write))return {tier:2,engine:'rules',reply:infoOfferGuard,context,decision:{...decision,rule:'router.acceptedInfoGuard'}};
    if(legacy==='cockpit')result.obsidian={op:'cockpit'};
    if(result.write){result={...result,reply:rules.performWrite(result.write,state),write:undefined,panels:['priorities']};wrote=true;if(!planning)invalidateVoiceSnapshot(root)}
   }
-  if(accepted&&!accepted.work&&result.tier===1)return via('router.acceptedInfoGuard',{tier:2,engine:'rules',reply:'Please say the specific work you want me to do; the offer was only to explain or show the saved information.',context,...(decision?{decision}:{})});
+  if(accepted&&!accepted.work&&result.tier===1)return via('router.acceptedInfoGuard',{tier:2,engine:'rules',reply:infoOfferGuard,context,...(decision?{decision}:{})});
   const otherActive=terminals?.list?.().filter(t=>taskInScope(t,appScope)&&t.provider!==chosen.provider&&t.workflow?.skill&&['starting','working','needs input'].includes(t.state)).map(t=>({skill:t.workflow.skill}))||[];
   result=rules.inFlightGuard(result,transcript,{...state,queue:[...state.queue,...otherActive]});
   if(result.tier===1){result=extension(result,result,transcript)}
@@ -417,8 +431,8 @@ async function classify(root,{id,transcript,chosen,terminals,workTarget,appScope
    const [top,second]=matches,tied=matches.filter(m=>m.score>=top?.score-0.01);
    const note=top&&!(second&&second.score>=top.score-0.01)?top.entry.path:resolveVoiceNote(root,result.obsidian.query);
    if(note)result={...result,reply:result.reply||'',obsidian:{...result.obsidian,query:note}};
-   else if(tied.length>1){const labels=uniqueLabels(tied.map(m=>m.entry),localDate());const candidates=tied.map((m,i)=>({path:m.entry.path,label:labels[i],type:m.entry.type}));result={tier:2,engine:result.engine,reply:`I found ${tied.length} that could match: ${describeCandidates(candidates)}. Which one?`,lookup:{source:'open-candidates',candidates},lookupRoute:'clarification'}}
-   else result={tier:2,engine:result.engine,reply:'Please use a more specific note name; I could not find a unique match.'};
+   else if(tied.length>1){const candidates=openCandidates(tied.map(m=>m.entry),localDate());result={tier:2,engine:result.engine,reply:candidateQuestion(candidates),lookup:{source:'open-candidates',candidates},lookupRoute:'clarification'}}
+   else result={tier:2,engine:result.engine,reply:'Diga um nome mais específico para eu identificar a nota.'};
   }
   const {rule:stage,...routed}=result;
   return {...routed,context,workerContext,...(accepted?{resolvedRequest:accepted.request,resolvedTitle:accepted.title}:{}),...(legacySchema?{legacySchema:true}:{}),...(cleanup?{cleanup}:{}),decision:decision?{...decision,guarded:{tier:routed.tier,...(routed.skill?{skill:routed.skill}:{})},...(wrote?{performed:['write-attempt']}:{})}:{boundary:'rules',source:'rules',rule:`rules.${stage||(accepted?.work?'acceptedWork':'route')}`,...(stage==='vaultWrite'?{performed:['write-attempt']}:{})}};

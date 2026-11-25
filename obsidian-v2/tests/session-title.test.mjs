@@ -69,6 +69,6 @@ test('workflows, slash skills and Codex tasks keep their own names',t=>{
 test('a spoken status uses the name plainly once Claude Code has given one',()=>{
  const now=Date.now(),base={id:'a',state:'working',created:now-130000,turns:[]};
  const ask="What's going on? Why is this taking so long";
- assert.equal(taskStatusReply(ask,()=>[{...base,title:'Yeah, can you do some research on Unreal Engine pricing'}],['a'],now).reply,'Your request “Yeah, can you do some research on Unreal Engine pricing” is still running, 2 min in.');
- assert.equal(taskStatusReply(ask,()=>[{...base,title:'Unreal Engine pricing research',titleSource:'session'}],['a'],now).reply,'Unreal Engine pricing research is still running, 2 min in.');
+ assert.equal(taskStatusReply(ask,()=>[{...base,title:'Yeah, can you do some research on Unreal Engine pricing'}],['a'],now).reply,'Sua solicitação “Yeah, can you do some research on Unreal Engine pricing” está em execução há 2 minutos.');
+ assert.equal(taskStatusReply(ask,()=>[{...base,title:'Unreal Engine pricing research',titleSource:'session'}],['a'],now).reply,'Unreal Engine pricing research está em execução há 2 minutos.');
 });

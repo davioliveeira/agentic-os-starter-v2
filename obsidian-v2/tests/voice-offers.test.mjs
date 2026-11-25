@@ -48,18 +48,21 @@ for(const provider of ['codex','claude']){
    f.advance(50);f.seed();const reply=await f.speak(text);
    assert.equal(reply.tier,3);assert.equal(f.calls.at(-1).title,'Dig deeper into local model options for you');assert.match(f.calls.at(-1).prompt,/^dig deeper into local model options/);
   }
+  f.advance(50);f.seed({reply:'O boletim menciona modelos locais. Quer que eu pesquise opções de modelos locais?'});
+  const reply=await f.speak('Sim, por favor.');
+  assert.equal(reply.tier,3);assert.match(f.calls.at(-1).prompt,/^pesquise opções de modelos locais\n/);
  });
  test(`${provider}: expired, missing, declined and other-provider offers do not escalate`,async t=>{
   const f=fixture(t,provider);
   assert.equal((await f.speak('yes')).workIds.length,0);
   f.advance(200);f.seed({ts:f.now()-180000});assert.equal((await f.speak('yes')).workIds.length,0);
   f.advance(200);f.seed({provider:provider==='codex'?'claude':'codex'});assert.equal((await f.speak('yes')).workIds.length,0);
-  f.advance(200);f.seed();assert.match((await f.speak('No, not that')).reply,/Standing by/);f.advance(1);
+  f.advance(200);f.seed();assert.match((await f.speak('No, not that')).reply,/Fico à disposição/);f.advance(1);
   assert.equal((await f.speak('yes')).workIds.length,0);assert.equal(f.calls.length,0);
  });
  test(`${provider}: questions, multiple choices and unresolved pronouns cannot become work`,async t=>{
   const f=fixture(t,provider);
-  const ambiguous=['Is that useful?','Want me to research local models or build a plugin?','Want me to research local models? Or should I build a plugin?','The report quotes "Want me to research local models?"','Want me to dig into it?'];
+  const ambiguous=['Is that useful?','Want me to research local models or build a plugin?','Want me to research local models? Or should I build a plugin?','The report quotes "Want me to research local models?"','Want me to dig into it?','Quer que eu pesquise opções ou verifique os números?','Quer que eu pesquise sobre isso?'];
   for(const reply of ambiguous){f.advance(200);f.seed({reply,transcript:'What do you mean?'});const response=await f.speak('yes');assert.equal(response.workIds.length,0,reply)}
   assert.equal(f.calls.length,0);
  });
@@ -78,7 +81,7 @@ for(const provider of ['codex','claude']){
    ['Want me to run a trend scan for content leads, or do you have anything else in mind?','ai-trend-scan']
   ]){f.advance(100);f.seed({reply});await f.speak('yes please do that');assert.equal(f.calls.at(-1).kind,'workflow');assert.equal(f.calls.at(-1).skill,skill)}
   f.advance(100);f.seed({reply:'What source URL should I use for content cascade?',pendingSkill:'content-cascade'});
-  const pending=await f.speak('yes');assert.equal(pending.pendingSkill,'content-cascade');assert.equal(pending.workIds.length,0);assert.match(pending.reply,/source URL/);assert.equal(f.calls.length,4);
+  const pending=await f.speak('yes');assert.equal(pending.pendingSkill,'content-cascade');assert.equal(pending.workIds.length,0);assert.match(pending.reply,/link da fonte/);assert.equal(f.calls.length,4);
  });
  test(`${provider}: selected-task offers retain their conversation and send actual accepted wording`,async t=>{
   const f=fixture(t,provider),id=crypto.randomUUID();f.sessions.push({id,provider,model:provider==='codex'?'luna':'opus',title:'Current research',state:'ready',created:f.now(),conversationActivityAt:f.now(),turns:[]});f.choose(id);
@@ -90,17 +93,17 @@ for(const provider of ['codex','claude']){
  test(`${provider}: changing the selected task cannot redirect another conversation's offer`,async t=>{
   const f=fixture(t,provider),first=crypto.randomUUID(),second=crypto.randomUUID();
   f.sessions.push(...[first,second].map(id=>({id,provider,model:f.selection.model,title:id,state:'ready',created:f.now(),conversationActivityAt:f.now(),turns:[]})));
-  for(const [savedTarget,target]of [[first,second],[first,null],[null,second]]){f.advance(100);f.choose(target);f.seed({workTarget:savedTarget});const reply=await f.speak('yes',{workTarget:target});assert.equal(reply.workIds.length,0);assert.match(reply.reply,/different conversation/)}
-  f.advance(100);f.seed({workTarget:first});f.sessions[0].provider=provider==='codex'?'claude':'codex';await assert.rejects(f.speak('yes',{workTarget:first}),/different provider/);assert.equal(f.calls.length,0);
+  for(const [savedTarget,target]of [[first,second],[first,null],[null,second]]){f.advance(100);f.choose(target);f.seed({workTarget:savedTarget});const reply=await f.speak('yes',{workTarget:target});assert.equal(reply.workIds.length,0);assert.match(reply.reply,/pertence a outra conversa/)}
+  f.advance(100);f.seed({workTarget:first});f.sessions[0].provider=provider==='codex'?'claude':'codex';await assert.rejects(f.speak('yes',{workTarget:first}),/Essa conversa usa outro provedor/);assert.equal(f.calls.length,0);
  });
  test(`${provider}: an accepted information-only offer stays out of terminals even if a model tries to escalate`,async t=>{
   const f=fixture(t,provider);f.seed({reply:'Want me to explain the local model findings?'});
   const reply=await f.speak('yes',{},async(_root,job,_prompt,options)=>{assert.equal(job.model,provider==='codex'?'luna':'haiku');assert.equal(options.user,'explain the local model findings');return {text:'{"tier":3,"reply":"Starting a large research project."}'}});
-  assert.equal(reply.workIds.length,0);assert.equal(f.calls.length,0);assert.match(reply.reply,/offer was only to explain or show/);
+  assert.equal(reply.workIds.length,0);assert.equal(f.calls.length,0);assert.match(reply.reply,/A sugestão era explicar ou mostrar/);
  });
  test(`${provider}: explaining a named skill does not invoke its short-alias workflow`,async t=>{
   const f=fixture(t,provider);f.seed({reply:'Want me to explain lead research?'});
-  const reply=await f.speak('yes');assert.equal(reply.workIds.length,0);assert.equal(f.calls.length,0);assert.match(reply.reply,/offer was only to explain or show/);
+  const reply=await f.speak('yes');assert.equal(reply.workIds.length,0);assert.equal(f.calls.length,0);assert.match(reply.reply,/A sugestão era explicar ou mostrar/);
  });
 }
 

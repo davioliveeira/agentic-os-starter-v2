@@ -87,15 +87,15 @@ test('asking how a selected task is going is a question about the task, not a gr
 test('stop that stops the selected running task, the only running task otherwise, and says so when nothing runs',async t=>{
  const f=fixture(t);const selected=f.task('working','Jev explainer');
  const stopped=await f.speak('Stop that.',{workTarget:selected.id,execute:f.noModel});
- assert.equal(stopped.reply,'Stopped Jev explainer.');assert.deepEqual(f.calls,[{kind:'stop',id:selected.id}]);assert.equal(stopped.stopped.taskId,selected.id);assert.deepEqual(stopped.workIds,[]);
+ assert.equal(stopped.reply,'Interrompi Jev explainer.');assert.deepEqual(f.calls,[{kind:'stop',id:selected.id}]);assert.equal(stopped.stopped.taskId,selected.id);assert.deepEqual(stopped.workIds,[]);
  const other=f.task('working','Sponsor research');
  const unselected=await f.speak('cancel that',{execute:f.noModel});
- assert.equal(unselected.reply,'Stopped Sponsor research.');assert.equal(f.calls.at(-1).id,other.id);
+ assert.equal(unselected.reply,'Interrompi Sponsor research.');assert.equal(f.calls.at(-1).id,other.id);
  const idle=await f.speak('stop',{execute:f.noModel});
- assert.equal(idle.reply,'Nothing is running right now.');assert.equal(f.calls.length,2);
+ assert.equal(idle.reply,'Nenhuma tarefa em execução no momento.');assert.equal(f.calls.length,2);
  f.task('working','One');f.task('working','Two');
  const two=await f.speak('stop that',{execute:f.noModel});
- assert.match(two.reply,/^2 tasks are running: One, Two\. Select the one to stop/);assert.equal(f.calls.length,2);
+ assert.match(two.reply,/^Há 2 tarefas em execução \(One, Two\)\. Selecione a tarefa desejada/);assert.equal(f.calls.length,2);
 });
 
 test('instead of that while work is running stops it and starts the new request as its own conversation; a tweak to idle work is a follow-up',async t=>{
@@ -103,7 +103,7 @@ test('instead of that while work is running stops it and starts the new request 
  const replaced=await f.speak('Actually, instead of that, create a one-page summary of how Jev works.',{workTarget:busy.id,execute:f.noModel});
  assert.deepEqual(f.calls.map(c=>c.kind),['stop','start']);assert.equal(f.calls[0].id,busy.id);
  assert.equal(replaced.workIds.length,1);assert.notEqual(replaced.workIds[0],busy.id);assert.equal(replaced.workTarget,null);
- assert.match(replaced.reply,/^Stopped Jev explainer\. /);assert.match(f.calls[1].prompt,/create a one-page summary of how Jev works/);
+ assert.match(replaced.reply,/^Interrompi Jev explainer\. /);assert.match(f.calls[1].prompt,/create a one-page summary of how Jev works/);
  const idle=f.task('ready','Diagram');
  const tweak=await f.speak('Use blue instead of red',{workTarget:idle.id});
  assert.deepEqual(tweak.workIds,[idle.id]);assert.equal(f.calls.at(-1).kind,'send');assert.equal(tweak.stopped,undefined);
@@ -128,7 +128,7 @@ test('a stop never touches a foreign selection, and a named provider is honoured
  }
  const codex=f.task('working','Codex explainer');
  const named=await f.speak('Stop Claude.',{workTarget:codex.id,execute:f.noModel});
- assert.equal(named.reply,'Stopped Claude research.');assert.deepEqual(f.calls.filter(c=>c.kind==='stop').map(c=>c.id),[claude.id]);
+ assert.equal(named.reply,'Interrompi Claude research.');assert.deepEqual(f.calls.filter(c=>c.kind==='stop').map(c=>c.id),[claude.id]);
  assert.equal(codex.state,'working');
 });
 
@@ -143,16 +143,16 @@ test('quoted text and questions never stop or start work, and a referent-less co
 test('a referent-less compound with no history and no selection still asks what to work with',async t=>{
  const f=fixture(t);
  const referent=await f.speak('Make it a little larger and create a PDF for me please',{execute:f.noModel});
- assert.equal(referent.reply,'What would you like me to work with?');assert.deepEqual(referent.workIds,[]);
+ assert.equal(referent.reply,'O que você quer que eu use para fazer isso?');assert.deepEqual(referent.workIds,[]);
  const shorter=await f.speak('Make it larger and create a PDF',{execute:f.noModel});
- assert.equal(shorter.reply,'What would you like me to work with?');
+ assert.equal(shorter.reply,'O que você quer que eu use para fazer isso?');
 });
 
 test('a courtesy comma does not bypass a missing compound reference',async t=>{
  const f=fixture(t);
  for(const transcript of ['Um, make it larger and create a PDF.','Well, make it larger and create a PDF.','Please, make it larger and create a PDF.']){
   const result=await f.speak(transcript,{execute:f.noModel});
-  assert.equal(result.reply,'What would you like me to work with?',transcript);
+  assert.equal(result.reply,'O que você quer que eu use para fazer isso?',transcript);
   assert.deepEqual(result.workIds,[]);
  }
  assert.equal(f.calls.length,0);
@@ -183,7 +183,7 @@ test('an alternative to stopping never stops the selected task',async t=>{
  }
  assert.deepEqual(f.calls.map(c=>c.kind),['send','send'],'both alternatives reached the worker as follow-ups');
  const replaced=await f.speak('Instead, create a poster saying "Hello".',{workTarget:busy.id,execute:f.noModel});
- assert.deepEqual(f.calls.slice(2).map(c=>c.kind),['stop','start']);assert.match(replaced.reply,/^Stopped Jev explainer\. /);
+ assert.deepEqual(f.calls.slice(2).map(c=>c.kind),['stop','start']);assert.match(replaced.reply,/^Interrompi Jev explainer\. /);
 });
 
 test('compound questions, habits and deferrals stay out of the worker',()=>{
@@ -197,11 +197,11 @@ test('compound questions, habits and deferrals stay out of the worker',()=>{
 test('a time phrase after this is not a missing reference',async t=>{
  for(const transcript of ["Make this month's revenue chart and draft a summary.","Explain this week's AI news and create a diagram.","Summarize this week's brief and draft a post about it."]){
   const f=fixture(t);const r=await f.speak(transcript,{execute:f.noModel});
-  assert.notEqual(r.reply,'What would you like me to work with?',transcript);assert.equal(r.workIds.length,1,transcript);
+  assert.notEqual(r.reply,'O que você quer que eu use para fazer isso?',transcript);assert.equal(r.workIds.length,1,transcript);
  }
  for(const transcript of ['Make this one larger and create a PDF.','Make this time-efficient and create a PDF.']){
   const f=fixture(t);const r=await f.speak(transcript,{execute:f.noModel});
-  assert.equal(r.reply,'What would you like me to work with?',transcript);
+  assert.equal(r.reply,'O que você quer que eu use para fazer isso?',transcript);
  }
 });
 

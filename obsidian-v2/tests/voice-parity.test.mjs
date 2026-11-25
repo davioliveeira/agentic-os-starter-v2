@@ -41,7 +41,7 @@ for(const provider of ['codex','claude']){
  test(`${provider}: legacy tasks require a supported skill, while valid legacy work remains compatible`,async t=>{
   const f=fixture(t),output=value=>async(_root,job)=>{assert.equal(job.model,provider==='codex'?'luna':'haiku');return {text:JSON.stringify(value)}};
   for(const value of [{action:'task',reply:'Working.'},{action:'task',skill:'not-installed',reply:'Working.'},{action:'task',skill:'toString',reply:'Working.'}]){
-   await assert.rejects(f.speak(provider,'What is the second one about?',output(value)),/Invalid voice action/);
+   await assert.rejects(f.speak(provider,'What is the second one about?',output(value)),/Ação de voz inválida/);
    assert.equal(f.calls.length,0);
   }
   const answer=await f.speak(provider,'What is the second one about?',output({tier:2,reply:'The second item explains the evaluation method.'}));
@@ -73,7 +73,7 @@ for(const provider of ['codex','claude']){
    if(remembered)writeJson(f.root,'system/v2/voice-results/offer.json',{ts:Date.now(),provider,transcript:'Tell me more',reply:'Want me to research the launch?'});
    for(const extra of [{},{workTarget:id}])for(const text of ['...','?! —',`use ${override}`,`please use ${override}, and ...`]){
     const reply=await f.speak(provider,text,()=>assert.fail('Noise must not call a model'),extra);
-    assert.equal(reply.action,'reply');assert.equal(reply.workerModel,null);assert.deepEqual(reply.workIds,[]);assert.match(reply.reply,/didn't catch a request/);
+    assert.equal(reply.action,'reply');assert.equal(reply.workerModel,null);assert.deepEqual(reply.workIds,[]);assert.match(reply.reply,/Não entendi o pedido/);
    }
   }
   assert.equal(f.calls.length,0);
@@ -124,7 +124,7 @@ for(const provider of ['codex','claude']){
   await f.speak(provider,'Sounds good',async(_root,job,prompt)=>{assert.match(prompt,/benchmarks/);return {text:JSON.stringify({tier:3,reply:'Working on the benchmark details.'})}});
   assert.equal(f.calls.length,1);assert.match(f.calls[0].prompt,/benchmarks/);assert.equal(f.calls[0].selection.model,provider==='codex'?'astra':'sonnet');
   await f.speak(provider,'Run the content cascade workflow',async()=>({text:JSON.stringify({tier:1,skill:'content-cascade',reply:'Starting.'})}));assert.equal(f.calls.length,1);
-  await f.speak(provider,'https://example.com/video',async(_root,job,prompt)=>{assert.match(prompt,/source URL/);return {text:JSON.stringify({tier:1,skill:'content-cascade',args:{url:'https://example.com/video'},reply:'Starting.'})}});
+  await f.speak(provider,'https://example.com/video',async(_root,job,prompt)=>{assert.match(prompt,/link da fonte/);return {text:JSON.stringify({tier:1,skill:'content-cascade',args:{url:'https://example.com/video'},reply:'Starting.'})}});
   assert.equal(f.calls[1].skill,'content-cascade');assert.deepEqual(f.calls[1].args,{url:'https://example.com/video'});assert.equal(calls,1);
  });
  test(`${provider}: selected terminals keep follow-ups, but quick questions never go to the terminal`,async t=>{
@@ -138,7 +138,7 @@ test('conversation memory expires, respects clear and provider, and stale offers
  const f=fixture(t),remember=(name,provider,ts)=>writeJson(f.root,`system/v2/voice-results/${name}.json`,{ts,provider,transcript:name,reply:'Want me to run the inbox audit?'});
  remember('old','codex',Date.now()-700000);remember('stale-offer','codex',Date.now()-240000);remember('other-provider','claude',Date.now());
  assert.deepEqual(voiceMemory(f.root,'codex').map(e=>e.you),['stale-offer']);
- const reply=await f.speak('codex','Yes');assert.match(reply.reply,/What would you like/);assert.equal(f.calls.length,0);
+ const reply=await f.speak('codex','Yes');assert.match(reply.reply,/O que você quer que eu faça/);assert.equal(f.calls.length,0);
  writeJson(f.root,'system/v2/voice-clear.json',{ts:Date.now()+1});assert.equal(voiceMemory(f.root,'codex').length,0);
 });
 test('Fable override keeps quick replies model-free and selects the full worker model only for work',async t=>{
@@ -159,7 +159,7 @@ test('referential repo and document opening use conversation without arbitrary f
 });
 test('invalid model actions and nonimperative writes fail without work or edits',async t=>{
  const f=fixture(t),before=fs.readFileSync(path.join(f.root,`daily-notes/${date()}.md`),'utf8');
- for(const output of [{tier:99,reply:'Do it'},{tier:3,reply:''},{tier:2,reply:'Done',obsidian:{op:'command',id:'arbitrary:delete'}},{tier:2,reply:'Done',write:{kind:'top3',index:1,undo:false}}])await assert.rejects(f.speak('codex','Do you know something else about that?',async()=>({text:JSON.stringify(output)})),/invalid response/);
+ for(const output of [{tier:99,reply:'Do it'},{tier:3,reply:''},{tier:2,reply:'Done',obsidian:{op:'command',id:'arbitrary:delete'}},{tier:2,reply:'Done',write:{kind:'top3',index:1,undo:false}}])await assert.rejects(f.speak('codex','Do you know something else about that?',async()=>({text:JSON.stringify(output)})),/resposta inválida/);
  assert.equal(f.calls.length,0);assert.equal(fs.readFileSync(path.join(f.root,`daily-notes/${date()}.md`),'utf8'),before);
 });
 test('explicit research is not swallowed by metric keywords; all requested work stays in one conversation by default',async t=>{
@@ -170,11 +170,11 @@ test('explicit research is not swallowed by metric keywords; all requested work 
 });
 test('usage reads use the selected provider and weekly window; unavailable is not zero',async t=>{
  const f=fixture(t);for(const provider of ['codex','claude']){
-  let asked;const result=await classifyVoice(f.root,{transcript:'What is my usage?',chosen:{provider},usage:{[provider]:async options=>{asked=options;return {status:'ok',windows:[{windowDurationMins:10080,usedPercent:37}]}}}});assert.match(result.reply,new RegExp(`${provider==='codex'?'Codex':'Claude'} weekly usage is 37`));
+  let asked;const result=await classifyVoice(f.root,{transcript:'What is my usage?',chosen:{provider},usage:{[provider]:async options=>{asked=options;return {status:'ok',windows:[{windowDurationMins:10080,usedPercent:37}]}}}});assert.match(result.reply,new RegExp(`${provider==='codex'?'Codex':'Claude'} usou 37 por cento da cota da semana`));
   // A voice request never waits for a sign-in renewal.
   assert.equal(asked.wait,false);
  }
- const missing=await classifyVoice(f.root,{transcript:'What is my usage?',chosen:{provider:'codex'},usage:{codex:async()=>({windows:[]})}});assert.match(missing.reply,/don't have/);
+ const missing=await classifyVoice(f.root,{transcript:'What is my usage?',chosen:{provider:'codex'},usage:{codex:async()=>({windows:[]})}});assert.match(missing.reply,/está indisponível no momento/);
 });
 test('concurrent vault requests retain separate roots during model awaits',async t=>{
  const a=fixture(t),b=fixture(t);b.write('projects/Unique note.md','# Other vault');

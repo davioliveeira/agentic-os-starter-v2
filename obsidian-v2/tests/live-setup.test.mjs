@@ -84,7 +84,7 @@ test('Live voice preferences validate independently from key authorization and p
  saveVoicePrefs(root,{liveConfirm:'voice'});assert.equal(readVoicePrefs(root).liveConfirm,'voice');
  const values={voiceMode:'live',liveVoice:'cedar',liveConfirm:'destructive',liveIdleMic:'muted',liveIdleHangupMin:15,liveCarryToday:true,liveShareWork:false,liveShareBrief:true,liveGreeting:false,liveTaskUpdates:'chatty'};
  assert.deepEqual(saveVoicePrefs(root,values),{spokenReplies:true,voice:null,rate:1,...values});
- for(const [name,value]of Object.entries({voiceMode:'off',liveVoice:'unknown',liveConfirm:'always',liveIdleMic:true,liveIdleHangupMin:0,liveCarryToday:1,liveShareWork:'false',liveShareBrief:'yes',liveGreeting:'yes',liveTaskUpdates:'loud'}))assert.throws(()=>saveVoicePrefs(root,{[name]:value}),/Invalid/);
+ for(const [name,value]of Object.entries({voiceMode:'off',liveVoice:'unknown',liveConfirm:'always',liveIdleMic:true,liveIdleHangupMin:0,liveCarryToday:1,liveShareWork:'false',liveShareBrief:'yes',liveGreeting:'yes',liveTaskUpdates:'loud'}))assert.throws(()=>saveVoicePrefs(root,{[name]:value}),/Valor inválido/);
  assert.deepEqual(readVoicePrefs(root),{spokenReplies:true,voice:null,rate:1,...values});
  assert.equal(liveAuthorization(path.join(root,'private')).ready,false);
 });

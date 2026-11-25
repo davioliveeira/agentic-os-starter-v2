@@ -159,7 +159,7 @@ test('read payloads split, stay owner-only, and defer spoken results until resum
 
 test('voice affirmation waits for its undo window, commits once, and never accepts a bare yes alone',async t=>{
  const f=await fixture(t);await f.start();
- let id=f.turn('Yes');await f.say("Tell me what you'd like me to do.",id);await f.idle();
+ let id=f.turn('Yes');await f.say('Diga o que você quer que eu faça.',id);await f.idle();
  const staged=await f.stage('Run morning intel');assert.equal(staged.mode,'voice');
  assert.match((await f.say('Say yes to go ahead.')).content,/^Just to check/);assert.equal(f.work.length,0);
  const affirmedAt=f.now();
@@ -172,7 +172,7 @@ test('voice affirmation waits for its undo window, commits once, and never accep
  assert.equal(f.work[0][0],'workflow');assert.equal(f.requests.filter(req=>req.options.phase==='commit').length,1);
  assert.equal((await f.post('/voice/live/confirm',{actionId:staged.actionId})).status,409);
  await f.post('/voice/live/context',f.saved());
- id=f.turn('Yes');await f.say("Tell me what you'd like me to do.",id);assert.equal(f.work.length,1);
+ id=f.turn('Yes');await f.say('Diga o que você quer que eu faça.',id);assert.equal(f.work.length,1);
  assertAppends(f.appends());
 });
 
@@ -285,15 +285,15 @@ test('Live auto starts a literal slash skill once and answers status without a c
  const existing={id:randomUUID(),...chosen,title:'Separate task',state:'working',created:Date.now(),turns:[]};
  f.tasks.set(existing.id,existing);setCurrent(f.root,{get:id=>f.tasks.get(id)},{provider:'claude',id:existing.id});
  await f.post('/voice/live/context',f.saved());
- const start=f.turn('slash today');await f.say('Starting /today…',start);await f.idle();
+ const start=f.turn('slash today');await f.say('Iniciando /today…',start);await f.idle();
  existing.state='ready';
  assert.equal(f.work.length,0);f.advance(2500);await until(()=>f.work.length===1);await f.idle();
  assert.equal(f.work[0][0],'start');assert.equal(f.work[0][1].prompt,'/today');assert.equal(f.work[0][1].liveCallId,f.call.callId);
  assert.equal(f.appends().filter(event=>event.delegation_id===start&&event.type==='session.commentary.append').length,1);
  await f.post('/voice/live/context',f.saved());
- const status=f.turn('How’s that going?');await f.say('/today is still running, 0 min in.',status);await f.idle();
+ const status=f.turn('How’s that going?');await f.say('/today está em execução há 0 minutos.',status);await f.idle();
  const work=f.tasks.get(f.work[0][1].id);work.state='ready';work.turns.push({id:'done',ts:Date.now(),text:'Saved the daily note.'});
- const finished=f.turn('Is that done yet?');await f.say('/today finished 0 min ago: Saved the daily note.',finished);
+ const finished=f.turn('Is that done yet?');await f.say('/today terminou há 0 minutos. Saved the daily note.',finished);
  assert.equal(f.prompts.length,0);assert.equal(f.work.length,1);
 });
 
@@ -327,7 +327,7 @@ test('an accepted action offer starts fresh even with a selected worker',async t
 
 test('Live asks for a request when the last assistant utterance is absent, stale, later or has no offer',async t=>{
  const f=await fixture(t,{mode:'auto'});await f.start();
- const clarify=async words=>{const id=f.turn(words);await f.say("Tell me what you'd like me to do.",id);await f.idle()};
+ const clarify=async words=>{const id=f.turn(words);await f.say('Diga o que você quer que eu faça.',id);await f.idle()};
  await clarify('yes');
  const output=(offset,text)=>f.emit('session.output_transcript.delta',{offset_ms:offset,turn_id:'reply-'+offset,delta:text});
  output(25,'Shall I run the brief?');f.advance(60001);await clarify('okay');
@@ -632,7 +632,7 @@ test('on a call, a follow-up for a working task waits for it; if the task frees 
  const first=f.saved().workTarget;assert.equal(f.tasks.get(first).state,'working');
  let id=f.turn('Make the second half shorter and punchier');
  const stage=await until(()=>f.call?.staged);await f.idle();
- assert.match((await f.say('add that as soon as',id)).content,/^Got it\. I'll add that as soon as that task is free\.$/);
+ assert.match((await f.say('Vou colocar seu pedido na fila',id)).content,/^Vou colocar seu pedido na fila até essa tarefa terminar\.$/);
  f.advance(2500);await f.idle();
  assert.equal(f.work.length,2);assert.deepEqual(f.work[1].slice(0,2),['queue',first]);assert.match(f.work[1][2],/Make the second half shorter and punchier/);
  assert.equal(f.appends().some(event=>/Say that again|still working/.test(event.content)),false);

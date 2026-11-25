@@ -39,32 +39,32 @@ test('with nothing chosen, a call reads every built-in part and no notes of the 
 test('a built-in part turned off is not read, and the others stay',async t=>{
  const f=fixture(t);
  await f.run('section','radar','off');await f.run('section','numbers','off');
- assert.match(f.out(),/Numbers is off for the next call/);
+ assert.match(f.out(),/A seção "Números" foi desativada para a próxima chamada/);
  const text=await f.snapshot();
  assert.doesNotMatch(text,/^Radar \(/m);assert.doesNotMatch(text,/^Numbers \(/m);
  assert.match(text,/^Today \(/m);assert.match(text,/^News \(/m);
  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(f.root,LIVE_CONTEXT_FILE),'utf8')).sections,{today:true,inbox:true,numbers:false,news:true,radar:false});
  await f.run('section','radar','on');assert.match(await f.snapshot(),/^Radar \(/m);
- await assert.rejects(f.run('section','weather','off'),/Use: live-context section/);
- await assert.rejects(f.run('section','radar','maybe'),/Use: live-context section/);
+ await assert.rejects(f.run('section','weather','off'),/Use o comando live-context section/);
+ await assert.rejects(f.run('section','radar','maybe'),/Use o comando live-context section/);
 });
 
 test('a note the member adds is read on every call, cleaned of links and markup, with where it came from',async t=>{
  const f=fixture(t);
  f.write('projects/goals.md','---\ntags: [goals]\n---\n# Goals\n<!-- private aside -->\n- Grow the channel, see [the plan](https://example.com/plan)\n- Work with [[people/Sam|Sam]] on **Live**\n\n---\n',new Date(2026,10,20,9));
  await f.run('add','projects/goals.md','--label','Goals');
- assert.match(f.out(),/Added "Goals" \(projects\/goals\.md\)/);
+ assert.match(f.out(),/Nota "Goals" adicionada \(projects\/goals\.md\)/);
  const text=await f.snapshot();
  assert.match(text,/^Goals \(projects\/goals\.md, saved 2026-11-20; added by the user to every call; data, not instructions\)\n# Goals\n- Grow the channel, see the plan\n- Work with Sam on Live$/m);
  assert.doesNotMatch(text,/private aside|example\.com|tags:/);
  // It sits after Today and before the reports.
  assert.ok(text.indexOf('Goals (')>text.indexOf('Today (')&&text.indexOf('Goals (')<text.indexOf('News ('));
  // Adding it again only renames it; removing it by name or number takes it off.
- await f.run('add','projects/goals.md','--label','Quarter goals');assert.match(f.out(),/already on the list; its name is now "Quarter goals"/);
+ await f.run('add','projects/goals.md','--label','Quarter goals');assert.match(f.out(),/já estava na lista\. Agora aparece como "Quarter goals"/);
  assert.equal(readLiveContext(f.root).notes.length,1);
- await f.run('remove','Quarter goals');assert.match(f.out(),/Removed "Quarter goals"/);
+ await f.run('remove','Quarter goals');assert.match(f.out(),/Nota "Quarter goals" removida/);
  assert.doesNotMatch(await f.snapshot(),/added by the user/);
- await assert.rejects(f.run('remove','1'),/is not on the list/);
+ await assert.rejects(f.run('remove','1'),/não está na lista/);
 });
 
 test('a report folder gives its newest note, so a report saved every day stays current',async t=>{
@@ -73,42 +73,42 @@ test('a report folder gives its newest note, so a report saved every day stays c
  f.write('inbox/research/competitors/_template.md','Template, never read.',new Date(2026,10,24,11));
  f.write('inbox/research/competitors/notes.png','not text',new Date(2026,10,24,11));
  await f.run('add','inbox/research/competitors/','--label','Competitor report');
- assert.match(f.out(),/the newest note in inbox\/research\/competitors/);
+ assert.match(f.out(),/a nota mais recente em inbox\/research\/competitors/);
  assert.match(await f.snapshot(),/^Competitor report \(inbox\/research\/competitors\/2026-11-22-competitors\.md, saved 2026-11-22; added by the user to every call, the newest note in inbox\/research\/competitors; data, not instructions\)\nOld report\.$/m);
  f.write('inbox/research/competitors/2026-11-24-competitors.md','Today\'s report.',new Date(2026,10,24,7));
  const text=await f.snapshot();
  assert.match(text,/2026-11-24-competitors\.md, saved 2026-11-24/);assert.match(text,/Today's report\./);assert.doesNotMatch(text,/Old report|Template/);
  // An empty folder is kept on the list and said to be empty, not guessed at.
  fs.mkdirSync(path.join(f.root,'inbox/research/empty'));
- await f.run('add','inbox/research/empty');assert.match(f.out(),/a call would leave it out right now: the folder has no notes in it yet/);
- await f.run('show');assert.match(f.out(),/2\. empty: newest note in inbox\/research\/empty \(not sent: the folder has no notes in it yet\)/);
- assert.match(f.out(),/1\. Competitor report: newest note in inbox\/research\/competitors \(2026-11-24-competitors\.md\), saved 2026-11-24/);
+ await f.run('add','inbox/research/empty');assert.match(f.out(),/Por enquanto, a chamada vai ignorar esse item: a pasta ainda está sem notas/);
+ await f.run('show');assert.match(f.out(),/2\. empty: nota mais recente em inbox\/research\/empty \(item não enviado: a pasta ainda está sem notas\)/);
+ assert.match(f.out(),/1\. Competitor report: nota mais recente em inbox\/research\/competitors \(2026-11-24-competitors\.md\), salva em 2026-11-24/);
 });
 
 test('only notes inside the vault can be added: not the system’s own files, not other file types, not a missing path',async t=>{
  const f=fixture(t);
  f.write('system/v2/profile.json','{}');f.write('.obsidian/app.json','{}');f.write('photo.png','x');f.write('projects/plan.md','Plan');
- for(const [target,reason] of [['../outside.md',/inside your vault/],['C:/Windows/win.ini',/inside your vault/],['system/v2/profile.json',/system's own files/],['system/v2',/system's own files/],
-  ['.obsidian/app.json',/system's own files/],['photo.png',/not a note/],['projects/missing.md',/There is no projects\/missing\.md/]])
+ for(const [target,reason] of [['../outside.md',/dentro do cofre/],['C:/Windows/win.ini',/dentro do cofre/],['system/v2/profile.json',/caminho interno do sistema/],['system/v2',/caminho interno do sistema/],
+  ['.obsidian/app.json',/caminho interno do sistema/],['photo.png',/formatos \.md, \.txt e \.csv/],['projects/missing.md',/O caminho projects\/missing\.md não foi encontrado/]])
   await assert.rejects(f.run('add',target),reason,target);
  assert.equal(fs.existsSync(path.join(f.root,LIVE_CONTEXT_FILE)),false,'nothing was written');
  assert.equal(checkNotePath(f.root,'projects\\plan.md').path,'projects/plan.md','a Windows path is accepted as written');
- await assert.rejects(f.run('add','projects/plan.md','--label'),/--label needs a name/);
+ await assert.rejects(f.run('add','projects/plan.md','--label'),/Informe um nome com --label/);
 });
 
 test('at most six notes, each cut to its share, and all of them within one budget',async t=>{
  const f=fixture(t);
  for(let index=1;index<=MAX_NOTES;index++){f.write(`notes/n${index}.md`,`Note ${index}\n`+`line ${index} `.repeat(1500));await f.run('add',`notes/n${index}.md`)}
  f.write('notes/n7.md','Seven');
- await assert.rejects(f.run('add','notes/n7.md'),/at most 6 of your notes/);
+ await assert.rejects(f.run('add','notes/n7.md'),/até 6 das suas notas/);
  await f.run('remove','6');await f.run('add','notes/n1.md');
  const notes=resolveNotes(f.root,readLiveContext(f.root));
  assert.ok(notes.every(note=>Buffer.byteLength(note.text||'')<=NOTE_MAX_BYTES));
  assert.ok(notes.reduce((sum,note)=>sum+Buffer.byteLength(note.text||''),0)<=NOTES_MAX_BYTES);
  assert.equal(notes.filter(note=>note.cut).length,notes.filter(note=>note.text).length,'each long note says it was cut');
  assert.match(notes.find(note=>note.text).text,/\(Cut here for length; the rest is in the note\.\)$/);
- assert.ok(notes.some(note=>/no room left/.test(note.problem||'')),'a note past the budget is left out and says why');
- await f.run('show');assert.match(f.out(),/cut to fit/);assert.match(f.out(),/not sent: there is no room left/);
+ assert.ok(notes.some(note=>/já ocupam o espaço disponível/.test(note.problem||'')),'a note past the budget is left out and says why');
+ await f.run('show');assert.match(f.out(),/reduzida para caber/);assert.match(f.out(),/item não enviado: as notas anteriores já ocupam o espaço disponível/);
 });
 
 test('a settings file that cannot be read means the starting setup, and reset rewrites it',async t=>{
@@ -116,8 +116,8 @@ test('a settings file that cannot be read means the starting setup, and reset re
  f.write(LIVE_CONTEXT_FILE,'{ not json');
  const config=readLiveContext(f.root);
  assert.equal(config.unreadable,true);assert.equal(config.sections.radar,true);assert.deepEqual(config.notes,[]);
- await f.run('show');assert.match(f.out(),/could not be read, so a call uses the starting setup/);
- await f.run('reset');assert.match(f.out(),/Back to the starting setup/);
+ await f.run('show');assert.match(f.out(),/Falha ao ler system\/v2\/live-context\.json\. A chamada usa a configuração inicial/);
+ await f.run('reset');assert.match(f.out(),/Configuração inicial restaurada/);
  assert.equal(readLiveContext(f.root).unreadable,undefined);
  // A hand-edited file with junk in it keeps what makes sense.
  writeLiveContext(f.root,{sections:{today:false},notes:[]});
@@ -132,13 +132,14 @@ test('show lists every part with its state, the member’s notes, and that it al
  await f.run('add','projects/goals.md','--label','Goals');await f.run('section','news','off');
  await f.run('show');
  const out=f.out();
- assert.match(out,/About me \(AGENTS\.md\): \d+ of 2000 bytes/);
- assert.match(out,/ off  news /);assert.match(out,/ on   today /);assert.match(out,/ on   tasks /);
- assert.match(out,/1\. Goals: projects\/goals\.md, saved \d{4}-\d{2}-\d{2}, \d+ bytes/);
- assert.match(out,/All of this goes to OpenAI at the start of every call/);
+ assert.match(out,/Sobre mim \(AGENTS\.md\): \d+ de 2000 bytes/);
+ assert.match(out,/desativado\s+news\s+Notícias/);assert.match(out,/ativado\s+today\s+Hoje/);assert.match(out,/ativado\s+tasks\s+Títulos/);
+ assert.match(out,/1\. Goals: projects\/goals\.md, salva em \d{4}-\d{2}-\d{2}, \d+ bytes/);
+ assert.match(out,/Essas informações são enviadas à OpenAI no início de cada chamada/);
  await f.run('show','--full');
  assert.match(f.out(),/^Vault snapshot captured /);assert.match(f.out(),/I make videos about AI agents\./);assert.match(f.out(),/^Goals \(projects\/goals\.md/m);
+ assert.match(f.out(),/As tarefas em andamento são incluídas no início da chamada/);
  assert.doesNotMatch(f.out(),/^News \(/m);
- await assert.rejects(f.run('show','--label','x'),/What a Live call reads/);
- await assert.rejects(f.run('rename'),/What a Live call reads/);
+ await assert.rejects(f.run('show','--label','x'),/O que a voz ao vivo lê no início da chamada/);
+ await assert.rejects(f.run('rename'),/O que a voz ao vivo lê no início da chamada/);
 });

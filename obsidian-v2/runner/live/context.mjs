@@ -16,11 +16,11 @@ import {clip} from './clip.mjs';
 
 export const LIVE_CONTEXT_FILE='system/v2/live-context.json';
 export const LIVE_SECTIONS=Object.freeze({
- today:'Today: top three, schedule and Daily Drivers from today\'s daily note (Plan Today)',
- inbox:'New vault notes: how many notes landed in each inbox/ folder in the last 24 hours',
- numbers:'Numbers: metrics and your latest video (Metrics Pull)',
- news:'News: the morning brief\'s top headlines (Morning Intel)',
- radar:'Radar: outlier videos and trending GitHub repos (Outlier Radar, GitHub Trending)',
+ today:'Hoje: três prioridades, agenda e Daily Drivers da nota de hoje (Planejar hoje)',
+ inbox:'Notas novas no cofre: quantas notas chegaram a cada pasta em inbox/ nas últimas 24 horas',
+ numbers:'Números: métricas e seu vídeo mais recente (Atualizar métricas)',
+ news:'Notícias: principais manchetes do boletim da manhã (Boletim de IA)',
+ radar:'Radar: vídeos em destaque e repositórios em alta no GitHub (Radar de vídeos em destaque, Em alta no GitHub)',
 });
 export const MAX_NOTES=6,NOTE_MAX_BYTES=6000,NOTES_MAX_BYTES=20000;
 const FILE_MAX_BYTES=512000,TEXT=/\.(?:md|txt|csv)$/i;
@@ -36,13 +36,13 @@ export function cleanLabel(value,fallback){
 // A vault-relative path the member may add: inside the vault, not a link, not machinery, a text note or a folder.
 export function checkNotePath(root,relative){
  const rel=slash(relative);
- if(!rel||path.isAbsolute(rel)||/^[a-z]:/i.test(rel)||rel.split('/').some(part=>part==='..'))throw new Error(`Give a path inside your vault, like projects/goals.md or inbox/research/my-report. "${relative}" is not one.`);
- if(PRIVATE.some(pattern=>pattern.test(rel)))throw new Error(`${rel} is part of the system's own files, not a note. Choose a note or a report folder.`);
+ if(!rel||path.isAbsolute(rel)||/^[a-z]:/i.test(rel)||rel.split('/').some(part=>part==='..'))throw new Error(`O caminho "${relative}" é inválido. Informe um caminho dentro do cofre, como projects/goals.md ou inbox/research/my-report.`);
+ if(PRIVATE.some(pattern=>pattern.test(rel)))throw new Error(`${rel} é um caminho interno do sistema. Escolha uma nota ou pasta de relatórios.`);
  const file=vaultPath(root,rel);
  const info=fs.lstatSync(file,{throwIfNoEntry:false});
- if(!info)throw new Error(`There is no ${rel} in your vault. Check the name, or ask your agent to find the note.`);
+ if(!info)throw new Error(`O caminho ${rel} não foi encontrado no seu cofre. Confira o nome ou peça ao seu agente para localizar a nota.`);
  if(info.isDirectory())return {path:rel,folder:true};
- if(!info.isFile()||!TEXT.test(rel))throw new Error(`${rel} is not a note. Live can read .md, .txt and .csv notes, or a folder of them.`);
+ if(!info.isFile()||!TEXT.test(rel))throw new Error(`Não foi possível incluir ${rel}. A voz ao vivo lê notas nos formatos .md, .txt e .csv, ou pastas com essas notas.`);
  return {path:rel,folder:false};
 }
 
@@ -104,13 +104,13 @@ export function resolveNotes(root,config){
   let source=item.path,folder=false;
   try{
    const checked=checkNotePath(root,item.path);folder=checked.folder;
-   if(folder){source=newestNote(root,checked.path);if(!source)return {...item,folder,problem:'the folder has no notes in it yet'}}
+   if(folder){source=newestNote(root,checked.path);if(!source)return {...item,folder,problem:'a pasta ainda está sem notas'}}
    const file=vaultPath(root,source),info=fs.lstatSync(file);
-   if(!info.isFile()||info.size>FILE_MAX_BYTES)return {...item,folder,source,problem:'the note is too large to send'};
+   if(!info.isFile()||info.size>FILE_MAX_BYTES)return {...item,folder,source,problem:'a nota é grande demais para ser enviada'};
    const text=noteForCall(fs.readFileSync(file,'utf8'));
-   if(!text)return {...item,folder,source,problem:'the note is empty'};
+   if(!text)return {...item,folder,source,problem:'a nota está vazia'};
    const room=Math.min(NOTE_MAX_BYTES,NOTES_MAX_BYTES-total);
-   if(room<200)return {...item,folder,source,problem:'there is no room left: the notes above it fill the space'};
+   if(room<200)return {...item,folder,source,problem:'as notas anteriores já ocupam o espaço disponível'};
    const fitted=cutToBytes(text,room);total+=Buffer.byteLength(fitted.text);
    return {...item,folder,source,saved:localDate(new Date(info.mtimeMs)),bytes:Buffer.byteLength(text),text:fitted.text,cut:fitted.cut};
   }catch(error){return {...item,folder,problem:error.message}}

@@ -155,7 +155,7 @@ test('Local receipts and older receipts share Local replay and offer semantics',
  const liveOffer={...old,id:crypto.randomUUID(),transport:'live'};
  writeJson(f.root,`${ROOT}/voice-results/${liveOffer.id}.json`,liveOffer);
  const live=await f.route(f.request('yes'),{transport:'live',phase:'plan',guard:()=>assert.fail('affirmation reached guard')});
- assert.equal(live.kind,'read');assert.equal(live.reply,"Tell me what you'd like me to do.");assert.deepEqual(f.calls,[]);
+ assert.equal(live.kind,'read');assert.equal(live.reply,'Diga o que você quer que eu faça.');assert.deepEqual(f.calls,[]);
  const local=await f.route(f.request('yes',{origin:'test'}));
  assert.equal(local.transport,'local');assert.equal(local.origin,'test');assert.equal(local.skill,'morning-report');
  assert.equal(readJson(f.root,`${ROOT}/voice-results/${local.id}.json`).transport,'local');

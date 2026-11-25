@@ -69,7 +69,7 @@ test('provider-specific existence checks and route hand the exact command to a n
   const spec=terminalSpec(root,{...starts[0],...starts[0].selection,sessionId:null},{command:'fixture',prefix:[]});
   assert.equal(spec.args.at(-1),'/today use Sonnet');
   const missing=await routeVoice(root,request('slash absent'),null,execute,terminals,options);
-  assert.equal(missing.reply,"I don't see a /absent skill in "+(selection.provider==='claude'?'Claude Code':'Codex')+'.');
+  assert.equal(missing.reply,"Não encontrei a skill /absent no "+(selection.provider==='claude'?'Claude Code':'Codex')+'.');
   assert.equal(starts.length,1);
  }
 });

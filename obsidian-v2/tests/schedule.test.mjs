@@ -25,20 +25,20 @@ test('a schedule holds bundled workflows that need no input, at real times, on r
     {id: 'morning-intel-0630', skill: 'morning-intel', at: '06:30', days: [...DAYS], enabled: true}]}, 'no days means every day');
   assert.deepEqual(validateSchedule({}), {version: 1, paused: false, jobs: []});
   for (const [input, message] of [
-    [null, /must be an object/], [{jobs: 'plan-today'}, /must be a list/],
-    [{jobs: [{skill: 'rm-rf', at: '07:00'}]}, /not a bundled workflow/], [{jobs: [{skill: 'constructor', at: '07:00'}]}, /not a bundled workflow/],
-    [{jobs: [{skill: 'deep-research-chase', at: '07:00'}]}, /needs a topic each time/],
-    [{jobs: [{skill: 'plan-today', at: '7am'}]}, /not a time/], [{jobs: [{skill: 'plan-today', at: '24:00'}]}, /not a time/],
-    [{jobs: [{skill: 'plan-today', at: '07:00', days: ['funday']}]}, /Days must be from/],
-    [{jobs: [weekdayPlan, weekdayPlan]}, /same workflow at the same time/],
+    [null, /deve ser um objeto/], [{jobs: 'plan-today'}, /deve ser uma lista/],
+    [{jobs: [{skill: 'rm-rf', at: '07:00'}]}, /não corresponde a um fluxo incluído/], [{jobs: [{skill: 'constructor', at: '07:00'}]}, /não corresponde a um fluxo incluído/],
+    [{jobs: [{skill: 'deep-research-chase', at: '07:00'}]}, /precisa de um tema a cada execução/],
+    [{jobs: [{skill: 'plan-today', at: '7am'}]}, /Informe um horário no formato de 24 horas/], [{jobs: [{skill: 'plan-today', at: '24:00'}]}, /Informe um horário no formato de 24 horas/],
+    [{jobs: [{skill: 'plan-today', at: '07:00', days: ['funday']}]}, /Escolha os dias entre/],
+    [{jobs: [weekdayPlan, weekdayPlan]}, /mesmo fluxo para o mesmo horário/],
     // Anything written explicitly must be right: a slip must never widen what runs unattended.
-    [{paused: 'true', jobs: [weekdayPlan]}, /"paused" takes true or false/], [{jobs: [{...weekdayPlan, days: []}]}, /at least one day/], [{jobs: [{...weekdayPlan, days: 'mon'}]}, /at least one day/],
-    [{jobs: [{...weekdayPlan, enabled: 'no'}]}, /"enabled" takes true or false/], [{jobs: [[]]}, /not an object/],
+    [{paused: 'true', jobs: [weekdayPlan]}, /"paused" aceita true ou false/], [{jobs: [{...weekdayPlan, days: []}]}, /pelo menos um dia/], [{jobs: [{...weekdayPlan, days: 'mon'}]}, /pelo menos um dia/],
+    [{jobs: [{...weekdayPlan, enabled: 'no'}]}, /"enabled" aceita true ou false/], [{jobs: [[]]}, /deve ser um objeto/],
     // A key the schedule does not know is a slip ("enable" for "enabled"), never quietly ignored.
-    [{jobs: [{...weekdayPlan, enable: false}]}, /"enable" is not something a scheduled item understands/], [{pause: true, jobs: []}, /"pause" is not something the schedule understands/],
+    [{jobs: [{...weekdayPlan, enable: false}]}, /"enable" não é um campo de um item agendado/], [{pause: true, jobs: []}, /"pause" não é um campo do agendamento/],
     // The same workflow at the same time on a shared day is one run, whatever the entries are called.
-    [{jobs: [{...weekdayPlan, id: 'morning-plan'}, {...weekdayPlan, id: 'second-plan', days: ['fri', 'sat']}]}, /Planejar hoje at 07:00 is on the schedule twice for the same day/],
-    [{jobs: Array.from({length: MAX_JOBS + 1}, (_, index) => ({skill: 'plan-today', at: `0${index % 10}:${String(index).padStart(2, '0')}`}))}, /12 items at most/]])
+    [{jobs: [{...weekdayPlan, id: 'morning-plan'}, {...weekdayPlan, id: 'second-plan', days: ['fri', 'sat']}]}, /Planejar hoje está agendado duas vezes para as 07:00 no mesmo dia/],
+    [{jobs: Array.from({length: MAX_JOBS + 1}, (_, index) => ({skill: 'plan-today', at: `0${index % 10}:${String(index).padStart(2, '0')}`}))}, /até 12 itens/]])
     assert.throws(() => validateSchedule(input), message);
   const skills = schedulableSkills().map(skill => skill.id);
   assert.ok(skills.includes('plan-today') && skills.includes('morning-intel'));
@@ -48,9 +48,9 @@ test('a schedule holds bundled workflows that need no input, at real times, on r
 test('nothing runs from a schedule that cannot be understood', () => {
   assert.deepEqual(readSchedule(vault()), {version: 1, paused: false, jobs: [], revision: 'none'}, 'no file means nothing scheduled');
   const broken = readSchedule(vault('{"jobs": ['));
-  assert.deepEqual(broken.jobs, []); assert.match(broken.error, /cannot be read as a schedule .* so nothing is scheduled/);
+  assert.deepEqual(broken.jobs, []); assert.match(broken.error, /Falha ao ler o agendamento.*Nenhum fluxo será executado/);
   const half = readSchedule(vault({jobs: [weekdayPlan, {skill: 'plan-today', at: 'noon'}]}));
-  assert.deepEqual(half.jobs, [], 'one bad entry stops the whole schedule rather than running half of it'); assert.match(half.error, /not a time/);
+  assert.deepEqual(half.jobs, [], 'one bad entry stops the whole schedule rather than running half of it'); assert.match(half.error, /Informe um horário no formato de 24 horas/);
   assert.deepEqual(dueJobs(half, {last: {}}, at(8), {timeZone: ZONE}), []);
   const root = vault(), launched = [];
   fs.mkdirSync(path.join(root, 'system', 'v2'), {recursive: true}); fs.writeFileSync(path.join(root, SCHEDULE_FILE), 'garbage');
@@ -102,7 +102,7 @@ test('the bridge\'s look at the clock starts the workflow once, and records a mi
   assert.equal(scheduleTick(root, launch, {now: at(7, 0, 19), timeZone: ZONE}).length, 2);
   const late = scheduleTick(root, () => assert.fail('a missed run is not launched'), {now: at(15, 0, 20), timeZone: ZONE});
   assert.deepEqual(late.map(item => item.outcome), ['missed', 'missed']);
-  assert.match(readScheduleState(root).last['plan-today-0700'].detail, /services were not running at 07:00/);
+  assert.match(readScheduleState(root).last['plan-today-0700'].detail, /Os serviços estavam desligados às 07:00/);
   assert.deepEqual(fs.readdirSync(path.join(root, 'system', 'v2')).sort(), ['schedule-state.json', 'schedule.json'], 'no temporary files are left behind');
   // A launch that throws something odd, or an unwritable state, never throws out of the tick.
   assert.doesNotThrow(() => scheduleTick(vault({jobs: [weekdayPlan]}), () => { throw null; }, {now: at(7), timeZone: ZONE}));
@@ -137,7 +137,7 @@ test('a workflow can never be started twice for the same day', () => {
   fs.writeFileSync(path.join(unreadable, SCHEDULE_STATE_FILE), '{"last": ');
   assert.equal(readScheduleState(unreadable).unreadable, true);
   for (const minute of [0, 1, 30]) assert.deepEqual(scheduleTick(unreadable, () => assert.fail('never start on an unreadable record'), {now: at(7, minute), timeZone: ZONE}), []);
-  assert.match(scheduleView(unreadable, {now: at(7), timeZone: ZONE}).error, /schedule-state\.json cannot be read, so nothing will run/);
+  assert.match(scheduleView(unreadable, {now: at(7), timeZone: ZONE}).error, /Falha ao ler system\/v2\/schedule-state\.json\. Nenhum fluxo será executado/);
   assert.equal(scheduleView(unreadable, {now: at(7), timeZone: ZONE}).jobs[0].next, 'not running');
 });
 
@@ -186,7 +186,7 @@ test('two changes at once cannot undo each other, and a save from an old copy is
   const added = editSchedule(root, schedule => ({...schedule, jobs: [...schedule.jobs, {skill: 'morning-intel', at: '06:30'}]}));
   assert.equal(added.paused, true); assert.equal(added.jobs.length, 2);
   // A screen still holding the first copy cannot write it back over both changes.
-  assert.throws(() => editSchedule(root, () => ({jobs: [weekdayPlan]}), {revision}), /changed since it was loaded/);
+  assert.throws(() => editSchedule(root, () => ({jobs: [weekdayPlan]}), {revision}), /mudou desde que foi carregado/);
   assert.equal(readSchedule(root).paused, true);
   assert.equal(editSchedule(root, schedule => ({...schedule, paused: false}), {revision: scheduleRevision(root)}).paused, false);
   assert.equal(scheduleRevision(vault()), 'none'); assert.equal(scheduleView(root, {now: at(6), timeZone: ZONE}).revision, scheduleRevision(root));
@@ -195,12 +195,12 @@ test('two changes at once cannot undo each other, and a save from an old copy is
   const shown = readSchedule(root);
   assert.equal(shown.revision, scheduleRevision(root)); assert.equal(typeof shown.paused, 'boolean');
   editSchedule(root, schedule => ({...schedule, paused: true}));
-  assert.throws(() => editSchedule(root, () => ({paused: shown.paused, jobs: shown.jobs}), {revision: shown.revision}), /changed since it was loaded/);
+  assert.throws(() => editSchedule(root, () => ({paused: shown.paused, jobs: shown.jobs}), {revision: shown.revision}), /mudou desde que foi carregado/);
   assert.equal(readSchedule(root).paused, true, 'the pause made in between survives');
   editSchedule(root, schedule => ({...schedule, paused: false}));
   // A change that turns out invalid leaves the file as it was, and the lock is released either way.
   const before = fs.readFileSync(path.join(root, SCHEDULE_FILE), 'utf8');
-  assert.throws(() => editSchedule(root, schedule => ({...schedule, jobs: [{skill: 'nope', at: '07:00'}]})), /not a bundled workflow/);
+  assert.throws(() => editSchedule(root, schedule => ({...schedule, jobs: [{skill: 'nope', at: '07:00'}]})), /não corresponde a um fluxo incluído/);
   assert.equal(fs.readFileSync(path.join(root, SCHEDULE_FILE), 'utf8'), before);
   assert.equal(fs.existsSync(path.join(root, SCHEDULE_FILE) + '.lock'), false);
 
@@ -235,7 +235,7 @@ test('a schedule behind a linked folder is refused', t => {
   fs.mkdirSync(path.join(root, 'system'), {recursive: true});
   try { fs.symlinkSync(elsewhere, path.join(root, 'system', 'v2'), 'junction'); } catch { t.skip('this computer does not allow creating a linked folder'); return; }
   fs.writeFileSync(path.join(elsewhere, 'schedule.json'), JSON.stringify({jobs: [weekdayPlan]}));
-  assert.match(readSchedule(root).error, /behind a linked folder/);
+  assert.match(readSchedule(root).error, /pasta vinculada/);
   assert.deepEqual(scheduleTick(root, () => assert.fail('nothing runs from a linked folder'), {now: at(7), timeZone: ZONE}), []);
   assert.throws(() => saveSchedule(root, {jobs: [weekdayPlan]}), /Linked paths are not allowed/);
   assert.deepEqual(fs.readdirSync(elsewhere), ['schedule.json'], 'nothing was written through the link');
@@ -258,48 +258,52 @@ test('the listing says when each job runs next and how the last run went', () =>
 
 test('the schedule command adds, lists, switches and removes, and explains a mistake', async () => {
   const root = path.join(fs.mkdtempSync(path.join(scratch, 'install-')), 'obsidian-v2'), home = layout(root), theVault = vault();
-  const run = async (words, flags = {}) => { const lines = []; const code = await scheduleCommand({words, flags, log: line => lines.push(line), at: home, vault: theVault, now: at(6)}); return {code, text: lines.join('\n')}; };
-  assert.match((await run([])).text, /Nothing is scheduled\. Example: node aos\.mjs schedule add plan-today 07:00 --days weekdays/);
+  const now = scheduledMoment('07:00', new Date(2026, 10, 18, 12).getTime());
+  const run = async (words, flags = {}) => { const lines = []; const code = await scheduleCommand({words, flags, log: line => lines.push(line), at: home, vault: theVault, now}); return {code, text: lines.join('\n')}; };
+  assert.match((await run([])).text, /Nenhum fluxo agendado\. Exemplo: node aos\.mjs schedule add plan-today 07:00 --days weekdays/);
   const added = await run(['add', 'plan-today', '07:00'], {days: 'weekdays'});
-  assert.match(added.text, /Scheduled: Planejar hoje at 07:00, weekdays \(id plan-today-0700\)/);
-  assert.match(added.text, /uses your Claude or Codex plan the same as pressing the button/);
+  assert.match(added.text, /Agendado: Planejar hoje às 07:00, em dias úteis \(ID plan-today-0700\)/);
+  assert.match(added.text, /usa seu plano do Claude ou do Codex, assim como quando você clica no botão/);
   await run(['add', 'morning-intel', '06:30']);
   await run(['add', 'inbox-brief', '12:00'], {days: 'Mon,Wed,Friday'});
   assert.deepEqual(readSchedule(theVault).jobs.map(job => [job.id, job.days.length]), [['plan-today-0700', 5], ['morning-intel-0630', 7], ['inbox-brief-1200', 3]]);
   const listed = (await run([])).text;
-  assert.match(listed, /plan-today-0700\s+Planejar hoje, 07:00 weekdays\s+next: today 07:00\s+last: has not run yet/);
-  assert.match(listed, /inbox-brief-1200\s+Resumo da caixa de entrada, 12:00 mon, wed, fri/);
-  assert.match(listed, /Runs happen only while the services are running/);
-  assert.match((await run(['off', 'morning-intel-0630'])).text, /morning-intel-0630 is off/);
-  assert.match((await run([])).text, /morning-intel-0630.*\[off\]\s+next: off/);
-  assert.match((await run(['pause'])).text, /Every scheduled run is paused/);
-  assert.match((await run([])).text, /PAUSED/);
+  assert.match(listed, /plan-today-0700\s+Planejar hoje, 07:00, em dias úteis\s+próxima: hoje às 07:00\s+última: ainda não executado/);
+  assert.match(listed, /inbox-brief-1200\s+Resumo da caixa de entrada, 12:00, seg, qua, sex/);
+  assert.match(listed, /Os fluxos são executados apenas enquanto os serviços estão em execução/);
+  scheduleTick(theVault, () => ({id: 'task-9'}), {now});
+  assert.match((await run([])).text, /plan-today-0700.*próxima: amanhã às 07:00\s+última: iniciada em 2026-11-18/);
+  assert.match((await run(['off', 'morning-intel-0630'])).text, /morning-intel-0630 desativado/);
+  assert.match((await run([])).text, /morning-intel-0630.*\[desativado\]\s+próxima: desativado/);
+  assert.match((await run(['pause'])).text, /Todos os agendamentos estão em pausa/);
+  assert.match((await run([])).text, /Agendamentos em pausa/);
   await run(['resume']); await run(['on', 'morning-intel-0630']);
-  assert.match((await run(['remove', 'inbox-brief-1200'])).text, /Removed inbox-brief-1200/);
+  assert.match((await run(['remove', 'inbox-brief-1200'])).text, /inbox-brief-1200 removido do agendamento/);
   assert.deepEqual(readSchedule(theVault).jobs.map(job => job.id), ['plan-today-0700', 'morning-intel-0630']);
   assert.match((await run(['skills'])).text, /plan-today\s+Planejar hoje/);
   const before = fs.readFileSync(path.join(theVault, SCHEDULE_FILE), 'utf8');
-  for (const [words, flags, message] of [[['add', 'plan-today'], {}, /schedule add <workflow> <HH:MM>/], [['add', 'plan-today', '07:00'], {}, /same workflow at the same time/], [['add', 'deep-research-chase', '07:00'], {}, /needs a topic/], [['add', 'plan-today', '8'], {}, /not a time/], [['add', 'plan-today', '08:00'], {days: 'someday'}, /--days takes/], [['remove', 'nope'], {}, /Nothing on the schedule is called "nope"/], [['on', 'nope'], {}, /Nothing on the schedule/]])
+  for (const [words, flags, message] of [[['add', 'plan-today'], {}, /schedule add <fluxo> <HH:MM>/], [['add', 'plan-today', '07:00'], {}, /mesmo fluxo para o mesmo horário/], [['add', 'deep-research-chase', '07:00'], {}, /precisa de um tema/], [['add', 'plan-today', '8'], {}, /Informe um horário no formato de 24 horas/], [['add', 'plan-today', '08:00'], {days: 'someday'}, /--days aceita/], [['remove', 'nope'], {}, /Não há um agendamento com o ID "nope"/], [['on', 'nope'], {}, /Não há um agendamento/]])
     await assert.rejects(run(words, flags), message, words.join(' '));
   assert.equal(fs.readFileSync(path.join(theVault, SCHEDULE_FILE), 'utf8'), before, 'a refused command changes nothing');
   const unknown = await run(['sometimes']); assert.equal(unknown.code, 1); assert.equal(unknown.text, SCHEDULE_HELP);
+  assert.match((await run(['help'])).text, /^Fluxos agendados\n/);
   // A schedule file someone broke by hand is reported, never overwritten by the next command.
   fs.writeFileSync(path.join(theVault, SCHEDULE_FILE), '{"jobs": [');
-  await assert.rejects(run(['add', 'plan-today', '09:00']), /not valid JSON/);
+  await assert.rejects(run(['add', 'plan-today', '09:00']), /JSON inválido/);
   assert.equal(fs.readFileSync(path.join(theVault, SCHEDULE_FILE), 'utf8'), '{"jobs": [');
   assert.equal((await run([])).code, 1);
   const lines = []; await main(['help'], line => lines.push(line));
   assert.match(lines.join('\n'), /\n  schedule\s+agendar um fluxo/);
   // Whole day names only, and an option the command does not know is a slip.
   fs.writeFileSync(path.join(theVault, SCHEDULE_FILE), JSON.stringify({jobs: []}));
-  await assert.rejects(run(['add', 'plan-today', '09:00'], {days: 'mondayish'}), /--days takes/);
-  await assert.rejects(run(['add', 'plan-today', '09:00'], {day: 'weekdays'}), /--day is not an option of schedule add\. Did you mean --days\? Nothing was scheduled/);
+  await assert.rejects(run(['add', 'plan-today', '09:00'], {days: 'mondayish'}), /--days aceita/);
+  await assert.rejects(run(['add', 'plan-today', '09:00'], {day: 'weekdays'}), /schedule add não aceita --day\. Você quis dizer --days\? Nenhum fluxo foi agendado/);
   assert.deepEqual(readSchedule(theVault).jobs, []);
   await run(['add', 'plan-today', '09:00'], {days: 'Monday, wed'});
   assert.deepEqual(readSchedule(theVault).jobs[0].days, ['mon', 'wed']);
   // --days with nothing after it is a slip, not "every day".
   fs.writeFileSync(path.join(theVault, SCHEDULE_FILE), JSON.stringify({jobs: []}));
-  await assert.rejects(run(['add', 'plan-today', '09:00'], {days: true}), /--days needs a value/);
+  await assert.rejects(run(['add', 'plan-today', '09:00'], {days: true}), /Informe um valor para --days/);
   assert.deepEqual(readSchedule(theVault).jobs, []);
   assert.ok(saveSchedule(vault(), {jobs: [weekdayPlan]}).jobs.length === 1);
 });
@@ -316,7 +320,7 @@ test('the screens show what is scheduled in a line, and show nothing when they c
   editSchedule(root, schedule => ({...schedule, paused: true}));
   assert.equal(scheduleLines(scheduleView(root, {now: at(8), timeZone: ZONE})).lines[0], 'Planejar hoje 07:00 em dias úteis (em pausa)');
   assert.deepEqual(scheduleLines(scheduleView(vault(), {now: at(8), timeZone: ZONE})), {lines: [], error: ''}, 'nothing scheduled shows nothing');
-  assert.match(scheduleLines(scheduleView(vault('{"jobs": ['), {now: at(8), timeZone: ZONE})).error, /nothing is scheduled/);
+  assert.match(scheduleLines(scheduleView(vault('{"jobs": ['), {now: at(8), timeZone: ZONE})).error, /Nenhum fluxo será executado/);
   for (const odd of [null, undefined, 'text', {error: 'Unknown route'}, {jobs: 'none'}, []]) assert.deepEqual(scheduleLines(odd), {lines: [], error: ''});
   // An older bridge, or one that is offline, leaves the line empty instead of showing an error.
   const old = createScheduleNoteStore(async () => ({status: 400, json: {error: 'Unknown route'}})); await old.refresh(); assert.deepEqual(old.getSnapshot(), {lines: [], error: ''});

@@ -6,11 +6,11 @@ import {withFileLock} from '../../runner/file-lock.mjs';
 import {ABOUT_MAX_BYTES,aboutHeading,aboutSection,agentsImport,frontMatterEnd,readAboutMe,visibleMarkdown} from '../../runner/live/about.mjs';
 import {configuredVaultPath,layout} from './services.mjs';
 
-const HELP=`About me
+const HELP=`Sobre mim
 
-  about show                   show what Live reads from your vault
-  about write --from <file>    update the About me section in AGENTS.md
-  about migrate [--yes]        move CLAUDE.md to AGENTS.md and add the import
+  about show                   mostrar o que a voz ao vivo lê no seu cofre
+  about write --from <arquivo> atualizar a seção ## About me em AGENTS.md
+  about migrate [--yes]        mover o conteúdo de CLAUDE.md para AGENTS.md e adicionar a importação
 `;
 const BODY_MAX_BYTES=8*1024;
 const IMPORT=['<!-- Claude Code reads AGENTS.md through this import; edit AGENTS.md. -->','@AGENTS.md',''];
@@ -19,7 +19,7 @@ const lineEnding=text=>text.match(/\r?\n/)?.[0]||'\n';
 function readOptional(file){
   const info=fs.lstatSync(file,{throwIfNoEntry:false});
   if(!info)return null;
-  if(!info.isFile())throw new Error(`${path.basename(file)} must be a regular file.`);
+  if(!info.isFile())throw new Error(`${path.basename(file)} precisa ser um arquivo comum.`);
   return fs.readFileSync(file);
 }
 function atomicWrite(file,data){
@@ -63,9 +63,9 @@ function updateSection(before,body){
 
 function show(root,log){
   const about=readAboutMe(root);
-  if(!about){log('Add a ## About me section in AGENTS.md or run `node aos.mjs about write --from <file>`.');return}
+  if(!about){log('Adicione a seção ## About me em AGENTS.md ou rode `node aos.mjs about write --from <arquivo>`.');return}
   log(about.text);
-  log(`${about.source} · ${about.bytes} / ${ABOUT_MAX_BYTES} bytes${about.dropped?` · ${about.dropped} bytes dropped`:''}`);
+  log(`${about.source} · ${about.bytes} / ${ABOUT_MAX_BYTES} bytes${about.dropped?` · ${about.dropped} ${about.dropped===1?'byte omitido':'bytes omitidos'}`:''}`);
 }
 
 export function aboutCommand({words=[],flags={},log=console.log,at=layout(),vault}={}){
@@ -75,15 +75,15 @@ export function aboutCommand({words=[],flags={},log=console.log,at=layout(),vaul
   const allowed=action==='write'?['from']:action==='migrate'?['yes']:[];
   if(Object.keys(flags).some(name=>!allowed.includes(name)))throw new Error(HELP);
   vault??=configuredVaultPath(at);
-  if(!vault)throw new Error('Nothing is installed here yet. Run `node aos.mjs setup --vault "<path>"` first.');
+  if(!vault)throw new Error('Ainda não há uma instalação aqui. Primeiro, rode `node aos.mjs setup --vault "<caminho>"`.');
   const root=fs.realpathSync(vault);
   if(action==='show'){show(root,log);return 0}
   const agents=vaultPath(root,'AGENTS.md'),claude=vaultPath(root,'CLAUDE.md');
   if(action==='write'){
-    if(typeof flags.from!=='string'||!flags.from)throw new Error('Use: about write --from <file>');
+    if(typeof flags.from!=='string'||!flags.from)throw new Error('Use o comando about write --from <arquivo>.');
     const raw=fs.readFileSync(flags.from,'utf8').replace(/^\uFEFF/,'').replace(aboutHeading,(match,offset)=>offset===0?'':match);
-    if(Buffer.byteLength(raw)>BODY_MAX_BYTES)throw new Error('About me must be 8 KB or less.');
-    if(/^## /m.test(raw))throw new Error('About me must not contain another level-two heading (## ).');
+    if(Buffer.byteLength(raw)>BODY_MAX_BYTES)throw new Error('A seção Sobre mim pode ter até 8 KB.');
+    if(/^## /m.test(raw))throw new Error('Remova qualquer outro título de nível dois (## ) da seção Sobre mim.');
     const body=raw.replace(/^(?:[\t ]*\r?\n)+|(?:\r?\n[\t ]*)+$/g,'');
     withFileLock(agents,()=>{
       const before=readOptional(agents),other=readOptional(claude);
@@ -91,22 +91,22 @@ export function aboutCommand({words=[],flags={},log=console.log,at=layout(),vaul
       atomicWrite(agents,updateSection(before,body));
       if(!other)atomicWrite(claude,IMPORT.join(before?lineEnding(before.toString('latin1')):'\n'));
       else if(!/^@AGENTS\.md[\t ]*\r?$/m.test(visibleMarkdown(other.toString('utf8'))))
-        log('Add `@AGENTS.md` on its own line in CLAUDE.md so Claude Code can read it, or run `node aos.mjs about migrate`.');
+        log('Adicione `@AGENTS.md` em uma linha separada de CLAUDE.md para o Claude Code ler o conteúdo, ou rode `node aos.mjs about migrate`.');
     });
     show(root,log);return 0;
   }
-  if(flags.yes!==undefined&&flags.yes!==true)throw new Error('Use: about migrate --yes');
+  if(flags.yes!==undefined&&flags.yes!==true)throw new Error('Use o comando about migrate --yes.');
   const migrate=()=>{
     const before=readOptional(claude),current=readOptional(agents);
-    if(!before)throw new Error('CLAUDE.md is missing.');
+    if(!before)throw new Error('CLAUDE.md não foi encontrado.');
     const text=before.toString('utf8');
-    if(agentsImport(text))throw new Error('CLAUDE.md already imports AGENTS.md.');
-    if(current&&!current.equals(before))throw new Error('AGENTS.md differs from CLAUDE.md. Reconcile the files before migrating.');
-    if(!flags.yes){log('Would back up CLAUDE.md, copy it to AGENTS.md, and replace CLAUDE.md with the import. Run `node aos.mjs about migrate --yes` to apply.');return}
+    if(agentsImport(text))throw new Error('CLAUDE.md já importa AGENTS.md.');
+    if(current&&!current.equals(before))throw new Error('AGENTS.md é diferente de CLAUDE.md. Resolva as diferenças entre os arquivos antes de migrar.');
+    if(!flags.yes){log('A migração fará uma cópia de segurança de CLAUDE.md, copiará o conteúdo para AGENTS.md e deixará em CLAUDE.md a instrução para importar AGENTS.md. Para aplicar, rode `node aos.mjs about migrate --yes`.');return}
     backup(root,'CLAUDE.md',before);
     if(!current)atomicWrite(agents,before);
     atomicWrite(claude,IMPORT.join(lineEnding(text)));
-    log('Migrated CLAUDE.md to AGENTS.md and added the import.');
+    log('Migração concluída. CLAUDE.md agora importa o conteúdo de AGENTS.md.');
   };
   if(flags.yes)withFileLock(agents,migrate);else migrate();
   return 0;

@@ -41,7 +41,7 @@ for(const provider of ['codex','claude']){
 
  test(`${provider}: a bare yes can accept only this app's latest offer`,async t=>{
   const f=fixture(t,provider);f.receipt('web','WEB_ONLY_OFFER');
-  const noOffer=await f.speak('native','yes');assert.match(noOffer.reply,/What would you like me to go ahead with/);assert.equal(f.calls.length,0);
+  const noOffer=await f.speak('native','yes');assert.match(noOffer.reply,/O que você quer que eu faça/);assert.equal(f.calls.length,0);
   // The offer must be strictly later than the clarification above: on a fast machine both can land in one millisecond.
   await new Promise(resolve=>setTimeout(resolve,5));
   f.receipt('native','NATIVE_ONLY_OFFER',{ts:Date.now()});

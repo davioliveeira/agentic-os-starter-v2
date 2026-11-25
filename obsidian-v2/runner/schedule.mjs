@@ -43,33 +43,38 @@ const minutesOf = at => { const match = TIME.exec(at); return Number(match[1]) *
 // Throws with a sentence a person can act on; returns the schedule in its stored shape. Anything written
 // explicitly must be right: a half-understood line must never widen what runs unattended.
 export function validateSchedule(input) {
-  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('The schedule must be an object.');
-  const unknown = (value, allowed, where) => { const extra = Object.keys(value).find(key => !allowed.includes(key)); if (extra !== undefined) throw new Error(`"${String(extra).slice(0, 40)}" is not something ${where} understands. It knows: ${allowed.join(', ')}.`); };
-  unknown(input, ['version', 'paused', 'jobs'], 'the schedule');
-  if (input.paused !== undefined && typeof input.paused !== 'boolean') throw new Error('"paused" takes true or false.');
-  if (input.jobs !== undefined && !Array.isArray(input.jobs)) throw new Error('"jobs" must be a list.');
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('O agendamento deve ser um objeto.');
+  const unknown = (value, allowed, where) => { const extra = Object.keys(value).find(key => !allowed.includes(key)); if (extra !== undefined) throw new Error(`"${String(extra).slice(0, 40)}" não é um campo ${where}. Use apenas ${allowed.join(', ')}.`); };
+  unknown(input, ['version', 'paused', 'jobs'], 'do agendamento');
+  if (input.paused !== undefined && typeof input.paused !== 'boolean') throw new Error('"paused" aceita true ou false.');
+  if (input.jobs !== undefined && !Array.isArray(input.jobs)) throw new Error('"jobs" deve ser uma lista.');
   const jobs = (input.jobs ?? []).map((job, index) => {
-    if (!job || typeof job !== 'object' || Array.isArray(job)) throw new Error(`Scheduled item ${index + 1} is not an object.`);
-    unknown(job, ['id', 'skill', 'at', 'days', 'enabled'], 'a scheduled item');
-    if (typeof job.skill !== 'string' || !Object.hasOwn(SKILLS, job.skill)) throw new Error(`"${String(job.skill).slice(0, 40)}" is not a bundled workflow. \`node aos.mjs schedule skills\` lists the ones that can be scheduled.`);
-    if (SKILLS[job.skill].arg) throw new Error(`${SKILLS[job.skill].label} needs a ${SKILLS[job.skill].arg} each time, so it cannot run on a schedule.`);
-    if (typeof job.at !== 'string' || !TIME.test(job.at)) throw new Error(`"${String(job.at).slice(0, 20)}" is not a time. Use 24-hour HH:MM, for example 07:00 or 18:30.`);
-    if (job.days !== undefined && (!Array.isArray(job.days) || !job.days.length)) throw new Error('"days" must list at least one day, or be left out for every day.');
+    if (!job || typeof job !== 'object' || Array.isArray(job)) throw new Error(`O item agendado ${index + 1} deve ser um objeto.`);
+    unknown(job, ['id', 'skill', 'at', 'days', 'enabled'], 'de um item agendado');
+    if (typeof job.skill !== 'string' || !Object.hasOwn(SKILLS, job.skill)) throw new Error(`"${String(job.skill).slice(0, 40)}" não corresponde a um fluxo incluído no Agentic OS. Rode \`node aos.mjs schedule skills\` para ver os fluxos disponíveis para agendamento.`);
+    const {label, arg} = SKILLS[job.skill];
+    if (arg) {
+      const required = arg === 'topic' ? 'um tema' : arg === 'url' ? 'um link' : `um valor para "${arg}"`;
+      throw new Error(`${label} precisa de ${required} a cada execução e, por isso, não pode ser agendado.`);
+    }
+    if (typeof job.at !== 'string' || !TIME.test(job.at)) throw new Error(`O horário "${String(job.at).slice(0, 20)}" é inválido. Informe um horário no formato de 24 horas (HH:MM), como 07:00 ou 18:30.`);
+    if (job.days !== undefined && (!Array.isArray(job.days) || !job.days.length)) throw new Error('Liste pelo menos um dia em "days" ou omita o campo para executar todos os dias.');
     const days = [...new Set(job.days ?? DAYS)];
-    if (days.some(day => !DAYS.includes(day))) throw new Error(`Days must be from: ${DAYS.join(', ')}.`);
-    if (job.enabled !== undefined && typeof job.enabled !== 'boolean') throw new Error('"enabled" takes true or false.');
+    if (days.some(day => !DAYS.includes(day))) throw new Error(`Escolha os dias entre ${DAYS.join(', ')}.`);
+    if (job.enabled !== undefined && typeof job.enabled !== 'boolean') throw new Error('"enabled" aceita true ou false.');
     const id = typeof job.id === 'string' && /^[a-z0-9-]{3,60}$/.test(job.id) ? job.id : `${job.skill}-${job.at.replace(':', '')}`;
     return {id, skill: job.skill, at: job.at, days: DAYS.filter(day => days.includes(day)), enabled: job.enabled !== false};
   });
-  if (jobs.length > MAX_JOBS) throw new Error(`A schedule holds ${MAX_JOBS} items at most.`);
-  if (new Set(jobs.map(job => job.id)).size !== jobs.length) throw new Error('Two scheduled items are the same workflow at the same time. Remove one.');
+  if (jobs.length > MAX_JOBS) throw new Error(`O agendamento aceita até ${MAX_JOBS} itens.`);
+  if (new Set(jobs.map(job => job.id)).size !== jobs.length) throw new Error('Há dois agendamentos do mesmo fluxo para o mesmo horário. Remova um deles.');
   // The same workflow at the same time on the same day is one run, whatever the two entries are called.
   for (const [index, job] of jobs.entries()) for (const other of jobs.slice(index + 1))
-    if (job.skill === other.skill && job.at === other.at && job.days.some(day => other.days.includes(day))) throw new Error(`${SKILLS[job.skill].label} at ${job.at} is on the schedule twice for the same day. Remove one.`);
+    if (job.skill === other.skill && job.at === other.at && job.days.some(day => other.days.includes(day))) throw new Error(`${SKILLS[job.skill].label} está agendado duas vezes para as ${job.at} no mesmo dia. Remova um dos agendamentos.`);
   return {version: 1, paused: input.paused === true, jobs};
 }
 
 const readText = file => fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '');
+const scheduleReadError = 'Falha ao ler o agendamento em system/v2/schedule.json. O arquivo contém JSON inválido ou está em uma pasta vinculada. Nenhum fluxo será executado até que você corrija ou remova esse arquivo.';
 const atomicJson = (file, value) => {
   fs.mkdirSync(path.dirname(file), {recursive: true});
   const temporary = `${file}.${crypto.randomUUID()}.tmp`;
@@ -83,11 +88,11 @@ const atomicJson = (file, value) => {
 export function readSchedule(root) {
   let text;
   try { text = readText(inVault(root, SCHEDULE_FILE)); }
-  catch (error) { return error.code === 'ENOENT' ? {version: 1, paused: false, jobs: [], revision: 'none'} : {version: 1, paused: false, jobs: [], revision: 'unreadable', error: 'system/v2/schedule.json cannot be read as a schedule (it is not valid JSON, or it is behind a linked folder), so nothing is scheduled. Fix it or remove it.'}; }
+  catch (error) { return error.code === 'ENOENT' ? {version: 1, paused: false, jobs: [], revision: 'none'} : {version: 1, paused: false, jobs: [], revision: 'unreadable', error: scheduleReadError}; }
   const revision = crypto.createHash('sha256').update(text).digest('hex').slice(0, 16);
   let raw;
-  try { raw = JSON.parse(text); } catch { return {version: 1, paused: false, jobs: [], revision, error: 'system/v2/schedule.json cannot be read as a schedule (it is not valid JSON, or it is behind a linked folder), so nothing is scheduled. Fix it or remove it.'}; }
-  try { return {...validateSchedule(raw), revision}; } catch (error) { return {version: 1, paused: false, jobs: [], revision, error: `${String(error.message || error)} Nothing is scheduled until system/v2/schedule.json is fixed.`}; }
+  try { raw = JSON.parse(text); } catch { return {version: 1, paused: false, jobs: [], revision, error: scheduleReadError}; }
+  try { return {...validateSchedule(raw), revision}; } catch (error) { return {version: 1, paused: false, jobs: [], revision, error: `${String(error.message || error)} Nenhum fluxo será executado até que você corrija system/v2/schedule.json.`}; }
 }
 export const scheduleRevision = root => readSchedule(root).revision;
 export function saveSchedule(root, schedule) { const valid = validateSchedule(schedule); atomicJson(inVault(root, SCHEDULE_FILE), valid); return valid; }
@@ -97,7 +102,7 @@ export function saveSchedule(root, schedule) { const valid = validateSchedule(sc
 export function editSchedule(root, change, {revision} = {}) {
   return withFileLock(inVault(root, SCHEDULE_FILE), () => {
     const {revision: now, error, ...current} = readSchedule(root);
-    if (revision !== undefined && revision !== now) throw new Error('The schedule changed since it was loaded. Reload it and try again.');
+    if (revision !== undefined && revision !== now) throw new Error('O agendamento mudou desde que foi carregado. Recarregue e tente novamente.');
     if (error) throw new Error(error);
     return saveSchedule(root, change(current));
   });
@@ -198,7 +203,7 @@ export function scheduleTick(root, launch, {now = Date.now(), timeZone = TIME_ZO
     let state = readScheduleState(root);
     for (const due of dueJobs(schedule, state, now, {timeZone, lateMinutes})) {
       let outcome;
-      if (due.missed) outcome = {outcome: 'missed', detail: `The services were not running at ${due.job.at}.`};
+      if (due.missed) outcome = {outcome: 'missed', detail: `Os serviços estavam desligados às ${due.job.at}.`};
       else {
         const taskId = scheduledTaskId(due.job.id, due.date, root);
         // Written down first. If this cannot be saved, nothing is started: the next look would not know.
@@ -216,7 +221,7 @@ export function scheduleTick(root, launch, {now = Date.now(), timeZone = TIME_ZO
 // What the screens and the command line show.
 export function scheduleView(root, {now = Date.now(), timeZone = TIME_ZONE} = {}) {
   const schedule = readSchedule(root), state = readScheduleState(root);
-  const error = schedule.error || (state.unreadable ? 'system/v2/schedule-state.json cannot be read, so nothing will run: whether today\'s runs already happened is unknown. Fix or remove that file.' : '');
+  const error = schedule.error || (state.unreadable ? 'Falha ao ler system/v2/schedule-state.json. Nenhum fluxo será executado porque o sistema não consegue verificar se os agendamentos de hoje já rodaram. Corrija ou remova esse arquivo.' : '');
   return {paused: schedule.paused, error, timeZone, revision: schedule.revision,
     jobs: schedule.jobs.map(job => ({...job, label: SKILLS[job.skill].label, next: schedule.paused ? 'paused' : state.unreadable ? 'not running' : nextRun(job, state, now, {timeZone}), last: state.last[job.id] || null})),
     history: state.history.slice(-10).reverse()};

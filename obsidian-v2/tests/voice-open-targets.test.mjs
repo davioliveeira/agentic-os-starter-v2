@@ -46,8 +46,8 @@ test('named reports resolve to the newest file, a spoken date, or an honest miss
  assert.equal(resolve(root,"Open yesterday's intel").path,'inbox/research/morning-intel/2026-09-15-intel.md');
  assert.equal(resolve(root,'pull up the intel brief from the 12th').path,'inbox/research/morning-intel/2026-09-12-intel.md');
  const monday=resolve(root,'pull up the intel from monday');
- assert.equal(monday.kind,'missing');assert.equal(monday.dateLabel,'Monday, September 14');assert.equal(monday.nearest.path,'inbox/research/morning-intel/2026-09-12-intel.md');
- assert.match(monday.nearest.label,/morning intel report from Saturday, September 12/);
+ assert.equal(monday.kind,'missing');assert.equal(monday.dateLabel,'segunda-feira, 14 de setembro');assert.equal(monday.nearest.path,'inbox/research/morning-intel/2026-09-12-intel.md');
+ assert.match(monday.nearest.label,/boletim de IA de sábado, 12 de setembro/);
  assert.equal(resolve(root,'show me the top story in the brief'),null);
  assert.equal(resolve(root,'show me the graphic you made from the morning intel brief').kind,'unresolved');
  assert.equal(resolve(root,'open the morning intel video plan').kind,'unresolved');
@@ -68,7 +68,7 @@ test('daily notes resolve by date and never substitute another day silently',t=>
  assert.deepEqual([resolve(root,"open today's daily note").kind,resolve(root,"open today's daily note").path],['daily','daily-notes/2026-09-16.md']);
  assert.equal(resolve(root,"open yesterday's daily note").path,'daily-notes/2026-09-15.md');
  const friday=resolve(root,'pull up my daily note from last friday');
- assert.equal(friday.kind,'missing');assert.equal(friday.dateLabel,'Friday, September 11');assert.equal(friday.nearest,null);
+ assert.equal(friday.kind,'missing');assert.equal(friday.dateLabel,'sexta-feira, 11 de setembro');assert.equal(friday.nearest,null);
  const tomorrow=resolve(root,"show me tomorrow's daily note");assert.equal(tomorrow.kind,'missing');assert.equal(tomorrow.nearest.path,'daily-notes/2026-09-16.md');
 });
 
@@ -82,7 +82,7 @@ test('named notes match by title words, tolerate speech errors, and ask when two
  assert.equal(resolve(root,'open the jarvis hud note').path,'wiki/agentic-os/jarvis-hud.md');
  const ambiguous=resolve(root,'open the content plan');
  assert.equal(ambiguous.kind,'ambiguous');assert.deepEqual(ambiguous.candidates.map(c=>c.path),['projects/2026-05-02-content-calendar-plan.md','projects/2026-04-30-content-backfill-plan.md']);
- assert.equal(describeCandidates(ambiguous.candidates),'content calendar plan or content backfill plan');
+ assert.equal(describeCandidates(ambiguous.candidates),'content calendar plan ou content backfill plan');
  const exchanges=[{ts:new Date(now.getTime()-5000).toISOString(),you:'open the content plan',jarvis:'which one?',lookup:{source:'open-candidates',candidates:ambiguous.candidates}}];
  assert.equal(resolve(root,'the second one',{exchanges}).path,'projects/2026-04-30-content-backfill-plan.md');
  assert.equal(resolve(root,'the calendar one',{exchanges}).path,'projects/2026-05-02-content-calendar-plan.md');
@@ -95,6 +95,8 @@ test('named notes match by title words, tolerate speech errors, and ask when two
  assert.deepEqual(twins.candidates.map(c=>c.label).sort(),['dario proposal as a PDF','dario proposal from Monday, June 1','dario proposal from Wednesday, May 20']);
  assert.equal(resolve(root,'the pdf one',{exchanges:[{ts:new Date(now.getTime()-5000).toISOString(),you:'open the dario proposal',jarvis:'which one?',lookup:{source:'open-candidates',candidates:twins.candidates}}]}).path,'projects/proposals/2026-06-01-dario-proposal.pdf');
  assert.equal(resolve(root,'the may one',{exchanges:[{ts:new Date(now.getTime()-5000).toISOString(),you:'open the dario proposal',jarvis:'which one?',lookup:{source:'open-candidates',candidates:twins.candidates}}]}).path,'inbox/research/call-transcripts/2026-05-20-dario-proposal.md');
+ assert.match(describeCandidates(twins.candidates),/dario proposal de quarta-feira, 20 de maio/);
+ assert.equal(resolve(root,'a de maio',{exchanges:[{ts:new Date(now.getTime()-5000).toISOString(),you:'open the dario proposal',lookup:{source:'open-candidates',candidates:twins.candidates}}]}).path,'inbox/research/call-transcripts/2026-05-20-dario-proposal.md');
  // Bare nouns that are also workflow names are notes, not workflow outputs.
  assert.deepEqual(matchSkill('the plan'),[]);assert.deepEqual(matchSkill('the outline'),[]);assert.deepEqual(matchSkill('plan tomorrow'),[]);
  assert.equal(resolve(root,'open the main plugin file').kind,'unresolved');
@@ -152,8 +154,8 @@ test('named workflow outputs open from the run ledgers by whole words, never by 
  }
  assert.equal(resolve(root,'pull up the cascade from july 16').path,'inbox/reports/cascades/2026-07-16-1901fc7d.md');
  assert.equal(resolve(root,'pull up the metrics report').path,'inbox/reports/metrics/2026-08-15-pull-19e39d85.md');
- const cleanup=resolve(root,'open the vault cleanup report');assert.equal(cleanup.kind,'missing');assert.equal(cleanup.label,'revisar arquivos do cofre report');assert.equal(cleanup.nearest,null);
- const scan=resolve(root,'show me the trend scan');assert.equal(scan.kind,'missing');assert.equal(scan.label,'tendências de IA report');
+ const cleanup=resolve(root,'open the vault cleanup report');assert.equal(cleanup.kind,'missing');assert.equal(cleanup.label,'relatório do fluxo revisar arquivos do cofre');assert.equal(cleanup.nearest,null);
+ const scan=resolve(root,'show me the trend scan');assert.equal(scan.kind,'missing');assert.equal(scan.label,'relatório do fluxo tendências de IA');
  const dated=resolve(root,'show me the cascade from monday');assert.equal(dated.kind,'missing');assert.equal(dated.nearest.path,'inbox/reports/cascades/2026-07-16-1901fc7d.md');
  assert.equal(resolve(root,'open the content plan').kind,'ambiguous');
  assert.equal(resolve(root,'pull up the skoot crm playbook').kind,'note');

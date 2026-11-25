@@ -40,9 +40,9 @@ for(const provider of ['codex','claude']){
 
  test(`${provider}: spoken fresh start is model-free, cannot accept an old offer, and receipt replay never resets again`,async t=>{
   const f=fixture(t,provider),saved=f.add(),id=crypto.randomUUID();setCurrent(f.root,f.terminals,{provider,id:saved.id});f.receipt('old');
-  const result=await f.speak('Start a new conversation',{id});assert.equal(result.currentReset,true);assert.equal(result.workIds.length,0);assert.match(result.reply,/new conversation/i);assert.equal(f.calls.length,0);
+  const result=await f.speak('Start a new conversation',{id});assert.equal(result.currentReset,true);assert.equal(result.workIds.length,0);assert.match(result.reply,/Nova conversa aberta/i);assert.equal(f.calls.length,0);
   assert.equal(readCurrentState(f.root)[provider],null);assert.equal(voiceMemory(f.root,provider).some(item=>item.you==='OLD_VOICE_TOPIC'),false);
-  const answer=await f.speak('yes');assert.match(answer.reply,/What would you like me to go ahead with/);assert.equal(f.calls.length,0);
+  const answer=await f.speak('yes');assert.match(answer.reply,/O que você quer que eu faça/);assert.equal(f.calls.length,0);
   const next=f.add();setCurrent(f.root,f.terminals,{provider,id:next.id});const before=readCurrentState(f.root),epoch=readConversationEpoch(f.root,provider);
   assert.deepEqual(await f.speak('Start a new conversation',{id}),result);assert.deepEqual(readCurrentState(f.root),before);assert.equal(readConversationEpoch(f.root,provider),epoch);assert.equal(saved.state,'ready');
  });

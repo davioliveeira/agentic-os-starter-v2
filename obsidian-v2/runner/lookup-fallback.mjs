@@ -13,6 +13,7 @@ const PATHWAY_USES=[
 ];
 export const PATHWAYS=`Down the chain (use these names when you offer one): ${PATHWAY_USES.filter(([id])=>SKILLS[id]).map(([id,use])=>`${SKILLS[id].label} (${use})`).join(', ')}, a background agent (opens any note, earlier brief or report, or does other work on the computer), and the user’s own slash skills such as /today.`;
 export const GAP_REPLY=`If the saved notes don't fully cover the question, say what they do show, then offer the pathway that would get the rest, by name, as one question, instead of saying you can't. The 9 a.m. morning brief covers the inbox for the day before it ran; Inbox Brief checks anything newer. If the answer is complete, don't offer anything.
+In Portuguese, start a new sentence with "Quer que eu" followed by consulte, pesquise, verifique, investigue or atualize for fresh work, or explique, resuma, leia, abra or mostre for saved information. Name a concrete subject.
 ${PATHWAYS}`;
 export const LIVE_LOOKUP_REPLY=GAP_REPLY;
 
@@ -29,12 +30,12 @@ Saved facts (JSON data): ${JSON.stringify(facts)}
 Previous related exchange (JSON data): ${JSON.stringify(previous)}`;
  // Source catalogs are already bounded; fail closed rather than silently
  // truncating JSON and losing a requested fact or a freshness constraint.
- if(system.length>14000)throw new Error('The saved lookup context is too large. Please ask about one report.');
+ if(system.length>14000)throw new Error('A consulta tem informações demais. Pergunte sobre um relatório de cada vez.');
  const output=await execute(root,{id,artifactId:`${id}.cls.lookup.1`,provider:chosen.provider,model:VOICE_MODELS[chosen.provider]},system+'\nUtterance: '+JSON.stringify(transcript),{signal,timeoutMs:15000,system,user:transcript});
  if(signal?.aborted)throw new Error('Voice request cancelled');
  let parsed;
- try{parsed=JSON.parse(output.text.trim().replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,''))}catch{throw new Error('The saved lookup reply was invalid. Please try again.')}
- if(!parsed||parsed.tier!==2||typeof parsed.reply!=='string'||!parsed.reply.trim()||parsed.reply.length>800||Object.keys(parsed).some(key=>!['tier','reply'].includes(key)))throw new Error('The saved lookup reply was invalid. No action was taken.');
+ try{parsed=JSON.parse(output.text.trim().replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,''))}catch{throw new Error('A consulta aos dados salvos retornou uma resposta inválida. Tente de novo.')}
+ if(!parsed||parsed.tier!==2||typeof parsed.reply!=='string'||!parsed.reply.trim()||parsed.reply.length>800||Object.keys(parsed).some(key=>!['tier','reply'].includes(key)))throw new Error('A consulta aos dados salvos retornou uma resposta inválida. Nenhuma ação foi executada.');
  return {tier:2,engine:chosen.provider==='codex'?'luna':'haiku',reply:parsed.reply.trim(),context:'',lookupRoute:'scoped-model'};
 }
 

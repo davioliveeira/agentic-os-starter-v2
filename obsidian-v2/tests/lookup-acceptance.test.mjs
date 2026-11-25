@@ -201,7 +201,7 @@ for(const provider of ['codex','claude']){
    const seen=[];
    await assert.rejects(f.speak(provider,utterance,compactModel(provider,utterance,seen,output)),error=>{
     assert.notEqual(error.code,'ERR_ASSERTION','The model fixture failed before reply validation was exercised.');
-    return /invalid|lookup|read.only|reply/i.test(error.message);
+    return /A consulta aos dados salvos retornou uma resposta inválida/.test(error.message);
    });
    assert.equal(seen.length,1);assert.equal(f.calls.length,0);assert.equal(fs.readFileSync(path.join(f.root,`daily-notes/${f.today}.md`),'utf8'),before);
   }

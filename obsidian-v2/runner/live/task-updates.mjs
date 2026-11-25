@@ -50,7 +50,7 @@ export class LiveTaskUpdates {
      if(!working)continue;
      const minutes=Math.max(1,Math.floor((now-(task.workflow?.startedAt||task.created||last))/60000));
      this.pending=this.pending.filter(entry=>entry.taskId!==id||entry.state!=='progress');
-     this.pending.push({at:now,taskId:id,state:'progress',text:taskLabel(task)+' is still going, '+minutes+' minutes in.'});
+     this.pending.push({at:now,taskId:id,state:'progress',text:taskLabel(task)+' está em execução há '+minutes+(minutes===1?' minuto.':' minutos.')});
     }
    }
   }else this.pending=this.pending.filter(entry=>entry.state!=='progress');
@@ -60,15 +60,15 @@ export class LiveTaskUpdates {
    const boundary=this.pending[0].at+BATCH;
    const batch=this.pending.filter(item=>item.at<=boundary);
    this.pending=this.pending.slice(batch.length);
-   const prefix=now-this.lastInput<=RECENT?'By the way, ':'';
+   const prefix=now-this.lastInput<=RECENT?'A propósito, ':'';
    const parts=batch.map(item=>{
     const outcome=item.outcome?.replace(/[.!?]$/,'');
-    if(item.state==='done')return item.label+' is done'+(outcome?': '+outcome:'');
-    if(item.state==='failed')return item.label+" didn't finish"+(outcome?': '+outcome:'')+' (open the task for the next step)';
-    if(item.state==='needs input')return item.label+' needs your OK in the terminal tray';
+    if(item.state==='done')return item.label+' terminou'+(outcome?': '+outcome:'');
+    if(item.state==='failed')return item.label+' não terminou'+(outcome?': '+outcome:'')+' (abra a tarefa para ver o próximo passo)';
+    if(item.state==='needs input')return item.label+' precisa da sua aprovação em Terminais';
     return item.text.replace(/[.!?]$/,'');
    });
-   const text=prefix+(batch.length===1?batch[0].text:new Intl.ListFormat('en').format(parts)+'.');
+   const text=prefix+(batch.length===1?batch[0].text:new Intl.ListFormat('pt-BR').format(parts)+'.');
    answers.append('thinking',null,text);
    answers.speak(null,text);
   }

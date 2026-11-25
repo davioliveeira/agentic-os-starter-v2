@@ -25,16 +25,16 @@ test('acceptances vary without a fixed cycle and avoid the previous four per pro
 });
 test('named workflows use their known operation and multiple task counts remain exact',()=>{
  const acknowledge=createWorkAcknowledgments({choose:()=>0});
- assert.match(acknowledge({skill:'metrics-pull'}),/metrics refresh/);
- assert.match(acknowledge({skill:'plan-tomorrow'}),/tomorrow's plan/);
- assert.match(acknowledge({count:3,classifiedReply:"I'll create the graphic.",engine:'luna',request:'Create the graphic'}),/3 tasks/);
+ assert.match(acknowledge({skill:'metrics-pull'}),/atualização das métricas/);
+ assert.match(acknowledge({skill:'plan-tomorrow'}),/plano de amanhã/);
+ assert.match(acknowledge({count:3,classifiedReply:"I'll create the graphic.",engine:'luna',request:'Create the graphic'}),/3 tarefas/);
 });
 test('completion labels come from workflow or returned artifacts, never the original request',()=>{
  const task={provider:'codex',title:'Can you please create a long graphic with everything from yesterday and show it to me'};
  assert.equal(completionLabel(task),'Codex');
- assert.equal(completionLabel({...task,workflow:{job:{skill:'plan-tomorrow'}}}),"tomorrow's plan");
+ assert.equal(completionLabel({...task,workflow:{job:{skill:'plan-tomorrow'}}}),'plano de amanhã');
  assert.equal(completionLabel(task,{text:'Here is [Cipher break graphic](outputs/cipher.svg).'}),'Cipher break graphic');
- assert.equal(completionLabel(task,{text:'[Open](C:/outputs/result.png)'}),'graphic');
- assert.equal(completionLabel(task,{text:'[https://bad](result.pdf)'}),'document');
+ assert.equal(completionLabel(task,{text:'[Open](C:/outputs/result.png)'}),'imagem');
+ assert.equal(completionLabel(task,{text:'[https://bad](result.pdf)'}),'documento');
  assert.equal(completionLabel({provider:'claude'},{text:'The worker could not complete the task.'}),'Claude Code');
 });

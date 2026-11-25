@@ -41,7 +41,7 @@ export function parseRoute(text){
 }
 export function directVoiceRoute(transcript){
  const text=transcript.toLowerCase().trim().replace(/[.!?]+$/,'');
- if(/^(?:please )?(?:open|show)(?: me)? (?:the )?(?:dashboard|cockpit)$/.test(text))return {action:'cockpit',reply:'Opening the dashboard.'};
+ if(/^(?:please )?(?:open|show)(?: me)? (?:the )?(?:dashboard|cockpit)$/.test(text))return {action:'cockpit',reply:'Abrindo o painel.'};
  if(/^(?:is (?:the )?(?:v2 )?worker online|worker status|check (?:the )?worker status)$/.test(text))return {action:'status',reply:''};
  return null;
 }
@@ -138,8 +138,8 @@ export async function routeVoice(root,{id,transcript,selection:chosen,terminalMo
  // Otherwise a dashboard poll could expire its destination mid-request.
  if(currentEpoch===initialEpoch&&workTarget&&/[\p{L}\p{N}]/u.test(ask))effect('renewConversation',{scope:appScope,provider:chosen.provider,id:workTarget});
  const running=task=>['starting','working','needs input'].includes(task?.state);
- const shortTitle=title=>String(title||'that task').replace(/\s+/g,' ').slice(0,60);
- const existingTitle=task=>transport==='live'&&liveCallId?'that task':shortTitle(task.title);
+ const shortTitle=title=>String(title||'essa tarefa').replace(/\s+/g,' ').slice(0,60);
+ const existingTitle=task=>transport==='live'&&liveCallId?'essa tarefa':shortTitle(task.title);
  let stopped=null;
  const selectedStopTarget=()=>{
   if(!workTarget)return null;
@@ -152,21 +152,21 @@ export async function routeVoice(root,{id,transcript,selection:chosen,terminalMo
  // "Stop that" / "cancel that": stop the selected running task, or the one
  // running task in this app for this provider. Nothing else is touched.
  const stopRoute=(named=null)=>{
-  if(!terminalMode||!terminals)return {action:'reply',reply:'Nothing is running here.'};
+  if(!terminalMode||!terminals)return {action:'reply',reply:'Nenhuma tarefa em execução aqui.'};
   // A named provider ("stop Claude") overrides the selection and the current provider.
   const provider=named||chosen.provider;
   let task=named?null:selectedStopTarget();
   if(!task||!running(task)){
    const candidates=(terminals.list?.()||[]).filter(t=>taskInScope(t,appScope)&&t.provider===provider&&running(t));
-   if(candidates.length>1)return {action:'reply',reply:transport==='live'&&liveCallId?`${candidates.length} tasks are running. Select one and say stop again.`:`${candidates.length} tasks are running: ${candidates.map(t=>shortTitle(t.title)).join(', ')}. Select the one to stop and say stop again.`};
+   if(candidates.length>1)return {action:'reply',reply:transport==='live'&&liveCallId?`Há ${candidates.length} tarefas em execução. Selecione uma e peça para parar de novo.`:`Há ${candidates.length} tarefas em execução (${candidates.map(t=>shortTitle(t.title)).join(', ')}). Selecione a tarefa desejada e peça para parar de novo.`};
    task=candidates[0]||null;
   }
-  if(!task)return {action:'reply',reply:'Nothing is running right now.'};
+  if(!task)return {action:'reply',reply:'Nenhuma tarefa em execução no momento.'};
   effect('stop',{taskId:task.id},`Stop “${existingTitle(task)}”`);stopped={taskId:task.id,title:transport==='live'&&liveCallId?existingTitle(task):task.title};
-  return {action:'reply',reply:`Stopped ${existingTitle(task)}.`};
+  return {action:'reply',reply:`Interrompi ${existingTitle(task)}.`};
  };
  const stopping=/[\p{L}\p{N}]/u.test(ask)?stopIntent(ask)||(transport==='live'&&/^never\s*mind the report[.!?\s]*$/i.test(ask)?{provider:null}:null):null;
- const direct=/[\p{L}\p{N}]/u.test(ask)?(stopping?stopRoute(stopping.provider):slash&&!slash.found?{action:'reply',reply:`I don't see a /${slash.name} skill in ${chosen.provider==='claude'?'Claude Code':'Codex'}.`}:directVoiceRoute(ask)):{action:'reply',reply:newTask?'Ready for a new conversation. What would you like me to work on?':"I didn't catch a request. What would you like me to do?"};
+ const direct=/[\p{L}\p{N}]/u.test(ask)?(stopping?stopRoute(stopping.provider):slash&&!slash.found?{action:'reply',reply:`Não encontrei a skill /${slash.name} no ${chosen.provider==='claude'?'Claude Code':'Codex'}.`}:directVoiceRoute(ask)):{action:'reply',reply:newTask?'Nova conversa aberta. O que você quer fazer?':"Não entendi o pedido. O que você quer que eu faça?"};
  const routingStarted=performance.now();
  const classified=direct?{tier:2,engine:'rules',...direct,decision:{boundary:'front-door',source:'rules',rule:stopping?'frontdoor.stop':/[\p{L}\p{N}]/u.test(ask)?'frontdoor.direct':'frontdoor.empty'}}:slash?{tier:3,engine:'rules',decision:{boundary:'front-door',source:'rules',rule:'frontdoor.slashSkill'}}:await classifyVoice(root,{id,transcript:ask,chosen,terminals,workTarget,appScope,transport,liveCallId,liveTurns,liveTaskIds,planning,editDaily,separateTasks:!!newTask?.multiple,newConversation:!!newTask,signal,...(jev?{jev}:{}),...(strict?{strict}:{}),execute:async(...args)=>{
    if(!resolveCli(chosen.provider))throw new Error(`${chosen.provider} CLI is not installed. No other provider was called.`);
@@ -255,18 +255,18 @@ export async function routeVoice(root,{id,transcript,selection:chosen,terminalMo
     effects.push(...prepared.map(()=>'start'));
    }
    const acknowledge=planning||transport==='live'?createWorkAcknowledgments():workAcceptedReply;
-   action='task';reply=slash&&transport==='live'?'Starting /'+slash.name+'…':acknowledge({provider:chosen.provider,count:workIds.length,continuation:!!workTarget,skill,classifiedReply:classified.decision?.source==='jev'?'':classified.reply,request:executionAsk,engine:classified.engine});
-   if(stopped)reply=`Stopped ${shortTitle(stopped.title)}. ${reply}`;
-   if(separatedFrom)reply=`Running ${SKILLS[skill].label} on its own while ${shortTitle(separatedFrom)} finishes.`;
-   if(waitingBehind)reply=`Got it. I'll add that as soon as ${shortTitle(waitingBehind)} is free.`;
+   action='task';reply=slash&&transport==='live'?'Iniciando /'+slash.name+'…':acknowledge({provider:chosen.provider,count:workIds.length,continuation:!!workTarget,skill,classifiedReply:classified.decision?.source==='jev'?'':classified.reply,request:executionAsk,engine:classified.engine});
+   if(stopped)reply=`Interrompi ${shortTitle(stopped.title)}. ${reply}`;
+   if(separatedFrom)reply=`Vou executar ${SKILLS[skill].label} em uma tarefa separada enquanto ${shortTitle(separatedFrom)} termina.`;
+   if(waitingBehind)reply=`Vou colocar seu pedido na fila até ${shortTitle(waitingBehind)} terminar.`;
   }else{
    if(newTask?.multiple&&classified.tasks?.length>1)throw new Error('Multiple terminal tasks require the work pane.');
    const args=skill==='voice-ask'?{prompt:originalAsk,...(context?{context:context.slice(-12000)}:{})}:classified.args||{};
    const job={id,skill,selection:worker,args};
-   queued=effect('enqueue',{job},describeWork('enqueue',{job})).id;effects.push('enqueue');action='task';reply="It's queued. I'll let you know when it's ready.";
+   queued=effect('enqueue',{job},describeWork('enqueue',{job})).id;effects.push('enqueue');action='task';reply="Pedido na fila. Aviso quando estiver pronto.";
   }
  }
- if(action==='status')reply=terminalMode&&terminals?`The terminal bridge is online with ${terminals.live.size} running sessions.`:health(root)?(health(root).busy?'The V2 worker is working on a task.':'The V2 worker is online and ready.'):'The V2 worker is offline.';
+ if(action==='status')reply=terminalMode&&terminals?`A ponte do terminal está online, com ${terminals.live.size} sessões em execução.`:health(root)?(health(root).busy?'O executor V2 está trabalhando em uma tarefa.':'O executor V2 está online e pronto.'):'O executor V2 está offline.';
  const working=!!queued||!!workIds.length,model=classified.engine==='rules'?null:VOICE_MODELS[chosen.provider];
  const cliWork=(terminalMode||slash)&&workIds.length>0&&!SKILLS[skill]?.direct;
  const currentReset=!!newTask&&!cliWork;

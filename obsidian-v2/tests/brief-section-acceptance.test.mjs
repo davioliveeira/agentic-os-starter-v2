@@ -277,7 +277,7 @@ for(const provider of ['codex','claude']){
    const ordinal=await f.classify(provider,'What was the second repo on that list?',undefined,{workTarget});
    assert.equal(ordinal.lookupRoute,'clarification',label);absent(ordinal.reply,['RepoPebble'],label);
    const affirmation=await f.classify(provider,'Yes',undefined,{workTarget});
-   assert.match(affirmation.reply,/What would you like me to go ahead with\?/,label);assert.equal(affirmation.tier,2,label);
+   assert.match(affirmation.reply,/O que você quer que eu faça\?/,label);assert.equal(affirmation.tier,2,label);
    // A strictly newer timestamp restores provenance even when its file has an
    // older mtime, and the older ambiguous pair remains in conversation memory.
    const relative='system/v2/voice-results/newest.json';

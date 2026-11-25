@@ -7,17 +7,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {vaultPath} from './core.mjs';
-import {parseSpokenDate,localParts,describeDate} from './spoken-dates.mjs';
+import {parseSpokenDate,localParts,describeDate,shiftIso} from './spoken-dates.mjs';
 import {linkedArtifacts} from './artifacts.mjs';
 import {SKILLS} from '../shared/contract.mjs';
 
 export const REPORT_KINDS=[
- {name:'yt-week-review',re:/\b(?:you\s?tube|yt)\s+(?:week(?:ly)?\s+)?(?:review|report)\b/,dirs:['inbox/reports/yt-reviews'],label:'YouTube weekly review'},
- {name:'inbox-brief',re:/\b(?:inbox|email|e-mail|gmail)\s+(?:brief(?:ing)?|report|audit|triage|summary)\b/,dirs:['inbox/reports/inbox-briefs'],label:'inbox brief'},
- {name:'weekly-review',re:/\bweekly\s+(?:review|report|retro(?:spective)?)\b|\bweek(?:ly)?\s+in\s+review\b/,dirs:['inbox/reports/weekly'],label:'weekly review'},
- {name:'github-trending',re:/\b(?:git\s?hub\s+|get\s?hub\s+)?trending(?:\s+(?:report|repos|repositories|list))?\b/,dirs:['inbox/research/github-trending'],label:'GitHub trending'},
- {name:'outlier-radar',re:/\b(?:outlier\s+)?radar(?:\s+(?:report|sweep|scan))?\b|\boutliers?(?:\s+(?:report|list|scan))\b/,dirs:['inbox/research/outlier-radar'],label:'outlier radar'},
- {name:'morning-intel',re:/\bmorning\s+(?:intel|report|brief(?:ing)?|sweep|news)\b|\bintel(?:\s+(?:brief(?:ing)?|report|sweep))?\b|\b(?:ai\s+)?(?:news\s+)?brief(?:ing)?\b/,dirs:['inbox/research/morning-intel','inbox/reports/morning'],filter:/-intel/,label:'morning intel'},
+ {name:'yt-week-review',re:/\b(?:you\s?tube|yt)\s+(?:week(?:ly)?\s+)?(?:review|report)\b/,dirs:['inbox/reports/yt-reviews'],label:'análise semanal do YouTube'},
+ {name:'inbox-brief',re:/\b(?:inbox|email|e-mail|gmail)\s+(?:brief(?:ing)?|report|audit|triage|summary)\b/,dirs:['inbox/reports/inbox-briefs'],label:'resumo da caixa de entrada'},
+ {name:'weekly-review',re:/\bweekly\s+(?:review|report|retro(?:spective)?)\b|\bweek(?:ly)?\s+in\s+review\b/,dirs:['inbox/reports/weekly'],label:'revisão semanal'},
+ {name:'github-trending',re:/\b(?:git\s?hub\s+|get\s?hub\s+)?trending(?:\s+(?:report|repos|repositories|list))?\b/,dirs:['inbox/research/github-trending'],label:'relatório do que está em alta no GitHub'},
+ {name:'outlier-radar',re:/\b(?:outlier\s+)?radar(?:\s+(?:report|sweep|scan))?\b|\boutliers?(?:\s+(?:report|list|scan))\b/,dirs:['inbox/research/outlier-radar'],label:'radar de vídeos em destaque'},
+ {name:'morning-intel',re:/\bmorning\s+(?:intel|report|brief(?:ing)?|sweep|news)\b|\bintel(?:\s+(?:brief(?:ing)?|report|sweep))?\b|\b(?:ai\s+)?(?:news\s+)?brief(?:ing)?\b/,dirs:['inbox/research/morning-intel','inbox/reports/morning'],filter:/-intel/,label:'boletim de IA'},
 ];
 const DAILY_RE=/\b(?:daily(?:\s+note)?|day\s+note|journal|my\s+day(?:\s+note)?|today's\s+note|the\s+note\s+for\s+today)\b/;
 const TYPES={md:'note',canvas:'canvas',png:'image',jpg:'image',jpeg:'image',webp:'image',gif:'image',svg:'image',pdf:'pdf'};
@@ -88,8 +88,9 @@ const PDF_HINT=/\bpdf|deck|slides?\b/;
 const DOC_HINT=/\b(?:note|notes|doc|docs|document|documents|markdown|summary|brief|report|write-?up|explainer|page)\b/;
 const ORDINAL=/^(?:(?:the|number)\s+)?(first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th|1|2|3|4|5|one|two|three|four|five|top|last)(?:\s+one)?\b[.!?\s]*$/;
 export const PORTUGUESE_OPEN_ORDINAL=/^(?:(?:o|a|número|opção)\s+)?(primeir[oa]|segund[oa]|terceir[oa]|quart[oa]|quint[oa]|[uú]ltim[oa]|[1-5][oa]?)(?:\s+(?:opção|nota|arquivo))?[.!?\s]*$/i;
+export const PORTUGUESE_OPEN_CHOICE=/^(?:o|a)\s+(?:de|em|como)\s+\S/i;
 const ORDINAL_PT_ORDER=['primeir','segund','terceir','quart','quint'];
-const AFFIRM=/^(?:yes(?: please)?|yeah|yep|sure|absolutely|go ahead|do (?:it|that)|please do|go for it|sounds good|that one|that works|ok(?:ay)?)(?: please)?(?: jarvis)?[.!?\s]*$/i;
+const AFFIRM=/^(?:yes(?: please)?|yeah|yep|sure|absolutely|go ahead|do (?:it|that)|please do|go for it|sounds good|that one|that works|ok(?:ay)?|sim(?:,? por favor)?)(?: please)?(?: jarvis)?[.!?\s]*$/i;
 
 export function openIntent(transcript){
  if(typeof transcript!=='string')return null;
@@ -200,22 +201,31 @@ export function searchTargets(root,text,{when=null,now=Date.now(),types=null,lim
  return {query,matches:scored.slice(0,limit)};
 }
 const labelFor=entry=>humanize(entry.name);
+function spokenDate(iso,today){
+ if(iso===today)return 'hoje';
+ if(iso===shiftIso(today,-1))return 'ontem';
+ const [y,m,d]=iso.split('-').map(Number);
+ const year=iso.slice(0,4)!==today.slice(0,4)?{year:'numeric'}:{};
+ return new Intl.DateTimeFormat('pt-BR',{timeZone:'UTC',weekday:'long',day:'numeric',month:'long',...year}).format(new Date(Date.UTC(y,m-1,d)));
+}
+const spokenDateLabel=(when,today)=>when.kind==='day'?spokenDate(when.date,today):when.label==='this week'?'esta semana':'a semana passada';
 // Two notes with the same title are told apart by date, then by folder, so a
 // spoken "which one?" can be answered by name as well as by position.
-export function uniqueLabels(entries,today){
- const typeName={image:'an image',pdf:'a PDF',canvas:'a canvas'};
+export function uniqueLabels(entries,today,portuguese=false){
+ const typeName=portuguese?{image:'imagem',pdf:'PDF',canvas:'canvas'}:{image:'an image',pdf:'a PDF',canvas:'a canvas'};
+ const inFolder=portuguese?'em':'in';
  const labels=entries.map(labelFor);
  const folders=entry=>entry.path.split('/').slice(0,-1);
  // The shortest folder suffix that no other tied entry shares: "in drafts"
  // when that is enough, "in acme/drafts" when it is not.
  const folderLabel=(entry,label,group)=>{
   const own=folders(entry);
-  for(let depth=1;depth<=own.length;depth++){const suffix=own.slice(-depth).join('/');if(!group.some(other=>other!==entry&&folders(other).slice(-depth).join('/')===suffix))return `${label} in ${suffix}`}
-  return `${label} in ${own.join('/')||'vault'}`;
+  for(let depth=1;depth<=own.length;depth++){const suffix=own.slice(-depth).join('/');if(!group.some(other=>other!==entry&&folders(other).slice(-depth).join('/')===suffix))return `${label} ${inFolder} ${suffix}`}
+  return `${label} ${inFolder} ${own.join('/')||(portuguese?'cofre':'vault')}`;
  };
  const stages=[
-  (entry,label)=>typeName[entry.type]?`${label} as ${typeName[entry.type]}`:label,
-  (entry,label)=>entry.date?`${label} from ${describeDate(entry.date,today)}`:label,
+  (entry,label)=>typeName[entry.type]?`${label} ${portuguese?'como':'as'} ${typeName[entry.type]}`:label,
+  (entry,label)=>entry.date?`${label} ${portuguese?`de ${spokenDate(entry.date,today)}`:`from ${describeDate(entry.date,today)}`}`:label,
   folderLabel,
   (entry,label)=>`${label} (${entry.path.split('/').pop()})`,
  ];
@@ -225,6 +235,10 @@ export function uniqueLabels(entries,today){
   for(const [i,entry] of entries.entries())if(shared[i])labels[i]=stage(entry,before[i],entries.filter((_,j)=>shared[j]&&before[j]===before[i]));
  }
  return labels;
+}
+export function openCandidates(entries,today){
+ const labels=uniqueLabels(entries,today,false),spokenLabels=uniqueLabels(entries,today,true);
+ return entries.map(({path,type},i)=>({path,type,label:labels[i],...(spokenLabels[i]!==labels[i]?{spokenLabel:spokenLabels[i]}:{})}));
 }
 
 // --- worker artifacts ------------------------------------------------------------
@@ -366,7 +380,13 @@ export function resolveOpenTarget(root,transcript,{now=new Date(),exchanges=[],s
    if(/^[uú]ltim$/.test(stem))index=candidates.length-1;
    pick=candidates[index]??null;
   }
-  else{const words=tokenize(plain).filter(t=>!STOP.has(t));if(words.length){const hits=candidates.filter(c=>{const label=tokenize(c.label);return words.every(w=>label.some(t=>tokenMatch(w,t)>=2))});if(hits.length===1)pick=hits[0]}}
+  else{
+   const words=tokenize(plain).filter(t=>!STOP.has(t));
+   const spokenWords=tokenize(choice.replace(/^(?:o|a)\s+(?:de|em|como)\s+/,''));
+   const matches=(words,label)=>{const tokens=tokenize(label);return words.length&&words.every(w=>tokens.some(t=>tokenMatch(w,t)>=2))};
+   const hits=candidates.filter(c=>matches(words,c.label)||(c.spokenLabel&&matches(spokenWords,c.spokenLabel)));
+   if(hits.length===1)pick=hits[0];
+  }
   if(pick)return pick.artifact?{kind:'artifact',taskId:pick.taskId,artifact:pick.artifact,label:pick.label}:{kind:'note',path:pick.path,label:pick.label,type:pick.type||'note'};
  }
  if(fresh?.lookup?.source==='open-offer'&&fresh.lookup.path&&AFFIRM.test(plain))return {kind:'note',path:fresh.lookup.path,label:fresh.lookup.label,type:'note',referent:true};
@@ -383,8 +403,8 @@ export function resolveOpenTarget(root,transcript,{now=new Date(),exchanges=[],s
  if(kind&&!leftover.length){
   const {file,nearest}=pickReport(reportFiles(root,kind),when);
   if(file)return {...base,kind:'report',report:kind.name,path:file.path,label:kind.label,date:file.date,type:'note'};
-  const noun=`${kind.label} report`;
-  if(when)return {...base,kind:'missing',label:noun,dateLabel:when.label,nearest:nearest?{path:nearest.path,label:`${noun} from ${describeDate(nearest.date,today)}`}:null};
+  const noun=kind.label;
+  if(when)return {...base,kind:'missing',label:noun,dateLabel:spokenDateLabel(when,today),nearest:nearest?{path:nearest.path,label:`${noun} de ${spokenDate(nearest.date,today)}`}:null};
   return {...base,kind:'missing',label:noun,nearest:null};
  }
  // 1b. Named workflow outputs ("the content cascade", "the trend scan"): the
@@ -400,11 +420,11 @@ export function resolveOpenTarget(root,transcript,{now=new Date(),exchanges=[],s
    const withRuns=skills.map(s=>({...s,files:runs.filter(r=>r.skill===s.key).map(r=>({path:r.path,date:r.date,mtime:r.mtime,preferred:true})).sort((a,b)=>(b.date||'').localeCompare(a.date||'')||b.mtime-a.mtime)})).filter(s=>s.files.length);
    if(withRuns.length>1)return {...base,kind:'ambiguous',candidates:withRuns.map(s=>({path:s.files[0].path,label:s.label,type:'note'}))};
    const chosen=withRuns[0]||skills[0];
-   const noun=`${chosen.label} report`;
-   if(!withRuns.length)return {...base,kind:'missing',label:noun,...(when?{dateLabel:when.label}:{}),nearest:null};
+   const noun=`relatório do fluxo ${chosen.label}`;
+   if(!withRuns.length)return {...base,kind:'missing',label:noun,...(when?{dateLabel:spokenDateLabel(when,today)}:{}),nearest:null};
    const {file,nearest}=pickReport(chosen.files,when);
    if(file)return {...base,kind:'report',report:chosen.key,path:file.path,label:chosen.label,date:file.date,type:'note'};
-   return {...base,kind:'missing',label:noun,dateLabel:when.label,nearest:nearest?{path:nearest.path,label:`${noun} from ${describeDate(nearest.date,today)}`}:null};
+   return {...base,kind:'missing',label:noun,dateLabel:spokenDateLabel(when,today),nearest:nearest?{path:nearest.path,label:`${noun} de ${spokenDate(nearest.date,today)}`}:null};
   }
  }
  // 2. Daily notes. Today's note (and placements) stay with the existing
@@ -414,9 +434,9 @@ export function resolveOpenTarget(root,transcript,{now=new Date(),exchanges=[],s
   const date=when.kind==='day'?when.date:today;
   const relative=`daily-notes/${date}.md`;
   let exists=false;try{exists=fs.statSync(vaultPath(root,relative)).isFile()}catch{}
-  if(exists)return {...base,kind:'daily',path:relative,label:`daily note for ${describeDate(date,today)}`,date,type:'note'};
+  if(exists)return {...base,kind:'daily',path:relative,label:`nota diária de ${spokenDate(date,today)}`,date,type:'note'};
   const older=targetIndex(root,{now:nowMs}).filter(e=>e.path.startsWith('daily-notes/')&&e.date&&e.date<date).sort((a,b)=>b.date.localeCompare(a.date))[0];
-  return {...base,kind:'missing',label:'daily note',dateLabel:describeDate(date,today),nearest:older?{path:older.path,label:`daily note from ${describeDate(older.date,today)}`}:null};
+  return {...base,kind:'missing',label:'nota diária',dateLabel:spokenDate(date,today),nearest:older?{path:older.path,label:`nota diária de ${spokenDate(older.date,today)}`}:null};
  }
  // 3. Referential asks resolve against the selected conversation, then what was just shown.
  const words=tokenize(target);
@@ -445,17 +465,17 @@ export function resolveOpenTarget(root,transcript,{now=new Date(),exchanges=[],s
  // 4. Named notes and files.
  const types=hint==='image'?['image']:hint==='pdf'?['pdf']:null;
  const {matches,query}=searchTargets(root,target,{when,now:nowMs,types});
- if(!matches.length)return {...base,kind:'unresolved',target:intent.target,dateLabel:when?.label||null};
+ if(!matches.length)return {...base,kind:'unresolved',target:intent.target,dateLabel:when?spokenDateLabel(when,today):null};
  const [top,second]=matches,tied=matches.filter(m=>m.score>=top.score-0.01);
- if(second&&second.score>=top.score-0.01&&(query.length||!when)){const labels=uniqueLabels(tied.map(m=>m.entry),today);return {...base,kind:'ambiguous',candidates:tied.map((m,i)=>({path:m.entry.path,label:labels[i],type:m.entry.type}))}}
- if(!query.length&&when&&matches.length>1){const labels=uniqueLabels(matches.map(m=>m.entry),today);return {...base,kind:'ambiguous',candidates:matches.map((m,i)=>({path:m.entry.path,label:labels[i],type:m.entry.type}))}}
+ if(second&&second.score>=top.score-0.01&&(query.length||!when))return {...base,kind:'ambiguous',candidates:openCandidates(tied.map(m=>m.entry),today)};
+ if(!query.length&&when&&matches.length>1)return {...base,kind:'ambiguous',candidates:openCandidates(matches.map(m=>m.entry),today)};
  return {...base,kind:'note',path:top.entry.path,label:labelFor(top.entry),type:top.entry.type,date:top.entry.date};
 }
 
 export function describeCandidates(candidates){
- const labels=candidates.map(c=>c.label);
+ const labels=candidates.map(c=>c.spokenLabel||c.label);
  if(labels.length<=1)return labels[0]||'';
- return `${labels.slice(0,-1).join(', ')} or ${labels.at(-1)}`;
+ return `${labels.slice(0,-1).join(', ')} ou ${labels.at(-1)}`;
 }
 
 // --- Jev-gated strict opens --------------------------------------------------------

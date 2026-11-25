@@ -62,7 +62,7 @@ test('about write inserts after a title or at the top and keeps existing prose p
 test('about write keeps an existing CLAUDE.md without the import and points to the next step',t=>{
   const {put,write,get}=fixture(t),before='# Existing Claude rules\n<!-- @AGENTS.md -->\n';
   put('CLAUDE.md',before);
-  assert.match(write('New bio')[0],/Add `@AGENTS\.md` on its own line.*about migrate/);
+  assert.match(write('New bio')[0],/Adicione `@AGENTS\.md` em uma linha separada.*about migrate/);
   assert.equal(get('CLAUDE.md'),before);
 });
 
@@ -70,19 +70,19 @@ for(const existing of [false,true])test(`about migrate previews and copies exact
   const {put,get,run,files,saved,target}=fixture(t);
   const before=Buffer.from('\uFEFF# Vault\r\n## About me\r\nA note about café.\r\n\r\n## Keep\r\nConventions');
   put('CLAUDE.md',before);if(existing)put('AGENTS.md',before);
-  const initial=files();assert.match(run('migrate')[0],/Would back up CLAUDE.md.*--yes/);
+  const initial=files();assert.match(run('migrate')[0],/A migração fará uma cópia de segurança de CLAUDE\.md.*--yes/);
   assert.deepEqual(files(),initial);assert.deepEqual(fs.readFileSync(target('CLAUDE.md')),before);
   if(existing)assert.deepEqual(fs.readFileSync(target('AGENTS.md')),before);
-  run('migrate',{yes:true});
+  assert.match(run('migrate',{yes:true})[0],/Migração concluída/);
   assert.deepEqual(fs.readFileSync(target('AGENTS.md')),before);assert.deepEqual(saved('CLAUDE.md'),before);
   assert.equal(get('CLAUDE.md'),[IMPORT,IMPORT_LINE,''].join('\r\n'));
   assert.equal(run('show')[0],'A note about café.');
 });
 
 for(const [label,agents,claude,reason] of [
-  ['missing CLAUDE.md',null,null,/CLAUDE\.md is missing/],
-  ['only the import','Contents',['<!-- import -->',IMPORT_LINE,''].join('\n'),/already imports/],
-  ['conflicting AGENTS.md','Agent rules','Claude rules',/differs from CLAUDE\.md/]
+  ['missing CLAUDE.md',null,null,/CLAUDE\.md não foi encontrado/],
+  ['only the import','Contents',['<!-- import -->',IMPORT_LINE,''].join('\n'),/já importa/],
+  ['conflicting AGENTS.md','Agent rules','Claude rules',/é diferente de CLAUDE\.md/]
 ])test(`about migrate refuses ${label} without changes`,t=>{
   const {put,get,run,files}=fixture(t);
   if(agents!==null)put('AGENTS.md',agents);if(claude!==null)put('CLAUDE.md',claude);
@@ -94,20 +94,20 @@ for(const [label,agents,claude,reason] of [
 test('about write rejects an oversized body or another section before any write',t=>{
   const {write,files}=fixture(t);
   assert.throws(()=>write('## About me\n'+'é'.repeat(4097)),/8 KB/);
-  assert.throws(()=>write('## About me\nKeep this.\n## More\nDo not split it.'),/level-two heading/);
-  assert.throws(()=>write('First line\n## About me\nA second section'),/level-two heading/);
+  assert.throws(()=>write('## About me\nKeep this.\n## More\nDo not split it.'),/título de nível dois/);
+  assert.throws(()=>write('First line\n## About me\nA second section'),/título de nível dois/);
   assert.deepEqual(files(),[]);
 });
 
 test('about show prints a one-line how-to or the cleaned text with the byte counts',t=>{
   const {put,run}=fixture(t);
-  const missing=run('show');assert.equal(missing.length,1);assert.match(missing[0],/## About me.*about write/);
+  const missing=run('show');assert.equal(missing.length,1);assert.match(missing[0],/Adicione a seção ## About me.*about write/);
   const text='é'.repeat(1000);put('CLAUDE.md',`## About me\n${text}\n1234`);
-  assert.deepEqual(run('show'),[text,'CLAUDE.md · 2000 / 2000 bytes · 5 bytes dropped']);
+  assert.deepEqual(run('show'),[text,'CLAUDE.md · 2000 / 2000 bytes · 5 bytes omitidos']);
 });
 
 test('aos dispatches about and lists it in help',async()=>{
   const output=[];
   assert.equal(await main(['help'],text=>output.push(text)),0);assert.match(output.pop(),/about help/);
-  assert.equal(await main(['about','help'],text=>output.push(text)),0);assert.match(output.pop(),/about write --from <file>/);
+  assert.equal(await main(['about','help'],text=>output.push(text)),0);assert.match(output.pop(),/^Sobre mim\n[\s\S]*about write --from <arquivo>/);
 });

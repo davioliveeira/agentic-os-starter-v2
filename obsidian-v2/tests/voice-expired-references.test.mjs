@@ -40,7 +40,7 @@ for(const provider of ['codex','claude'])for(const scope of ['native','web']){
   ]){
    const result=await f.classify(transcript);
    assert.equal(result.tier,2,transcript);assert.equal(result.engine,'rules');assert.equal(result.lookupRoute,'clarification');
-   assert.match(result.reply,/What would you like/);assert.equal(result.context,'');assert.equal(result.skill,undefined);assert.equal(result.tasks,undefined);
+   assert.match(result.reply,/O que você quer que eu use para fazer isso/);assert.equal(result.context,'');assert.equal(result.skill,undefined);assert.equal(result.tasks,undefined);
    // A clarification receipt cannot become evidence for another pronoun.
    f.receipt({transcript,reply:result.reply,lookupRoute:result.lookupRoute});
   }

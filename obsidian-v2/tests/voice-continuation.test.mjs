@@ -94,7 +94,7 @@ for(const provider of ['codex','claude']){
   const f=fixture(t,provider),missing=crypto.randomUUID(),id=crypto.randomUUID();
   writeJson(f.root,'system/v2/voice-results/offer.json',{ts:Date.now()-1000,provider,transcript:'Tell me more about RubyGems',reply:'Want me to research RubyGems?',workTarget:missing});
   const result=await f.speak('Start a new task',missing,undefined,{id});
-  assert.equal(result.currentReset,true);assert.match(result.reply,/What would you like me to work on/);assert.deepEqual(result.workIds,[]);assert.equal(f.calls.length,0);assert.deepEqual(f.updates,[{scope:'web',provider,id:null}]);
+  assert.equal(result.currentReset,true);assert.match(result.reply,/O que você quer fazer/);assert.deepEqual(result.workIds,[]);assert.equal(f.calls.length,0);assert.deepEqual(f.updates,[{scope:'web',provider,id:null}]);
   await f.speak('Start a new task',missing,undefined,{id});assert.equal(f.updates.length,1,'Receipt replay cannot overwrite a later current selection');
  });
  test(`${provider}: quick answers work with stale targets and explicit new quick requests reset without dispatch`,async t=>{
@@ -154,7 +154,7 @@ for(const provider of ['codex','claude']){
    assert.equal(f.calls.length,before+1,state);
    assert.equal(f.calls.at(-1).kind,'workflow',state);assert.equal(f.calls.at(-1).skill,'weekly-review');
    assert.equal(result.action,'task');assert.notDeepEqual(result.workIds,[task.id],'the busy conversation is not the one doing it');
-   assert.equal(result.reply,'Running Revisão semanal on its own while that task finishes.');
+   assert.equal(result.reply,'Vou executar Revisão semanal em uma tarefa separada enquanto essa tarefa termina.');
    assert.equal(task.state,state,'the busy conversation is left exactly as it was');
    assert.equal(f.updates.some(update=>update.id===result.workIds[0]),false,'the selection stays on the task the caller was on');
   }
@@ -171,7 +171,7 @@ for(const provider of ['codex','claude']){
   // On a call the free-form request is not refused either: it waits for that conversation. Still no replacement.
   const held=await f.speak('Research RubyGems',busy.id,f.output(),live);
   assert.deepEqual(f.calls.map(call=>call.kind),['queue']);assert.equal(f.calls[0].id,busy.id);assert.match(f.calls[0].text,/^Research RubyGems/);
-  assert.deepEqual(held.workIds,[busy.id]);assert.equal(held.reply,"Got it. I'll add that as soon as that task is free.");
+  assert.deepEqual(held.workIds,[busy.id]);assert.equal(held.reply,"Vou colocar seu pedido na fila até essa tarefa terminar.");
   assert.equal(f.tasks.length,1,'no new conversation was made');
   // One that is waiting for an approval takes nothing, on a call or off it.
   const approval=f.add({state:'needs input'});
@@ -212,13 +212,13 @@ for(const provider of ['codex','claude']){
   // No model is asked (the default executor fails the test), nothing is sent, queued or started.
   const result=await f.speak("What's going on? Why is this taking so long",page.id,undefined,mine);
   assert.equal(f.calls.length,0);assert.equal(result.action,'reply');assert.deepEqual(result.workIds,[]);
-  assert.equal(result.reply,'Your request “Build me a one-pager on the Riemann hypothesis” is still running, 3 min in. Resumo da caixa de entrada is done.');
+  assert.equal(result.reply,'Sua solicitação “Build me a one-pager on the Riemann hypothesis” está em execução há 3 minutos. Resumo da caixa de entrada terminou.');
   assert.equal(result.decision.rule,'router.taskStatus');assert.doesNotMatch(result.reply,/yesterday/,'only what is running or what this call started');
   // Waiting for an approval comes first; a conversation on a follow-up gives no misleading age, and says what is waiting.
   page.state='needs input';
   const follow=f.add({state:'working',title:'Draft the launch post',created:now-3600000,turns:[{id:'t2',ts:now-120000,text:'Draft ready.'}],queuedFollowups:1});
   const second=await f.speak('Hey, where are we at with all that',follow.id,undefined,{...mine,liveTaskIds:[page.id,brief.id,follow.id]});
-  assert.equal(second.reply,'Your request “Build me a one-pager on the Riemann hypothesis” needs your OK. It’s in the terminal tray. Your request “Draft the launch post” is still working on your follow-up. One more request is waiting behind it. Resumo da caixa de entrada is done.');
+  assert.equal(second.reply,'Sua solicitação “Build me a one-pager on the Riemann hypothesis” precisa da sua aprovação. Veja a tarefa em Terminais. Sua solicitação “Draft the launch post” ainda está processando sua mensagem de continuação. Há mais uma solicitação na fila. Resumo da caixa de entrada terminou.');
   assert.equal(f.calls.length,0);
  });
  test(`${provider}: a status question with nothing to report, one that also asks for something, and one off a call all go on as before`,async t=>{
@@ -228,7 +228,7 @@ for(const provider of ['codex','claude']){
   const asked=await f.speak('How are things going',null,f.output(2),live);
   assert.equal(asked.reply,'Here is a quick answer.');assert.notEqual(asked.decision.rule,'router.taskStatus');
   // The short forms keep their own answer.
-  assert.equal((await f.speak('Is it done yet',null,undefined,live)).reply,'Nothing is running right now.');
+  assert.equal((await f.speak('Is it done yet',null,undefined,live)).reply,'Nenhuma tarefa em execução no momento.');
   // "Is it done? Open it" asks for something, so it is a request.
   const busy=f.add({state:'working'});
   const both=await f.speak('Is it done? Then add a summary at the top',busy.id,f.output(),live);

@@ -1,16 +1,16 @@
 import {randomInt} from 'node:crypto';
 import {SKILLS} from '../shared/contract.mjs';
 
-const starts=["Sure, I'll get started.","Okay, I'll work on that.","Let me get that underway.","All right, I'm on it.","I'll take care of that.","Sure, let me work through that.","Okay, I'll get to work.","Let me take a look."];
+const starts=['Vou começar agora.','Certo, vou trabalhar nisso.','Vou dar início ao pedido.','Pode deixar, vou começar.','Vou cuidar disso.','Certo, vou ver o que precisa ser feito.','Vou começar a trabalhar nisso.','Vou dar uma olhada.'];
 // A reused CLI is not proof of a revision: it can receive an unrelated subject.
-const followups=["Sure, let me work through that.","Okay, I'll take a look.","All right, I'm on it.","Let me see what I can do.","Sure, I'll work on that.","Okay, let me handle that.","I'll take it from here.","Let me get into that."];
+const followups=['Certo, vou ver o que precisa ser feito.','Vou dar uma olhada nisso.','Pode deixar, vou cuidar disso.','Vou ver o que consigo fazer.','Certo, vou trabalhar nisso.','Deixa comigo.','Vou cuidar disso daqui em diante.','Vou analisar o pedido.'];
 const workflowObjects={
- 'vault-summary':'the vault summary','plan-today':"today's plan",'plan-tomorrow':"tomorrow's plan",'refresh-schedule':'the schedule update',
- 'morning-intel':'the intel brief','inbox-brief':'the inbox brief','deep-research-chase':'the research','content-cascade':'the content drafts',
- 'yt-pipeline':'the YouTube research','weekly-review':'the weekly review','vault-cleanup':'the vault review','metrics-pull':'the metrics refresh',
- 'github-trending':'the GitHub update','yt-week-review':'the YouTube review','outlier-radar':'the outlier scan','lead-research':'the lead research',
- 'morning':'the morning brief','morning-report':'the morning report','ai-trend-scan':'the AI trend scan','angle-brainstorm':'the brainstorm',
- 'outline-build':'the outline'
+ 'vault-summary':'o resumo do cofre','plan-today':'o plano de hoje','plan-tomorrow':'o plano de amanhã','refresh-schedule':'a atualização da agenda',
+ 'morning-intel':'o boletim de IA','inbox-brief':'o resumo da caixa de entrada','deep-research-chase':'a pesquisa','content-cascade':'os rascunhos de conteúdo',
+ 'yt-pipeline':'a pesquisa no YouTube','weekly-review':'a revisão semanal','vault-cleanup':'a revisão dos arquivos do cofre','metrics-pull':'a atualização das métricas',
+ 'github-trending':'a atualização do que está em alta no GitHub','yt-week-review':'a análise do YouTube','outlier-radar':'a busca por vídeos em destaque','lead-research':'a pesquisa de leads',
+ 'morning':'o boletim da manhã','morning-report':'o relatório da manhã','ai-trend-scan':'a análise de tendências de IA','angle-brainstorm':'a geração de ideias',
+ 'outline-build':'o roteiro'
 };
 const words=text=>String(text||'').toLowerCase().match(/[\p{L}\p{N}]+/gu)||[];
 const functionWords=new Set(words("I I'll I'm I will am let me sure okay ok all right please a an the this that it those these your on for of to and in into through at with get getting take taking care work working start started help handle handling"));
@@ -50,8 +50,8 @@ export function createWorkAcknowledgments({choose=length=>randomInt(length)}={})
   const previous=recent.get(provider)||[];
   const object=workflowObjects[skill];
   const pool=count>1?[
-   `I'll get those ${count} tasks underway.`, `Okay, I'll start those ${count} tasks.`, `I'll work on those ${count} tasks.`
-  ]:object?[`I'll get started on ${object}.`,`Okay, I'll work on ${object}.`,`Let me take care of ${object}.`,`All right, let me handle ${object}.`,`I'll get ${object} underway.`]:continuation?followups:starts;
+   `Vou iniciar essas ${count} tarefas.`, `Certo, vou começar essas ${count} tarefas.`, `Vou trabalhar nessas ${count} tarefas.`
+  ]:object?[`Vou começar ${object}.`,`Certo, vou iniciar ${object}.`,`Vou preparar ${object}.`,`Pode deixar, vou começar ${object}.`,`Vou trabalhar com ${object}.`]:continuation?followups:starts;
   const candidate=count===1&&engine!=='rules'?groundedAcceptance(classifiedReply,request):null;
   const options=pool.filter(text=>!previous.includes(text));
   const available=options.length?options:pool.filter(text=>text!==previous.at(-1));
@@ -64,15 +64,15 @@ export function createWorkAcknowledgments({choose=length=>randomInt(length)}={})
 // result, never from the dictated task title or an invented topic summary.
 export function completionLabel(record,turn){
  const skill=record?.workflow?.job?.skill||record?.workflow?.skill;
- if(skill&&skill!=='voice-ask'&&Object.hasOwn(SKILLS,skill))return workflowObjects[skill]?.replace(/^the /,'')||SKILLS[skill].label.toLowerCase();
+ if(skill&&skill!=='voice-ask'&&Object.hasOwn(SKILLS,skill))return workflowObjects[skill]?.replace(/^(?:a|o|os) /,'')||SKILLS[skill].label.toLowerCase();
  const text=String(turn?.text||'');
  for(const match of text.matchAll(/\[([^\]\r\n]{1,60})\]\(([^)\r\n]+)\)/g)){
   if(!/\.(?:svg|png|jpe?g|webp|pdf|pptx|docx|html)(?:[?#]|$)/i.test(match[2]))continue;
   const label=match[1].replace(/[*_`]/g,'').trim();
-  if(words(label).length>7||/[\\/:]|[\p{Extended_Pictographic}]/u.test(label)||/^(?:here|view|open|download|read|click|the output file)(?:\s+(?:it|this|here|file|result))?$/i.test(label))continue;
+  if(words(label).length>7||/[\\/:]|[\p{Extended_Pictographic}]/u.test(label)||/^(?:(?:here|view|open|download|read|click|the output file)(?:\s+(?:it|this|here|file|result))?|(?:aqui|ver|abrir|baixar|ler|clique)(?:\s+aqui)?)$/i.test(label))continue;
   return label;
  }
- if(/\.(?:svg|png|jpe?g|webp)(?:[?#)\s]|$)/i.test(text))return 'graphic';
- if(/\.(?:pdf|docx|pptx|html)(?:[?#)\s]|$)/i.test(text))return 'document';
+ if(/\.(?:svg|png|jpe?g|webp)(?:[?#)\s]|$)/i.test(text))return 'imagem';
+ if(/\.(?:pdf|docx|pptx|html)(?:[?#)\s]|$)/i.test(text))return 'documento';
  return record?.provider==='claude'?'Claude Code':record?.provider==='codex'?'Codex':null;
 }

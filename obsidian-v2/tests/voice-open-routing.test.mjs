@@ -34,15 +34,17 @@ for(const appScope of ['native','web'])test(`${appScope}: the September 16 phras
  assert.equal(f.calls.length,0);
 });
 
-test('a dated report that does not exist gets an honest answer and an offer, and a bare yes accepts it',async t=>{
+test('a dated report that does not exist gets an honest answer and an offer that can be accepted in either language',async t=>{
  const f=fixture(t);
  const missingDate=shiftIso(f.today,-2);
  const missing=await f.speak(`Pull up the intel from ${missingDate}`);
- assert.equal(missing.deliverable,null);assert.equal(missing.reveal,null);assert.match(missing.reply,/^I don't have a morning intel report for /);assert.match(missing.reply,/Want me to open that one\?$/);
+ assert.equal(missing.deliverable,null);assert.equal(missing.reveal,null);assert.match(missing.reply,/^Não encontrei boletim de IA para /);assert.match(missing.reply,/Quer que eu abra essa opção\?$/);
  assert.equal(missing.lookup.source,'open-offer');assert.equal(missing.lookup.path,f.intel.older);
  opened(await f.speak('yes'),f.intel.older);
+ assert.equal((await f.speak(`Pull up the intel from ${missingDate}`)).lookup.source,'open-offer');
+ opened(await f.speak('Sim, por favor.'),f.intel.older);
  const none=await f.speak('open the inbox brief from last week');
- assert.match(none.reply,/^I don't have an? inbox brief report for last week on file\.$/);assert.equal(none.lookup,undefined);
+ assert.match(none.reply,/^Não encontrei resumo da caixa de entrada para a semana passada nos arquivos salvos\.$/);assert.equal(none.lookup,undefined);
  assert.equal(f.calls.length,0);
 });
 
@@ -54,13 +56,13 @@ test('named notes open by title, speech errors tolerated, and a tie becomes one 
  const placed=await f.speak('open the skoot playbook on the right');
  assert.deepEqual(placed.obsidian,{op:'open-note',query:'projects/2026-05-10-skoot-crm-playbook.md',where:'right-sidebar'});assert.equal(placed.deliverable,null);
  const ambiguous=await f.speak('open the content plan');
- assert.match(ambiguous.reply,/^I found 2 that could match: content calendar plan or content backfill plan\. Which one\?$/);
+ assert.match(ambiguous.reply,/^Encontrei 2 opções: content calendar plan ou content backfill plan\. Qual delas\?$/);
  assert.equal(ambiguous.lookup.source,'open-candidates');assert.equal(ambiguous.deliverable,null);
  note(await f.speak('the second one'),'projects/2026-04-30-content-backfill-plan.md');
  assert.equal((await f.speak('open the content plan')).lookup?.source,'open-candidates');
  note(await f.speak('a segunda'),'projects/2026-04-30-content-backfill-plan.md');
  const unknown=await f.speak('open the quarterly tax memo');
- assert.match(unknown.reply,/couldn't find anything named "the quarterly tax memo"/);assert.deepEqual(unknown.workIds,[]);
+ assert.match(unknown.reply,/Não encontrei nada com o nome "the quarterly tax memo"/);assert.deepEqual(unknown.workIds,[]);
  assert.equal(f.calls.length,0);
 });
 
@@ -91,7 +93,7 @@ test('a selected conversation reopens its registered file without a worker turn;
  const html={id:'22222222-2222-4222-8222-222222222222',provider:'codex',model:'astra',title:'HTML explainer',state:'ready',execution:'native',created:Date.now(),turns:[{id:'t1',ts:Date.now(),text:'Done.\n\n[View the explainer](<'+f.root.replace(/\\/g,'/')+'/outputs/jev-explainer/jev-explainer.html>)',artifactErrors:['This artifact type is not supported for preview.']}]};
  f.sessions.push(html);
  const explained=await f.speak('pull it up',{workTarget:html.id});
- assert.match(explained.reply,/^The file from that conversation is a \.html file, which I can't display in Obsidian or the dashboard\. It's saved at outputs\/jev-explainer\/jev-explainer\.html\.$/);
+ assert.match(explained.reply,/^O arquivo dessa conversa está no formato html e não pode ser exibido no Obsidian nem no painel\. Ele está salvo em outputs\/jev-explainer\/jev-explainer\.html\.$/);
  assert.equal(f.reopened.length,2);assert.equal(f.calls.filter(c=>c.kind==='send').length,1);
 });
 
@@ -125,7 +127,7 @@ for(const {provider,appScope} of [{provider:'codex',appScope:'native'},{provider
  // The saved run is still one ask away by name, without a model.
  assert.equal(call.selection.provider,provider);assert.equal(call.execution,appScope==='native'?'native':undefined);
  opened(await f.speak('show me the content cascade',{provider,appScope}),'inbox/reports/cascades/2026-09-15-1e089d8f.md');
- assert.equal((await f.speak('show me the trend scan',{provider,appScope})).reply,"I don't have a tendências de IA report on file.");
+ assert.equal((await f.speak('show me the trend scan',{provider,appScope})).reply,'Não encontrei relatório do fluxo tendências de IA nos arquivos salvos.');
  assert.equal(f.calls.length,1);
 });
 

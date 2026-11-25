@@ -170,7 +170,7 @@ test('everyday declines are answered by the exact-phrase rule and never reach a 
  const fx=fixture(t);fx.add();
  for(const say of ["No, that's okay.",'No that’s fine','Nah, I\'m good for now.','I\'m good','no thats ok jarvis']){
   const receipt=await speak(fx,say,{workTarget:fx.tasks[0].id,execute:()=>assert.fail(`a model was called for: ${say}`),jev:jevOptions(fx,()=>assert.fail(`Jev was asked about: ${say}`))});
-  assert.equal(receipt.decision.rule,'router.decline',say);assert.equal(receipt.reply,'Standing by.');
+  assert.equal(receipt.decision.rule,'router.decline',say);assert.equal(receipt.reply,'Fico à disposição.');
  }
  assert.deepEqual(fx.calls,[]);
  // Not declines: an acceptance-shaped phrase and a real request that merely starts with "no".
