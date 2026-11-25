@@ -14,7 +14,7 @@ export interface VoiceReply {id:string;provider:string;model:string|null;reply:s
 export type VoiceTransport = (path:string,options?:{method?:string;headers?:Record<string,string>;body?:string|ArrayBuffer;signal?:AbortSignal})=>Promise<{status:number;json?:any;audio?:ArrayBuffer}>;
 function audioWait<T>(promise:Promise<T>,milliseconds:number,signal?:AbortSignal):Promise<T>{return new Promise((resolve,reject)=>{
  let settled=false;const finish=(error:unknown,value?:T)=>{if(settled)return;settled=true;clearTimeout(timer);signal?.removeEventListener('abort',abort);if(error)reject(error);else resolve(value as T)};
- const abort=()=>finish(new Error('Audio was interrupted.')),timer=setTimeout(()=>finish(new Error('Audio did not become ready in time.')),milliseconds);
+ const abort=()=>finish(new Error('O áudio foi interrompido.')),timer=setTimeout(()=>finish(new Error('O áudio demorou demais para iniciar.')),milliseconds);
  signal?.addEventListener('abort',abort,{once:true});if(signal?.aborted)abort();promise.then(value=>finish(null,value),error=>finish(error));
 })}
 // Shared by the native plugin and web HUD. A generation token prevents late microphone,
@@ -42,15 +42,15 @@ export class VoiceSession {
   this.primeAudio();
   if(this.kind==='web'&&!this.unlockInstalled&&typeof window!=='undefined'){this.unlockInstalled=true;window.addEventListener('pointerdown',this.unlockAudio);window.addEventListener('keydown',this.unlockAudio)}
   if(this.kind&&!this.surface)this.surface=new VoiceSurface(this.transport,this.kind,()=>this.mode,async text=>{const attempt={started:false};const ok=await this.speak(text,this.generation,[],attempt);return {ok,started:attempt.started}},e=>{
-   if(e.type==='disconnected'){const active=this.mode!=='idle';this.cancel('connection-lost');if(active)this.onMessage('Voice connection interrupted. Try again.',true);return}
+   if(e.type==='disconnected'){const active=this.mode!=='idle';this.cancel('connection-lost');if(active)this.onMessage('A conexão de voz foi interrompida. Tente novamente.',true);return}
    if(e.type==='owner'&&e.id!==this.surface?.id&&this.mode!=='idle')this.cancel('owner-change');
    if(e.type==='stop-audio'&&this.playback){this.cancel();return}
    if(e.client!==this.surface?.id)return;
-   if(e.type==='artifact-error'){this.onMessage(e.message||'The file could not be opened.',true);return}
+   if(e.type==='artifact-error'){this.onMessage(e.message||'Não foi possível abrir o arquivo.',true);return}
    if(e.type==='capture-request'){if(!this.destroyed&&this.preparingCapture===null&&this.mode!=='listening')void this.start();return}
    if(e.type==='wake'){this.primeAudio();this.cancel();this.remoteCapture=true;this.beginTrace(crypto.randomUUID(),'remote-start');this.set('listening');this.onMessage('Listening…')}
    else if(e.type==='transcript'&&this.remoteCapture){this.remoteCapture=false;const text=String(e.text||'').trim();if(!text)this.mark('remote-empty');if(!text||/^(stop|never ?mind|cancel|no)[.!]?$/i.test(text))this.cancel();else void this.sendText(text)}
-   else if((e.type==='wake_timeout'||e.type==='wake_error')&&this.remoteCapture){this.mark(e.type==='wake_timeout'?'remote-timeout':'error');this.cancel();if(e.type==='wake_error'){this.onMessage('Voice capture failed. Try again.',true);this.set('error')}else this.onMessage('')}
+   else if((e.type==='wake_timeout'||e.type==='wake_error')&&this.remoteCapture){this.mark(e.type==='wake_timeout'?'remote-timeout':'error');this.cancel();if(e.type==='wake_error'){this.onMessage('A captura de voz falhou. Tente novamente.',true);this.set('error')}else this.onMessage('')}
   },this.surfaceInfo,()=>this.kind!=='web'||this.context?.state==='running',()=>this.getTimingTrace(),async(artifact,signal)=>{if(this.destroyed||signal?.aborted)throw new Error('A abertura foi cancelada.');if(!this.onArtifact)throw new Error('O arquivo foi salvo. Esta janela não consegue exibi-lo.');await this.onArtifact(artifact,signal)});
  }
  getTimingTrace():VoiceTrace|null{return this.trace?{...this.trace,points:this.trace.points.map(point=>({...point}))}:null}
@@ -63,7 +63,7 @@ export class VoiceSession {
  private beginRequestFeedback(token:number){
   this.clearRequestFeedback();
   if(token!==this.generation||this.mode!=='working'||!this.id)return;
-  this.progressTimer=setTimeout(()=>{this.progressTimer=null;if(token===this.generation&&this.mode==='working'&&this.id)this.onMessage('Still working on your request…')},4000);
+  this.progressTimer=setTimeout(()=>{this.progressTimer=null;if(token===this.generation&&this.mode==='working'&&this.id)this.onMessage('Ainda estou processando sua solicitação…')},4000);
  }
  announce(id:string,text:string){return this.surface?.announce(id,speechText(text,700))??Promise.resolve()}
  cancelArtifact(){this.surface?.cancelArtifact()}
@@ -85,16 +85,16 @@ export class VoiceSession {
  getLevel=():number|null=>{if(this.mode!=='speaking'||!this.analyser||!this.samples)return null;this.analyser.getByteTimeDomainData(this.samples as Uint8Array<ArrayBuffer>);let sum=0;for(const v of this.samples)sum+=((v-128)/128)**2;return Math.min(1,Math.sqrt(sum/this.samples.length)*3.2)};
  private async checked(path:string,options:Parameters<VoiceTransport>[1]={}){
   if(path!=='/voice/audio'&&path!=='/voice/text'){
-   const r=await this.transport(path,options);if(r.status!==200)throw new Error(r.json?.error||'V2 voice service is unavailable');return r;
+   const r=await this.transport(path,options);if(r.status!==200)throw new Error(r.json?.error||'O serviço de voz do V2 está indisponível');return r;
   }
   const deadline=new AbortController(),signal=options.signal?AbortSignal.any([options.signal,deadline.signal]):deadline.signal;
   signal.throwIfAborted();
   let timer:ReturnType<typeof setTimeout>|undefined,abort:()=>void=()=>{};
   const interrupted=new Promise<never>((_,reject)=>{
-   abort=()=>reject(signal.reason||new Error('Voice request cancelled'));signal.addEventListener('abort',abort,{once:true});
+   abort=()=>reject(signal.reason||new Error('Solicitação por voz cancelada'));signal.addEventListener('abort',abort,{once:true});
    if(signal.aborted){abort();return}
    timer=setTimeout(()=>{
-    deadline.abort(new Error('Voice request timed out. Try again.'));
+    deadline.abort(new Error('A solicitação por voz excedeu o tempo limite. Tente novamente.'));
     // Native requestUrl cannot abort an already-sent HTTP request. Cancel by
     // its captured ID too, without cancelling a newer request or retrying it.
     const id=options.headers?.['X-V2-Request'];if(id)void this.transport('/voice/cancel',{method:'POST',body:JSON.stringify({id})}).catch(()=>{});
@@ -102,29 +102,29 @@ export class VoiceSession {
   });
   try{
    const r=await Promise.race([this.transport(path,{...options,signal}),interrupted]);
-   if(r.status!==200)throw new Error(r.json?.error||'V2 voice service is unavailable');return r;
+   if(r.status!==200)throw new Error(r.json?.error||'O serviço de voz do V2 está indisponível');return r;
   }finally{if(timer!==undefined)clearTimeout(timer);signal.removeEventListener('abort',abort)}
  }
- async toggle(){if(this.mode==='listening')return this.finish();if(this.mode==='working'){this.cancel();this.onMessage('Request cancelled. Tasks already queued keep running.');return;}return this.start()}
+ async toggle(){if(this.mode==='listening')return this.finish();if(this.mode==='working'){this.cancel();this.onMessage('Solicitação cancelada. As tarefas que já entraram na fila continuam.');return;}return this.start()}
  async start(){
   this.primeAudio();
-  this.cancel();if(this.destroyed)return;const token=this.generation;this.preparingCapture=token;this.beginTrace(crypto.randomUUID(),'capture-start');this.set('working');this.onMessage('Preparing voice…');
+  this.cancel();if(this.destroyed)return;const token=this.generation;this.preparingCapture=token;this.beginTrace(crypto.randomUUID(),'capture-start');this.set('working');this.onMessage('Preparando a voz…');
   try{
    await this.surface?.focus();if(token!==this.generation)return;this.mark('ownership-ready');const chosen=await this.getSelection();if(token!==this.generation)return;this.mark('selection-ready');const health=await this.checked('/voice/health');
    if(token!==this.generation)return;if(!health.json?.ok)throw new Error('A voz local está desconectada. Inicie o serviço de voz do V2.');
-   if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined')throw new Error('Microphone recording is unavailable in this window. Open V2 in a browser or Obsidian with microphone support.');
+   if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined')throw new Error('O microfone está indisponível nesta janela. Abra o V2 no navegador ou no Obsidian com acesso ao microfone.');
    const stream=await navigator.mediaDevices.getUserMedia(VOICE_MIC_CONSTRAINTS);
    if(token!==this.generation){stream.getTracks().forEach(t=>t.stop());return}
    this.stream=stream;this.chosen={...chosen};this.id=this.trace!.requestId;
    this.context??=new AudioContext();await audioWait(this.context.resume(),2500);if(token!==this.generation){if(this.stream===stream)this.release();return}
    const chunks:BlobPart[]=[];const rec=new MediaRecorder(stream);this.recorder=rec;
    rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
-   rec.onerror=()=>{if(token===this.generation){this.cancel();this.set('error');this.onMessage('Microphone recording failed. Try again.',true)}};
+   rec.onerror=()=>{if(token===this.generation){this.cancel();this.set('error');this.onMessage('A gravação pelo microfone falhou. Tente novamente.',true)}};
    rec.onstop=()=>{
     if(token!==this.generation)return;
     // A device ending its own stream is not a user acceptance. Only finish()
     // clears the owned recorder before stop, after qualifying real speech.
-    if(this.recorder===rec){this.recorder=null;this.id=null;this.release();this.set('error');this.onMessage('Microphone recording stopped. Try again.',true);return}
+    if(this.recorder===rec){this.recorder=null;this.id=null;this.release();this.set('error');this.onMessage('A gravação foi interrompida. Tente novamente.',true);return}
     void this.sendAudio(new Blob(chunks,{type:rec.mimeType}),chosen,token);
    };
    // A separate input analyser detects silence without playing the microphone
@@ -145,7 +145,7 @@ export class VoiceSession {
  }
  async finish(){if(this.barge?.interrupted){this.barge.finish();return}const r=this.recorder;if(!r)return;if(!this.captureGate?.heardSpeech){this.quiet();return}this.recorder=null;this.mark('accepted');this.set('working',false);r.stop();this.release();this.beginRequestFeedback(this.generation)}
  private async sendAudio(blob:Blob,chosen:VoiceSelection,token:number){
-  try{if(blob.size<1000)throw new Error('Recording was too short. Try speaking for a little longer.');await this.dispatch('/voice/audio',await blob.arrayBuffer(),chosen,token,blob.type)}
+  try{if(blob.size<1000)throw new Error('A gravação foi muito curta. Fale por mais alguns segundos.');await this.dispatch('/voice/audio',await blob.arrayBuffer(),chosen,token,blob.type)}
   catch(e){this.fail(e,token)}
  }
  async sendText(transcript:string,liveSurface?:Record<string,string>){if(!liveSurface)this.primeAudio();this.cancel();const token=this.generation;this.id=crypto.randomUUID();this.beginTrace(this.id,'accepted');this.set('working',false);this.beginRequestFeedback(token);try{if(!liveSurface)await this.surface?.focus();if(token!==this.generation)return;this.mark('ownership-ready');const chosen=await this.getSelection();if(token!==this.generation)return;this.mark('selection-ready');await this.dispatch('/voice/text',JSON.stringify({transcript}),chosen,token,'application/json',liveSurface)}catch(e){this.fail(e,token,!liveSurface)}}
@@ -175,7 +175,7 @@ export class VoiceSession {
    // no longer change the new listening turn, or replay a started announcement.
    captureToken=++this.generation;this.stopOutput();this.request?.abort();this.request=null;
    this.id=crypto.randomUUID();this.beginTrace(this.id,'capture-start');this.set('listening',false);this.onMessage('Listening…');
-   selection=(async()=>{await this.surface?.focus();if(captureToken!==this.generation)throw new Error('Voice was interrupted');this.mark('ownership-ready');const chosen=await this.getSelection();if(captureToken!==this.generation)throw new Error('Voice was interrupted');this.mark('selection-ready');return chosen})();
+   selection=(async()=>{await this.surface?.focus();if(captureToken!==this.generation)throw new Error('A voz foi interrompida');this.mark('ownership-ready');const chosen=await this.getSelection();if(captureToken!==this.generation)throw new Error('A voz foi interrompida');this.mark('selection-ready');return chosen})();
    // Capture keeps the beginning while current conversation ownership resolves.
    void selection.catch(error=>{if(this.barge===capture&&captureToken===this.generation){this.barge=null;capture.close();this.fail(error,captureToken)}});
   },blob=>{
@@ -186,7 +186,7 @@ export class VoiceSession {
    if(this.barge!==capture)return;this.barge=null;
    // Microphone permission is optional for playback. An unavailable input must
    // never silence a spoken answer or create an error loop on the other surface.
-   if(capture.interrupted&&captureToken===this.generation)this.fail(new Error('Microphone recording failed. Try again.'),captureToken);
+   if(capture.interrupted&&captureToken===this.generation)this.fail(new Error('A gravação pelo microfone falhou. Tente novamente.'),captureToken);
   });
   this.barge=capture;void capture.start();
  }
@@ -216,7 +216,7 @@ export class VoiceSession {
   if(this.kind==='web'&&this.context?.state!=='running'){this.onMessage(`${input}\n\nClick or press a key to enable audio.`,true);this.set('error');return false}
   const playback=new AbortController();this.playback=playback;this.speechReveals=[...reveals];this.set('working');
   try{
-   this.mark('audio-resume');if(this.context){await audioWait(this.context.resume(),2500,playback.signal);if(this.context.state&&this.context.state!=='running')throw new Error('Audio is suspended.')}if(token===this.generation)this.mark('audio-ready');
+   this.mark('audio-resume');if(this.context){await audioWait(this.context.resume(),2500,playback.signal);if(this.context.state&&this.context.state!=='running')throw new Error('O áudio está suspenso.')}if(token===this.generation)this.mark('audio-ready');
    if(token!==this.generation)return false;
    // Native and web use streaming first; buffering is a compatibility fallback.
    if(typeof Audio!=='undefined'){
@@ -236,12 +236,12 @@ export class VoiceSession {
       audio.onerror=()=>finish(false);try{void audio.play().catch(()=>finish(false))}catch{finish(false)};
      });
      if(token!==this.generation)return false;if(ok){this.set('idle');return true}
-     if(began)throw new Error('Audio was interrupted.');
+     if(began)throw new Error('O áudio foi interrompido.');
     }catch(e){if(began)throw e}this.mark('stream-fallback');
    }
    if(token!==this.generation)return false;
    this.context??=new AudioContext();await audioWait(this.context.resume(),2500,playback.signal);
-   if(this.context.state&&this.context.state!=='running')throw new Error('Audio is suspended.');
+   if(this.context.state&&this.context.state!=='running')throw new Error('O áudio está suspenso.');
    if(token!==this.generation)return false;
    this.request=new AbortController();this.mark('buffered-start');const r=await audioWait(this.checked('/voice/speak',{method:'POST',body:JSON.stringify({text}),signal:this.request.signal}),20000,playback.signal);
    if(token!==this.generation)return false;
@@ -258,7 +258,7 @@ export class VoiceSession {
     try{source.start();attempt.started=true;this.mark('buffered-playing');this.set('speaking');this.listenDuringPlayback(token,this.analyser!)}catch(error){finish(false);reject(error)}
    });
    this.endPlayback=null;this.revealTimers.forEach(clearTimeout);this.revealTimers=[];
-   if(token!==this.generation)return false;this.source=null;if(!ok)throw new Error('Audio was interrupted.');this.set('idle');return true;
+   if(token!==this.generation)return false;this.source=null;if(!ok)throw new Error('O áudio foi interrompido.');this.set('idle');return true;
   }catch(e){if(token===this.generation){this.request?.abort();this.set('error');this.onMessage(`${input}\n\nSpoken playback failed. The written result is still available.`,true)}return false}
   finally{if(token===this.generation){this.barge?.close();this.barge=null}if(this.playback===playback){this.playback=null;this.speechReveals=[]}}
  }

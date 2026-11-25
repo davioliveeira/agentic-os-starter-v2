@@ -1,71 +1,42 @@
 ---
 name: yt-search
-description: Search YouTube and return structured video results with metadata. Use this skill whenever the user wants to search YouTube, find videos on a topic, research what's trending on YouTube, compare YouTube videos, or look up YouTube creators/channels. Triggers on phrases like "search YouTube for", "find videos about", "what videos are there on", "YouTube results for", or any request involving YouTube video discovery or research.
+description: "Pesquisa vídeos e canais no YouTube pela API oficial. Use quando a pessoa quiser encontrar vídeos sobre um tema, comparar publicações ou descobrir conteúdos em alta."
 ---
 
-# YouTube Search
+# Pesquisar no YouTube
 
-Search YouTube through the YouTube Data API v3 and return structured, formatted results with engagement metrics.
-
-## How to use
-
-Run the search script. `<this skill's folder>` is the folder this SKILL.md is in.
+Execute o script na pasta desta skill. Ele consulta a YouTube Data API v3 e reúne métricas dos vídeos encontrados.
 
 ```bash
-python "<this skill's folder>/scripts/search.py" <query> [--count N] [--months N] [--days N] [--no-date-filter] [--order relevance|date|viewCount|rating] [--lang en] [--no-shorts] [--json]
+python "<pasta da skill>/scripts/search.py" <termos> [--count N] [--months N] [--days N] [--no-date-filter] [--order relevance|date|viewCount|rating] [--lang pt] [--no-shorts] [--json]
 ```
 
-### Parameters
-- `<query>`: search terms (required)
-- `--count N`: number of results to return (default: 20)
-- `--months N`: only videos from the last N months (default: 6)
-- `--days N`: only videos from the last N days (overrides `--months`)
-- `--no-date-filter`: include videos of any age
-- `--order`: `relevance` (default), `date`, `viewCount` or `rating`
-- `--lang en`: prefer results in that language (a ranking hint, not a hard filter)
-- `--no-shorts`: drop videos of 3 minutes or less
-- `--json`: print JSON (adds title length, age in days, channel ID and thumbnail URL)
-
-### Examples
+- `<termos>` — palavras da busca, obrigatórias.
+- `--count N` — total de resultados. O padrão é 20.
+- `--months N` — publicações dos últimos N meses. O padrão é seis.
+- `--days N` — publicações dos últimos N dias. Tem prioridade sobre `--months`.
+- `--no-date-filter` — inclui publicações de qualquer período.
+- `--order` — ordena por relevância (padrão), data, visualizações ou avaliação.
+- `--lang pt` — prioriza resultados no idioma escolhido. É uma preferência de ordenação.
+- `--no-shorts` — exclui vídeos de até três minutos.
+- `--json` — inclui tamanho do título, idade em dias, ID do canal e URL da miniatura na saída estruturada.
 
 ```bash
-# Basic search (top 20, last 6 months)
-python "<this skill's folder>/scripts/search.py" claude code tutorial
-
-# Fewer results, shorter window
-python "<this skill's folder>/scripts/search.py" obsidian workflow --count 5 --months 3
-
-# Competitor collision scan: what's hot on a topic in the last 14 days
-python "<this skill's folder>/scripts/search.py" claude code projects --days 14 --count 15 --order viewCount --lang en --no-shorts
-
-# All time, no date filter
-python "<this skill's folder>/scripts/search.py" AI agents --count 10 --no-date-filter
+python "<pasta da skill>/scripts/search.py" tutorial claude code
+python "<pasta da skill>/scripts/search.py" fluxo obsidian --count 5 --months 3
+python "<pasta da skill>/scripts/search.py" agentes de IA --days 14 --count 15 --order viewCount --lang pt --no-shorts
+python "<pasta da skill>/scripts/search.py" agentes de IA --count 10 --no-date-filter
 ```
 
-## Output format
+## Apresentar os resultados
 
-Each result includes:
-- Title
-- Channel name and subscriber count
-- View count
-- Duration
-- Upload date
-- Engagement ratio (views / subscribers): higher means the video outperformed the channel's usual audience
-- Direct URL
+Responda em português brasileiro. Para cada vídeo, apresente título original, canal e inscritos, visualizações, duração, data de publicação, relação de visualizações por inscrito e link direto. Uma relação alta indica que o vídeo alcançou um público maior em relação ao tamanho do canal. O script usa stderr para mensagens de status e stdout para os resultados.
 
-Results are separated by dividers for easy scanning. Status messages go to stderr; the formatted results go to stdout.
+## Tratar falhas
 
-## Exit codes and failures
+- `0` — resultados disponíveis.
+- `1` — falha de configuração ou da API, como chave ausente, erro HTTP ou cota esgotada. Informe a causa ao usuário.
+- `2` — argumentos inválidos.
+- `3` — nenhum vídeo retornado. Amplie o período ou revise a consulta antes de tentar novamente.
 
-The script fails loudly. It never prints an empty result and exits 0.
-
-- `0`: results printed
-- `1`: setup or API error (missing `YOUTUBE_API_KEY`, HTTP error, quota exhausted). Report it; don't fall back to guessing.
-- `2`: bad arguments
-- `3`: the API really returned no videos. Broaden the query or the window and retry.
-
-## Notes
-
-- Needs `YOUTUBE_API_KEY` in the environment or `~/.claude/.env`, the same key the dashboard's YouTube workflows use.
-- Quota: each search page (up to 50 results) costs 100 units; the stats lookups cost about 2 more. The default daily quota is 10,000 units, shared with the other YouTube skills.
-- Public view counts include every view from the first frame since 2026-08-24. Ratios for older videos used the stricter count, so they read a little lower.
+A chave `YOUTUBE_API_KEY` deve estar no ambiente ou em `~/.claude/.env`. Use a chave configurada sem exibi-la. Cada página da pesquisa, com até 50 resultados, consome 100 unidades da cota, além de cerca de duas unidades para as estatísticas. A cota padrão de 10 mil unidades por dia é compartilhada com os demais fluxos do YouTube.

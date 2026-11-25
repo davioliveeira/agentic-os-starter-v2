@@ -312,9 +312,9 @@ test('the screens show what is scheduled in a line, and show nothing when they c
   const root = vault({jobs: [weekdayPlan, {skill: 'morning-intel', at: '06:30'}, {skill: 'inbox-brief', at: '12:00', days: ['mon', 'wed'], enabled: false}]});
   scheduleTick(root, job => { if (job.skill === 'morning-intel') throw new Error('busy'); }, {now: at(7), timeZone: ZONE});
   const view = scheduleView(root, {now: at(8), timeZone: ZONE});
-  assert.deepEqual(scheduleLines(view), {error: '', lines: ['Planejar hoje 07:00 weekdays, next tomorrow 07:00', 'Boletim de IA 06:30, next tomorrow 06:30, last run failed', 'Resumo da caixa de entrada 12:00 mon, wed (off)']});
+  assert.deepEqual(scheduleLines(view), {error: '', lines: ['Planejar hoje 07:00 em dias úteis · próxima: amanhã às 07:00', 'Boletim de IA 06:30 · próxima: amanhã às 06:30 · última execução falhou', 'Resumo da caixa de entrada 12:00 seg, qua (desativado)']});
   editSchedule(root, schedule => ({...schedule, paused: true}));
-  assert.equal(scheduleLines(scheduleView(root, {now: at(8), timeZone: ZONE})).lines[0], 'Planejar hoje 07:00 weekdays (paused)');
+  assert.equal(scheduleLines(scheduleView(root, {now: at(8), timeZone: ZONE})).lines[0], 'Planejar hoje 07:00 em dias úteis (em pausa)');
   assert.deepEqual(scheduleLines(scheduleView(vault(), {now: at(8), timeZone: ZONE})), {lines: [], error: ''}, 'nothing scheduled shows nothing');
   assert.match(scheduleLines(scheduleView(vault('{"jobs": ['), {now: at(8), timeZone: ZONE})).error, /nothing is scheduled/);
   for (const odd of [null, undefined, 'text', {error: 'Unknown route'}, {jobs: 'none'}, []]) assert.deepEqual(scheduleLines(odd), {lines: [], error: ''});

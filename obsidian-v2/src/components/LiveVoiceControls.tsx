@@ -26,7 +26,7 @@ export function LiveCallBar({live,session,openTask}:{live:LiveSnapshot;session:L
  if(live.state==='idle')return null;
  return <div className="v2-live-controls">
   {live.staged&&<section className="v2-live-staged" aria-label="Ação aguardando confirmação"><p>{live.staged.description}</p><div><button onClick={()=>void session.action(false)}>Cancelar</button>{live.staged.mode==='click'&&<button onClick={()=>void session.action(true)}>Confirmar</button>}</div></section>}
-  <div className="v2-live-bar"><span><i aria-hidden="true"/> {liveClock(live,now)}</span><button aria-pressed={live.micMuted} disabled={!live.ready} onClick={()=>void session.setMuted(!live.micMuted)}>{live.micMuted?'Unmute':'Mute'}</button><button onClick={()=>session.stop()}>Encerrar chamada</button></div>
+  <div className="v2-live-bar"><span><i aria-hidden="true"/> {liveClock(live,now)}</span><button aria-pressed={live.micMuted} disabled={!live.ready} onClick={()=>void session.setMuted(!live.micMuted)}>{live.micMuted?'Ativar microfone':'Silenciar microfone'}</button><button onClick={()=>session.stop()}>Encerrar chamada</button></div>
   {live.completions?.map(card=><section key={card.seq} className="v2-live-staged" aria-label="Atualização de tarefa"><strong>{card.label}</strong><p>{card.text}</p><div>{card.taskId&&<button onClick={()=>openTask(card.taskId!)}>Abrir tarefa</button>}<button onClick={()=>session.dismissCompletion(card.seq)}>Dispensar</button></div></section>)}
  </div>;
 }

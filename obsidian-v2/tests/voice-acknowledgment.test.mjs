@@ -43,7 +43,7 @@ test('both providers accept requests silently and show only one delayed visual p
   voice.onMessage=text=>messages.push(text);const pending=voice.sendText('Explain that headline');
   assert.equal(voice.mode,'working');assert.deepEqual(messages,[]);assert.equal(calls.length,0);assert.deepEqual(f.events,[]);
   pick.resolve(selection);await flush();assert.deepEqual(calls.map(call=>call.path),['/voice/text']);assert.equal(JSON.parse(calls[0].options.headers['X-V2-Selection']).provider,selection.provider);
-  await f.advance(3999);assert.deepEqual(messages,[]);await f.advance(1);assert.deepEqual(messages,['Still working on your request…']);await f.advance(4000);assert.equal(messages.length,1);
+  await f.advance(3999);assert.deepEqual(messages,[]);await f.advance(1);assert.deepEqual(messages,['Ainda estou processando sua solicitação…']);await f.advance(4000);assert.equal(messages.length,1);
   assert.equal(f.sources.length,0);assert.equal(decodes(f),0);assert.deepEqual(f.events,[]);assert.ok(!calls.some(call=>call.path==='/voice/speak'));
   route.resolve({status:200,json:{reply:''}});await pending;assert.equal(voice.mode,'idle');await voice.destroy();assert.equal(f.timers.size,0);
  }
@@ -74,7 +74,7 @@ test('finishing microphone capture releases it once and starts routing without r
  f.replace('navigator',{mediaDevices:{getUserMedia:async()=>({getTracks:()=>[{stop(){f.events.push('stop-mic')}}]})}});
  f.replace('MediaRecorder',class{state='inactive';mimeType='audio/webm';start(){this.state='recording'}stop(){this.state='inactive';f.events.push('stop-recorder');this.ondataavailable?.({data:new Blob(['x'.repeat(1500)])});queueMicrotask(()=>this.onstop?.())}});
  const voice=new VoiceSession(async(path)=>{calls.push(path);if(path==='/voice/audio'){f.events.push('route-audio');return route.promise}return {status:200,json:{ok:true}}},async()=>selections[1]);
- voice.onMessage=text=>messages.push(text);voice.connect();f.contexts[0].createAnalyser=()=>({fftSize:512,disconnect(){},getByteTimeDomainData(bytes){bytes.fill(144)}});await voice.start();assert.equal(voice.mode,'listening');assert.ok(messages.includes('Preparing voice…'));
+ voice.onMessage=text=>messages.push(text);voice.connect();f.contexts[0].createAnalyser=()=>({fftSize:512,disconnect(){},getByteTimeDomainData(bytes){bytes.fill(144)}});await voice.start();assert.equal(voice.mode,'listening');assert.ok(messages.includes('Preparando a voz…'));
  for(const time of [100,180,260]){captureClock=time;for(const callback of f.intervals.values())callback()}
  f.events.length=0;messages.length=0;await voice.finish();await voice.finish();await flush();assert.equal(voice.mode,'working');assert.deepEqual(messages,[]);
  assert.equal(f.events.filter(event=>event==='stop-recorder').length,1);assert.equal(f.events.filter(event=>event==='stop-mic').length,1);

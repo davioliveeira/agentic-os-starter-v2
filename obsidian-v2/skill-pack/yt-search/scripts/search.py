@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """YouTube search via the YouTube Data API v3, with structured output and views/subs ratio.
 
-search.list finds the videos (100 quota units per page of up to 50), videos.list and
+search.list finds the videos (100 unidades de cota per page of up to 50), videos.list and
 channels.list fill in views, duration and subscriber counts (1 unit per 50).
 
 Fails loudly. A missing key or an API/quota error exits 1. Zero results exits 3 with
@@ -30,13 +30,13 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="repla
 
 BASE = "https://www.googleapis.com/youtube/v3"
 ORDERS = ("relevance", "date", "viewCount", "rating")
-USAGE = ("Usage: search.py <query> [--count N] [--months N] [--days N] [--no-date-filter]\n"
+USAGE = ("Uso: search.py <termos> [--count N] [--months N] [--days N] [--no-date-filter]\n"
          "                 [--order relevance|date|viewCount|rating] [--json]\n"
-         "Example: search.py claude code tutorial --count 5 --days 14 --order viewCount")
+         "Exemplo: search.py tutorial claude code --count 5 --days 14 --order viewCount")
 
 
 def die(msg, code=1):
-    print(f"ERROR: {msg}", file=sys.stderr)
+    print(f"ERRO: {msg}", file=sys.stderr)
     sys.exit(code)
 
 
@@ -57,7 +57,7 @@ def parse_args(argv):
         try:
             return int(args[i + 1])
         except (IndexError, ValueError):
-            die(f"{flag} requires an integer\n{USAGE}", 2)
+            die(f"{flag} exige um número inteiro\n{USAGE}", 2)
 
     while i < len(args):
         if args[i] == "--count":
@@ -71,12 +71,12 @@ def parse_args(argv):
             i += 2
         elif args[i] == "--order":
             if i + 1 >= len(args) or args[i + 1] not in ORDERS:
-                die(f"--order must be one of {', '.join(ORDERS)}", 2)
+                die(f"--order deve ser um destes valores: {', '.join(ORDERS)}", 2)
             order = args[i + 1]
             i += 2
         elif args[i] == "--lang":
             if i + 1 >= len(args):
-                die("--lang requires a language code like en", 2)
+                die("--lang exige um código de idioma, como pt", 2)
             lang = args[i + 1]
             i += 2
         elif args[i] == "--no-shorts":
@@ -95,7 +95,7 @@ def parse_args(argv):
     if not query:
         die(USAGE, 2)
     if count < 1:
-        die("--count must be at least 1", 2)
+        die("--count deve ser pelo menos 1", 2)
     return query, count, months, days, order, lang, no_shorts, as_json
 
 
@@ -114,7 +114,7 @@ def env(name):
 def api(endpoint, **params):
     key = env("YOUTUBE_API_KEY")
     if not key:
-        die("YOUTUBE_API_KEY is not set (process env or ~/.claude/.env).")
+        die("YOUTUBE_API_KEY ausente no ambiente ou em ~/.claude/.env.")
     url = f"{BASE}/{endpoint}?{urllib.parse.urlencode({**params, 'key': key})}"
     for attempt in range(3):
         try:
@@ -129,16 +129,16 @@ def api(endpoint, **params):
             except Exception:
                 pass
             if reason in ("quotaExceeded", "dailyLimitExceeded"):
-                die(f"YouTube API quota exhausted ({reason}). It resets at midnight Pacific.")
+                die(f"Cota da API do YouTube esgotada ({reason}). Ela é renovada à meia-noite no horário do Pacífico.")
             if (e.code == 429 or e.code >= 500) and attempt < 2:
                 time.sleep(1.5 * (attempt + 1))
                 continue
-            die(f"YouTube API {endpoint} failed: HTTP {e.code} {reason} {message}".strip())
+            die(f"Falha na API do YouTube ({endpoint}): HTTP {e.code} {reason} {message}".strip())
         except (urllib.error.URLError, TimeoutError) as e:
             if attempt < 2:
                 time.sleep(1.5 * (attempt + 1))
                 continue
-            die(f"YouTube API {endpoint} unreachable: {e}")
+            die(f"API do YouTube indisponível ({endpoint}): {e}")
 
 
 def chunks(seq, n=50):
@@ -199,14 +199,14 @@ def main():
     cutoff = get_cutoff(months, days)
 
     if days is not None and days > 0:
-        date_label = f", last {days} day{'s' if days != 1 else ''}"
+        date_label = f", últimos {days} dia{'s' if days != 1 else ''}"
     elif cutoff:
-        date_label = f", last {months} months"
+        date_label = f", últimos {months} meses"
     else:
         date_label = ""
     pages = math.ceil(want / 50)
-    print(f"Searching YouTube (Data API) for: \"{query}\" (top {count} by {order}{date_label}, "
-          f"~{pages * 100 + 2 * pages} quota units)...\n", file=sys.stderr)
+    print(f"Pesquisando no YouTube (API de dados): \"{query}\" (até {count} resultados por {order}{date_label}, "
+          f"~{pages * 100 + 2 * pages} unidades de cota)...\n", file=sys.stderr)
 
     ids, token = [], None
     while len(ids) < want:
@@ -226,9 +226,9 @@ def main():
     ids = list(dict.fromkeys(ids))
 
     if not ids:
-        window = date_label.lstrip(", ") or "any date"
-        die(f"No results: the API returned 0 videos for \"{query}\" ({window}). "
-            "This is a real empty result, not a fetch failure. Broaden the query or the window.", 3)
+        window = date_label.lstrip(", ") or "qualquer data"
+        die(f"A API retornou zero vídeos para \"{query}\" ({window}). "
+            "Revise os termos ou amplie o período.", 3)
 
     videos = {}
     for batch in chunks(ids):
@@ -271,8 +271,8 @@ def main():
         })
 
     if not results:
-        die(f"No results: {len(ids)} search hits but none survived lookup "
-            f"(private, deleted, upcoming{', or Shorts' if no_shorts else ''}).", 3)
+        die(f"A busca encontrou {len(ids)} vídeos. Nenhum ficou disponível após a consulta "
+            f"(privados, excluídos, agendados{', ou Shorts' if no_shorts else ''}).", 3)
     results = results[:count]
 
     if as_json:
@@ -281,14 +281,14 @@ def main():
 
     divider = "─" * 60
     for i, r in enumerate(results, 1):
-        date = datetime.fromisoformat(r["published"]).strftime("%b %d, %Y")
-        meta = (f"{r['channel']} ({format_subscribers(r['subscribers'])} subs)  ·  "
-                f"{format_views(r['views'])} views  ·  {format_duration(r['duration_seconds'])}  ·  {date}")
+        date = datetime.fromisoformat(r["published"]).strftime("%d/%m/%Y")
+        meta = (f"{r['channel']} ({format_subscribers(r['subscribers'])} inscritos)  ·  "
+                f"{format_views(r['views'])} visualizações  ·  {format_duration(r['duration_seconds'])}  ·  {date}")
         print(divider)
         print(f" {i:>2}. {r['title']}")
         print(f"     {meta}")
         if r["ratio"] is not None:
-            print(f"     Engagement: {r['ratio']:.2f}x views/subs")
+            print(f"     Alcance: {r['ratio']:.2f}× visualizações por inscrito")
         print(f"     {r['url']}")
     print(divider)
 

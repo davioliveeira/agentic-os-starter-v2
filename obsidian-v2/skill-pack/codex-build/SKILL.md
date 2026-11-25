@@ -1,40 +1,23 @@
 ---
 name: codex-build
-description: Delegate implementation of a concrete plan to a Codex builder, then review the diff and verify the result. Use for explicit /codex-build or requests to have Codex implement a supplied spec. Keep design decisions with the supervising agent; simple local edits do not need delegation.
+description: "Delega ao Codex a implementação de um plano definido e depois revisa o diff e verifica o resultado. Use para /codex-build ou para pedidos explícitos de implementação de uma especificação pelo Codex."
 ---
 
-# Codex Build
+# Implementar com Codex
 
-The supervising agent owns the spec, review, and user communication. The delegated
-builder implements the authorized scope. A fresh session is not necessarily a
-different model. Adapted from Peter Steinberger’s codex-first pattern.
+O agente supervisor cuida da especificação, da revisão e da comunicação em português brasileiro. O Codex implementa o escopo autorizado. Uma sessão nova pode usar o mesmo modelo. Fluxo adaptado do padrão Codex-first de Peter Steinberger.
 
-## Prepare
+## Preparar
 
-- Read the supplied plan (default `PLAN.md`). Include the goal, relevant paths,
-  constraints, non-goals, deliverables, and acceptance checks in a self-contained
-  prompt. If requirements are incomplete, resolve what the repository can answer
-  and ask only for decisions that materially affect the build.
-- Infer the proof command from the spec, repository instructions, package scripts,
-  or CI. Ask only when the acceptance check remains ambiguous.
-- Inspect the working tree. Preserve existing work; use an isolated checkout when
-  appropriate and authorized, including the relevant uncommitted input changes.
-  Never stash, discard, or overwrite unrelated work to obtain a clean tree.
-- Check `codex --version`, `codex exec --help`, and `codex exec resume --help`.
-  Keep the configured model unless the user chose another. Record actual model
-  metadata if exposed; report unknown otherwise. Check capabilities needed by the
-  spec instead of assuming image generation, MCP, or credentials are available.
-- Use the permissions already authorized for the task. This skill does not grant
-  unrestricted filesystem access or authorize bypassing approval or sandbox checks.
+- Leia o plano fornecido, por padrão `PLAN.md`. Inclua objetivo, caminhos relevantes, limites, entregas e critérios de aceitação no prompt. Resolva pelo repositório o que for possível e pergunte apenas quando a decisão mudar a implementação.
+- Identifique os comandos de verificação na especificação, nos scripts do projeto ou no CI.
+- Inspecione as alterações locais. Preserve o trabalho existente, inclusive entradas que ainda não entraram em commit. Use um checkout isolado quando apropriado e autorizado.
+- Confira `codex --version`, `codex exec --help` e `codex exec resume --help`. Use o modelo configurado, salvo escolha explícita da pessoa. Registre o modelo efetivo se a CLI o expuser. Verifique as capacidades exigidas, como MCP, credenciais ou geração de imagens.
+- Use as permissões já concedidas e respeite a política do ambiente.
 
-## Execute
+## Executar
 
-Write the prompt as UTF-8 to a unique file in the task workspace. Run from the
-target checkout. Keep prompt, final report, JSONL events, and stderr in that run’s
-directory. Use workspace-write for authorized repository edits when supported;
-respect any stricter host policy.
-
-PowerShell example (set the four paths first):
+Grave o prompt em UTF-8 em um arquivo exclusivo na área de trabalho da tarefa. Rode na pasta de destino. Mantenha o prompt, relatório final, eventos JSONL e stderr no diretório da execução. Use `workspace-write` para as edições autorizadas quando o ambiente oferecer esse modo.
 
 ```powershell
 Get-Content -LiteralPath $buildPromptPath -Raw |
@@ -50,28 +33,15 @@ codex exec -s workspace-write --json -o "$build_report_path" - < "$build_prompt_
 build_exit_code=$?
 ```
 
-Use the current host’s nonblocking process/session support and poll to completion;
-do not pass Bash-tool timeout or background fields to a different tool interface.
-Capture the explicit session ID from the `thread.started` event. Require a zero
-process exit code and a substantive final report before treating execution as
-complete. A started event is not a success signal. Inspect stderr on failure.
+Use o mecanismo de sessão assíncrona do ambiente e acompanhe o processo até terminar. Capture o ID da sessão no evento `thread.started`. Para considerar a execução concluída, confira o código de saída zero e um relatório final substancial. Em caso de falha, inspecione stderr.
 
-## Verify and repair
+## Verificar e corrigir
 
-1. The supervising agent reads the full diff against the recorded starting state,
-   checks scope and correctness, and runs the relevant proof checks.
-2. If corrections are needed, write a focused fix prompt and resume the explicit
-   session ID from the same checkout. Preserve the original permission policy;
-   for CLI resume use its supported config mechanism, such as
-   `-c sandbox_mode='"workspace-write"'`, after checking current help.
-3. Default to at most two delegated fix rounds (`MAX_FIX_ROUNDS=2`). After the cap,
-   the supervising agent finishes remaining authorized corrections directly.
-4. Append results and evidence to `PLAN-REVIEW-LOG.md` or the user’s selected log.
+1. Leia o diff completo desde o estado inicial, confira escopo e correção e execute as verificações.
+2. Caso haja erros, escreva um pedido de correção específico e retome a sessão pelo ID no mesmo checkout. Preserve a política de permissões. Confira na ajuda o mecanismo de configuração para retomada, como `-c sandbox_mode='"workspace-write"'`.
+3. Use no máximo duas rodadas de correção delegada por padrão (`MAX_FIX_ROUNDS=2)). Depois disso, o supervisor conclui as correções autorizadas.
+4. Registre o resultado e as evidências em `PLAN-REVIEW-LOG.md` ou no local escolhido pela pessoa.
 
-## Finish
+## Entregar
 
-Present the implementation, verification result, deviations, and remaining issues.
-The supervising agent owns commits and remote actions; the builder does not commit
-or push. Apply the user’s existing authorization: if commit/push is already requested,
-perform it after verification; otherwise show the diff and obtain that authorization
-before taking those additional actions. Preserve any explicit user-requested gates.
+Apresente a implementação, as verificações, os desvios e as pendências em português brasileiro. O supervisor cuida de commits e operações remotas conforme a autorização do usuário. Respeite os momentos de aprovação que ele tiver definido.

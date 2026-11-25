@@ -3,16 +3,16 @@
  "skills": [
   {
    "id": "close-day",
-   "label": "Close Day",
+   "label": "Fechar o dia",
    "providers": [
     "claude",
     "codex"
    ],
    "since": "0.4.5",
-   "description": "End-of-day check-in. Logs your effort, focus blocks and what you shipped into today's daily note, with a short reflection.",
+   "description": "Registra esforço, blocos de foco, publicações e uma reflexão na nota de hoje.",
    "needs": [
     "Python 3",
-    "Today's daily note (press Plan Today first)"
+    "Nota diária de hoje, criada em Planejar hoje"
    ],
    "files": [
     "SKILL.md",
@@ -21,16 +21,16 @@
   },
   {
    "id": "yt-search",
-   "label": "YouTube Search",
+   "label": "Pesquisar no YouTube",
    "providers": [
     "claude",
     "codex"
    ],
    "since": "0.4.5",
-   "description": "Searches YouTube and returns videos with views, channel size, and how far each one outperformed its channel.",
+   "description": "Pesquisa vídeos no YouTube e mostra visualizações, inscritos e o desempenho relativo de cada vídeo.",
    "needs": [
     "Python 3",
-    "A YouTube Data API key (YOUTUBE_API_KEY in ~/.claude/.env)"
+    "Chave da API de dados do YouTube (YOUTUBE_API_KEY em ~/.claude/.env)"
    ],
    "files": [
     "SKILL.md",
@@ -39,15 +39,15 @@
   },
   {
    "id": "claudex-route",
-   "label": "Claudex Route",
+   "label": "Encaminhar tarefa",
    "providers": [
     "claude",
     "codex"
    ],
    "since": "0.4.5",
-   "description": "Recommends which model should take a task, and can hand one scoped piece of work to it.",
+   "description": "Recomenda um modelo para a tarefa ou encaminha uma parte do trabalho quando solicitado.",
    "needs": [
-    "Claude Code or Codex (both, for a second opinion from the other one)"
+    "Claude Code ou Codex. Para uma segunda opinião, use ambos"
    ],
    "files": [
     "SKILL.md"
@@ -55,7 +55,7 @@
   },
   {
    "id": "claudex-loop",
-   "label": "Claudex Loop",
+   "label": "Revisar plano com Claude e Codex",
    "providers": [
     "claude"
    ],
@@ -63,9 +63,9 @@
    "with": [
     "codex-build"
    ],
-   "description": "Hardens a plan before you build: scouts the project, questions the decisions that matter, then has Codex review the plan until it holds.",
+   "description": "Investiga o projeto, confirma as decisões com a pessoa e revisa o plano com o Codex antes da implementação.",
    "needs": [
-    "Claude Code and Codex, both signed in"
+    "Claude Code e Codex com sessões ativas"
    ],
    "files": [
     "SKILL.md",
@@ -78,15 +78,15 @@
   },
   {
    "id": "codex-build",
-   "label": "Codex Build",
+   "label": "Implementar com Codex",
    "providers": [
     "claude",
     "codex"
    ],
    "since": "0.4.5",
-   "description": "Hands a written plan to Codex to implement, then reviews the full diff and runs the checks.",
+   "description": "Envia um plano escrito para o Codex, revisa o diff completo e executa as verificações.",
    "needs": [
-    "Codex installed and signed in"
+    "Codex instalado e com sessão ativa"
    ],
    "files": [
     "SKILL.md",

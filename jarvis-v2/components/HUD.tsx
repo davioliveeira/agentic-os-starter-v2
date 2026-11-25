@@ -375,6 +375,14 @@ function CommandDeck({
   );
 }
 
+const coreModeLabel: Record<CoreMode, string> = {
+  idle: "Em espera",
+  listening: "Ouvindo",
+  working: "Em execução",
+  speaking: "Falando",
+  error: "Erro",
+};
+
 const AudioIO = memo(function AudioIO({ mode, voiceMode, call, message, provider, tasks, target, selectionError, onTarget, onOpen }: { mode: CoreMode; voiceMode: CoreMode; call:LiveSnapshot; message: string; provider: "codex" | "claude"; tasks:WorkTask[]; target:string|null; selectionError:string; onTarget:(id:string|null)=>Promise<void>; onOpen:()=>void }) {
   const [text,setText] = useState("");
   const [choosing,setChoosing]=useState(false);
@@ -466,7 +474,7 @@ const Priorities = memo(function Priorities({
         <>
           {!d.isToday && (
             <div className={`stale-banner ${veryStale ? "err" : ""}`}>
-              ⚠ note is {ageDays}d old — run /today
+              ⚠ note is {ageDays}d de atraso — execute /today
             </div>
           )}
           {d.top3.map((p, i) => (
@@ -709,13 +717,13 @@ function TopBar({
       </div>
       <div className="status-line">
         <span className={`mode-chip mode-${mode}`}>
-          <i className="status-dot" /> núcleo · {mode}
+          <i className="status-dot" /> núcleo · {coreModeLabel[mode]}
         </span>
         <span className={`chip ${online ? "on" : "dead"}`}>
-          {online ? "connected vault" : "preview unavailable"}
+          {online ? "cofre conectado" : "painel indisponível"}
         </span>
         <span className="chip pending">
-          terminais · {r?.alive ? "connected" : "offline"}
+          terminais · {r?.alive ? "conectados" : "desconectados"}
         </span>
       </div>
       <div className="clock-wrap">
@@ -1226,11 +1234,11 @@ export default function HUD() {
                           />
                         </span>
                         <span className="task-time">
-                          {c.phase === "queued" ? "queued" : c.phase === "working"
-                            ? `${fmtClock(elapsed)} · ${c.note ?? "working"}`
+                          {c.phase === "queued" ? "na fila" : c.phase === "working"
+                            ? `${fmtClock(elapsed)} · ${c.note ?? "em execução"}`
                             : c.phase === "failed"
-                              ? `failed · ${fmtClock(elapsed)}`
-                              : c.note ?? `complete · ${fmtClock(elapsed)}`}
+                              ? `falhou · ${fmtClock(elapsed)}`
+                              : c.note ?? `concluído · ${fmtClock(elapsed)}`}
                         </span>
                       </span>
                     ) : (
@@ -1278,10 +1286,10 @@ export default function HUD() {
           <h1>{provider === "codex" ? "ASTRA" : "CLAUDE"}</h1>
           <p>{provider === "codex" ? "GPT-6 Astra · Modo Codex" : "Núcleo original do Jarvis · Modo Claude Code"}</p>
           <div className="state-preview" role="group" aria-label="Testar estado da animação">
-            {(["idle", "listening", "working", "speaking", "error"] as CoreMode[]).map(value => <button key={value} aria-pressed={mode === value} onClick={() => setModeOverride(value)}>{value}</button>)}
+            {(["idle", "listening", "working", "speaking", "error"] as CoreMode[]).map(value => <button key={value} aria-pressed={mode === value} onClick={() => setModeOverride(value)}>{coreModeLabel[value]}</button>)}
             <button aria-pressed={modeOverride === null} onClick={() => setModeOverride(null)}>Automático</button>
           </div>
-          <div className="preview-footnote"><span aria-live="polite">{modeOverride ? "Simulado" : state?.runner?.busy ? "Tarefa em segundo plano" : "Pronto"} · {mode}</span><button aria-pressed={paused} onClick={() => setPaused(value => !value)}>{paused ? "Retomar animações" : "Pausar animações"}</button></div>
+          <div className="preview-footnote"><span aria-live="polite">{modeOverride ? "Simulado" : state?.runner?.busy ? "Tarefa em segundo plano" : "Pronto"} · {coreModeLabel[mode]}</span><button aria-pressed={paused} onClick={() => setPaused(value => !value)}>{paused ? "Retomar animações" : "Pausar animações"}</button></div>
         </div>
 
         <button className="transcript-btn" onClick={() => void openTranscript()}>

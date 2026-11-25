@@ -48,10 +48,10 @@ def parse_posts(raw: str | None) -> dict[str, int]:
 def split_frontmatter(raw: str) -> tuple[str, str]:
     """Returns (frontmatter_yaml_no_fences, body_starting_after_---)."""
     if not raw.startswith("---"):
-        raise ValueError("no frontmatter fence at start of file")
+        raise ValueError("a abertura do frontmatter falta no começo do arquivo")
     end = raw.find("\n---", 3)
     if end < 0:
-        raise ValueError("no closing frontmatter fence")
+        raise ValueError("falta o fechamento do frontmatter")
     fm = raw[3:end].lstrip("\n")
     body = raw[end + 4 :].lstrip("\n")
     return fm, body
@@ -173,10 +173,10 @@ def main() -> int:
     ap.add_argument("--effort", type=int, default=None)
     ap.add_argument("--blocks", type=int, default=None)
     ap.add_argument(
-        "--posts", default=None, help='e.g. "youtube=1,linkedin=2,x=1"'
+        "--posts", default=None, help='por exemplo: "youtube=1,linkedin=2,x=1"'
     )
     ap.add_argument("--videos", type=int, default=None)
-    ap.add_argument("--text", default="", help="reflection body")
+    ap.add_argument("--text", default="", help="texto da reflexão")
     ap.add_argument("--date", default=None)
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
@@ -190,7 +190,7 @@ def main() -> int:
                 {
                     "status": "missing",
                     "path": str(path),
-                    "message": "no daily note for that date — run /today first",
+                    "message": "A nota diária dessa data ainda não existe. Execute /today primeiro.",
                 },
                 indent=2,
             )

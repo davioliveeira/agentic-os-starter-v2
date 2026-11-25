@@ -1,62 +1,39 @@
 ---
 name: close-day
-description: End-of-day routine for the daily note in an Agentic OS vault. Reads today's daily note, takes a short reflection (effort score 1-10, focus blocks count, posts shipped per platform, freeform notes), updates the frontmatter (effort, focus_blocks, posts_shipped, videos_shipped_today, top3_done), and appends the EOD Reflection section. Use when the user says '/close-day', 'close out the day', 'end of day', 'wrap up today', 'log my day', or 'reflect on today'. Idempotent — re-running merges into the same daily note rather than duplicating.
+description: "Rotina de fechamento do dia em um cofre Agentic OS. Registra esforço, blocos de foco, publicações e uma reflexão na nota de hoje. Use com /close-day ou quando a pessoa quiser fechar, registrar ou revisar o dia."
 ---
 
-# /close-day
+# Fechar o dia
 
-End-of-day write-back to today's daily note.
+## 1. Encontrar a nota de hoje
 
-## Workflow
+Verifique se existe `daily-notes/YYYY-MM-DD.md`. Se faltar, peça à pessoa para usar **Planejar hoje** no painel. Encerre o fluxo nesse caso.
 
-### Step 1 — Ensure today's daily note exists
+## 2. Coletar a reflexão
 
-If `daily-notes/YYYY-MM-DD.md` doesn't exist, say: "There is no daily note for today yet. Press **Plan Today** on the dashboard first." Halt.
+Pergunte de uma vez ou aceite uma resposta livre com os mesmos dados:
 
-### Step 2 — Collect reflection
+- **Esforço (1 a 10)** — quanto você se dedicou?
+- **Blocos de foco** — quantos blocos de trabalho concentrado você completou?
+- **Publicações** — quantas saíram em cada plataforma? Use `youtube`, `blog`, `linkedin`, `x`, `instagram` ou `tiktok`.
+- **Reflexão** — em duas ou três frases, o que funcionou e o que precisa mudar?
 
-Ask in one prompt (or accept as a single freeform sentence and parse):
+## 3. Atualizar a nota diária
 
-- **Effort (1-10):** how hard did you push?
-- **Focus blocks:** how many deep-work blocks did you get in?
-- **Posts shipped:** which platforms today? (youtube/blog/linkedin/x/instagram/tiktok)
-- **Reflection:** 2-3 sentences. What worked? What didn't?
-
-Accept as either:
-- Structured CLI args (when scripted): `--effort 7 --blocks 3 --posts "youtube=1,linkedin=2" --text "Good day. Shipped..."`
-- Freeform Claude conversation that maps to the above
-
-### Step 3 — Update the daily note
-
-Invoke the script:
+Execute o script a partir da raiz do cofre. Em outro diretório, defina `AGENTIC_OS_VAULT` com o caminho do cofre.
 
 ```bash
-python "<this skill's folder>/scripts/close_day.py" \
+python "<pasta da skill>/scripts/close_day.py" \
   --effort 7 \
   --blocks 3 \
   --posts "youtube=1,linkedin=2" \
-  --text "Decent day. Cockpit M5 shipped, M6 prep started."
+  --text "Concluí o painel e comecei a preparar a próxima entrega."
 ```
 
-Run it from the vault folder (a dashboard conversation already starts there). From anywhere else, set `AGENTIC_OS_VAULT` to the vault's path first.
+O script lê os itens marcados na seção `Top 3 Priorities` e atualiza `effort`, `focus_blocks`, `posts_shipped`, `videos_shipped_today` e `top3_done`. Informe `--videos` para gravar explicitamente o total de vídeos publicados. A reflexão fica em `## EOD Reflection`. Preserve os nomes dessas seções e campos para que o painel consiga ler a nota.
 
-The script:
-- Reads today's daily note
-- Parses frontmatter
-- Parses current Top 3 checkbox state (`[x]` items → mark `top3_done[i]=true`)
-- Updates frontmatter: `effort`, `focus_blocks`, `posts_shipped`, `videos_shipped_today` (sum of all platform posts, or explicit `--videos`), `top3_done`
-- Appends content to `## EOD Reflection` section (overwriting any existing content there to keep the section clean)
-- Preserves everything else verbatim (Activity Log, Notes, Schedule)
+Uma nova execução no mesmo dia substitui os valores anteriores dessa rotina e preserva as demais seções, como `Activity Log`, `Notes` e `Schedule`.
 
-### Step 4 — Confirm
+## 4. Confirmar
 
-Read back the updated frontmatter values + the reflection text. Cockpit auto-refreshes within 1 sec via vault.modify watcher.
-
-## Idempotency
-
-Re-running on the same day with new values **overwrites** the prior effort / blocks / posts / videos / EOD Reflection. This is intentional — typing the wrong number once shouldn't lock the note. To preserve history, version-control the vault.
-
-## See also
-
-- Schema: [[daily-note]]
-- Sibling: the **Plan Today** button, which creates the note this skill closes.
+Mostre os valores gravados e o texto da reflexão em português brasileiro. Consulte [[daily-note]] para detalhes do formato.

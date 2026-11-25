@@ -7,7 +7,24 @@ import type {VoiceTransport} from './voice-session';
 export interface ScheduleNote {lines: string[]; error: string}
 const NOTHING: ScheduleNote = {lines: [], error: ''};
 const WEEKDAYS = 'mon,tue,wed,thu,fri';
-const dayText = (days: unknown) => !Array.isArray(days) || days.length === 7 ? '' : days.join(',') === WEEKDAYS ? ' weekdays' : ` ${days.join(', ')}`;
+const daysInPortuguese: Record<string, string> = {
+  mon: 'seg', tue: 'ter', wed: 'qua', thu: 'qui', fri: 'sex', sat: 'sáb', sun: 'dom',
+};
+const dayText = (days: unknown) => !Array.isArray(days) || days.length === 7 ? ''
+  : days.join(',') === WEEKDAYS ? ' em dias úteis'
+  : ` ${days.map(day => Object.hasOwn(daysInPortuguese, day) ? daysInPortuguese[day] : day).join(', ')}`;
+const nextInPortuguese = new Map(Object.entries({
+  ...daysInPortuguese, today: 'hoje', tomorrow: 'amanhã', off: 'desativado',
+  paused: 'em pausa', never: 'sem próxima execução', 'not running': 'sem execução',
+}));
+function nextLabel(value: string): string {
+  const normalized = value.toLowerCase();
+  const exact = nextInPortuguese.get(normalized);
+  if (exact) return exact;
+  const [day = '', time] = normalized.split(' ');
+  const translated = nextInPortuguese.get(day);
+  return time && translated ? `${translated} às ${time}` : value;
+}
 
 // Pure: the bridge's /schedule answer as short lines. Anything unexpected (an older bridge, an error page)
 // shows nothing rather than something misleading. The same goes for a bridge that stops answering: a line
@@ -15,7 +32,7 @@ const dayText = (days: unknown) => !Array.isArray(days) || days.length === 7 ? '
 export function scheduleLines(view: any): ScheduleNote {
   if (!view || typeof view !== 'object' || !Array.isArray(view.jobs)) return NOTHING;
   const lines = view.jobs.filter((job: any) => job && typeof job.label === 'string' && typeof job.at === 'string').map((job: any) =>
-    `${job.label} ${job.at}${dayText(job.days)}${job.enabled === false ? ' (off)' : view.paused ? ' (paused)' : typeof job.next === 'string' ? `, next ${job.next}` : ''}${job.last && (job.last.outcome === 'failed' || job.last.outcome === 'missed') ? `, last run ${job.last.outcome}` : ''}`);
+    `${job.label} ${job.at}${dayText(job.days)}${job.enabled === false ? ' (desativado)' : view.paused ? ' (em pausa)' : typeof job.next === 'string' ? ` · próxima: ${nextLabel(job.next)}` : ''}${job.last && (job.last.outcome === 'failed' || job.last.outcome === 'missed') ? ` · ${job.last.outcome === 'failed' ? 'última execução falhou' : 'última execução perdida'}` : ''}`);
   return {lines, error: typeof view.error === 'string' ? view.error : ''};
 }
 
