@@ -217,16 +217,24 @@ test('losing the registered stream ends the call without redialing',async t=>{
  assert.equal(f.get('/voice/surface/register').length,1);
 });
 
+test('Live shows the reason when the voice service restarts',async t=>{
+ const f=renderer(t);await f.start();await f.ready();
+ const reason='O serviço de voz reiniciou. Inicie uma nova chamada.';
+ f.emit('teardown',{reason});
+ await until(()=>f.session.getSnapshot().state==='idle');
+ assert.deepEqual(f.errors,[reason]);
+});
+
 test('Live reports microphone permission denial and blocked autoplay, and releases media',async t=>{
  await t.test('permission denied',async t=>{
   const f=renderer(t,{denyMic:true});await f.session.start();
-  assert.match(f.errors[0],/Microphone access was denied/);
+  assert.match(f.errors[0],/O acesso ao microfone foi negado/);
   assert.equal(f.get('/voice/surface/register').length,0);assert.equal(f.audioClosed(),true);
  });
  await t.test('autoplay blocked',async t=>{
   const f=renderer(t,{blockAudio:true}),peer=await f.start();
   peer.ontrack({streams:[new Stream()]});await until(()=>f.errors.length);
-  assert.match(f.errors[0],/Live audio playback was blocked/);
+  assert.match(f.errors[0],/A reprodução do áudio da chamada foi bloqueada/);
   assert.equal(peer.closed,true);assert.equal(peer.track.stopped,true);
  });
 });

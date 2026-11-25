@@ -627,13 +627,13 @@ test('the Live voice line: skipped until a key is saved, then says what OpenAI t
   assert.equal(refused.line(LIVE).status, 'FAIL'); assert.equal(refused.line(LIVE).optional, true); assert.match(refused.text, /correção: Rode `node aos\.mjs openai-key` e informe uma chave atual de platform\.openai\.com\/api-keys\./);
   const hidden = await examine(services, install, {checkLive: async () => ({kind: 'no-model'})});
   assert.equal(hidden.line(LIVE).status, 'FAIL'); assert.match(hidden.line(LIVE).detail, /modelo de voz ao vivo \(gpt-live-1\.1\)/);
-  const offline = await examine(services, install, {checkLive: async () => ({kind: 'unconfirmed', detail: 'OpenAI could not be reached'})});
-  assert.equal(offline.line(LIVE).status, 'SKIP'); assert.match(offline.line(LIVE).detail, /não confirmou o acesso agora \(OpenAI could not be reached\)/);
+  const offline = await examine(services, install, {checkLive: async () => ({kind: 'unconfirmed', detail: 'Não foi possível conectar à OpenAI'})});
+  assert.equal(offline.line(LIVE).status, 'SKIP'); assert.match(offline.line(LIVE).detail, /não confirmou o acesso agora \(Não foi possível conectar à OpenAI\)/);
   const ci = await examine(services, install, {ci: true, checkLive: async () => { throw new Error('must not be asked'); }});
   assert.equal(ci.line(LIVE).status, 'PASS'); assert.match(ci.line(LIVE).detail, /teste com a OpenAI foi pulado com --ci/);
   save({consentVersion: CONSENT_VERSION + 1});
   const stale = await examine(services, install, {checkLive: async () => { throw new Error('must not be asked'); }});
-  assert.equal(stale.line(LIVE).status, 'FAIL'); assert.equal(stale.line(LIVE).detail, 'Live voice needs current consent.'); assert.match(stale.text, /salve novamente a chave e a autorização/);
+  assert.equal(stale.line(LIVE).status, 'FAIL'); assert.equal(stale.line(LIVE).detail, 'A voz ao vivo precisa de uma autorização atualizada.'); assert.match(stale.text, /salve novamente a chave e a autorização/);
 });
 
 test('the connector line says whether a saved Claude token leaves background work without calendar and mail', async () => {

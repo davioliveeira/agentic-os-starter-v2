@@ -14,24 +14,26 @@ Start with `node aos.mjs doctor`. Every FAIL line carries its own fix, and a che
 
 Keep `jev.json`, `openai.json`, `bridge-auth.json`, and `speech-auth.json` private. They hold API keys or local access secrets.
 
-## Live voice
+<a id="live-voice"></a>
 
-| What you see | What to do |
+## Voz ao vivo
+
+| O que aparece | Como resolver |
 |---|---|
-| Live asks you to run `aos openai-key`, or says consent is missing | Run `node aos.mjs openai-key` from the starter folder. Enter a valid OpenAI API key and save your consent on the local page, then select **Live** again. |
-| The key page says “OpenAI did not accept that key” | The key was mistyped, cut short or revoked. Nothing was saved. Copy it whole from [platform.openai.com/api-keys](https://platform.openai.com/api-keys), or create a new one there, and paste it again. |
-| The key page says “That is an OpenRouter key” | That key is for Jev. Live needs a key from OpenAI's API platform. See [Before you start](LIVE-VOICE.md#before-you-start-an-openai-api-key). |
-| A call says “OpenAI did not accept the API key” | The saved key stopped working. Run `node aos.mjs openai-key` and enter a current one. |
-| A call says the OpenAI API account “has no credit” | Add credit under **Billing** at platform.openai.com, then start the call again. On ChatGPT Pro or Business, check that the included API credits were claimed and that the key comes from the API account linked to your ChatGPT plan. |
-| A call says the key “is not allowed to use the Live model” | The key belongs to a project without access to `gpt-live-1.1`, or it is a restricted key without that permission. Create a key in a project that has access and save it with `node aos.mjs openai-key`. |
-| A call says OpenAI “is limiting requests” or “had a problem on its side” | Wait a minute and start the call again. Nothing is wrong with your setup. |
-| You want to know whether Live is set up correctly | Run `node aos.mjs doctor` and read the **Live voice (OpenAI key)** line. It checks the saved key with OpenAI. It cannot see your credit. |
-| Windows says “Update the voice service” | Run `node aos.mjs doctor` to see which voice service this installation is using. If it is sharing an older one, update or stop that service from its own installation. When your tasks are finished, run `node aos.mjs stop` and `node aos.mjs setup --voice yes` from this starter so it can run the current voice service. |
-| Microphone access is denied | Allow microphone access for Obsidian in your system settings, or for `127.0.0.1:3217` in your browser. Make sure the right mic is selected, then click to start a new call. |
-| Live audio playback is blocked | Allow sound and autoplay for the HUD in your browser, or check Obsidian’s audio output and system volume. Keep the window in front and click to start a new call. |
-| The meter differs from the OpenAI usage page | The call bar is an estimate. It uses the active rate for all reported time if standby time is missing. Check the usage page for the organization linked to the saved key. |
+| A voz ao vivo pede uma autorização atualizada | Rode `node aos.mjs openai-key` na pasta da instalação. Informe uma chave da API da OpenAI, salve a autorização na página local e selecione **Ao vivo** novamente. |
+| A página diz “A OpenAI não aceitou esta chave” | Confira se copiou a chave inteira de [platform.openai.com/api-keys](https://platform.openai.com/api-keys). Se ela tiver sido revogada, crie uma nova e tente de novo. |
+| A página diz “Esta é uma chave do OpenRouter para o Jev” | Crie uma chave da API da OpenAI para a voz ao vivo. Consulte [Antes de começar](LIVE-VOICE.md#before-you-start-an-openai-api-key). |
+| A chamada diz “A OpenAI não aceitou a chave de API” | Rode `node aos.mjs openai-key` e informe uma chave válida. |
+| A chamada diz que a conta está sem créditos | Adicione créditos em **Billing** na plataforma da API. Se seu plano do ChatGPT oferecer créditos, confirme o resgate e use uma chave da conta vinculada ao benefício. |
+| A chamada diz que a chave está sem permissão para o modelo de voz ao vivo | Crie uma chave com acesso a `gpt-live-1.1` e salve-a com `node aos.mjs openai-key`. |
+| A chamada diz que a OpenAI está limitando solicitações ou teve um problema no serviço | Aguarde um minuto e tente de novo. |
+| Você quer conferir a configuração | Rode `node aos.mjs doctor` e leia a linha **Voz ao vivo (chave da OpenAI)**. Confira o saldo separadamente na plataforma da API. |
+| O Windows pede para atualizar o serviço de voz | Use `node aos.mjs doctor` para identificar o serviço de voz em uso. Se estiver compartilhando um serviço antigo, atualize-o ou encerre-o na instalação de origem. Quando as suas tarefas terminarem, rode `node aos.mjs stop` e `node aos.mjs setup --voice yes` nesta instalação. |
+| O acesso ao microfone foi negado | Permita o microfone para o Obsidian nas configurações do sistema ou para `127.0.0.1:3217` no navegador. Confirme o microfone selecionado e inicie outra chamada. |
+| A reprodução de áudio foi bloqueada | Permita som e reprodução automática para o Jarvis no navegador ou confira a saída de áudio do Obsidian e o volume do sistema. Mantenha a janela em primeiro plano e inicie outra chamada. |
+| O medidor difere do consumo da OpenAI | A barra mostra uma estimativa. Quando o tempo em espera não vem separado, ela aplica a taxa ativa a todo o tempo informado. Confira a cobrança na conta da API vinculada à chave. |
 
-See [Live voice setup](LIVE-VOICE.md) for the settings and data disclosure.
+Consulte o [guia de voz ao vivo](LIVE-VOICE.md) para ver as opções e os dados enviados.
 
 ## Common situations
 

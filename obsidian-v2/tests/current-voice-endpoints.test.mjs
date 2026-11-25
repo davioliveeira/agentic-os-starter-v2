@@ -267,7 +267,7 @@ test('foreign-provider current changes and receipt replays cannot affect either 
  const f=fixture(t),codex=f.add(),claude=f.add('claude');for(const task of [codex,claude])setCurrent(f.root,f.terminals,{provider:task.provider,id:task.id});
  const id=crypto.randomUUID(),first=await f.voice('Research RubyGems',{id,targetId:codex.id});assert.equal(first.status,200);const before=f.state();
  const selected=await f.request('/work/current',{provider:'codex',id:claude.id});assert.equal(selected.status,400);
- const replay=await f.voice('Research RubyGems',{id,selection:{provider:'claude',model:'sonnet'}});assert.equal(replay.status,400);assert.match(replay.value.error,/different selection/);assert.deepEqual(f.state(),before);assert.equal(f.calls.length,1);
+ const replay=await f.voice('Research RubyGems',{id,selection:{provider:'claude',model:'sonnet'}});assert.equal(replay.status,400);assert.match(replay.value.error,/outra seleção/);assert.deepEqual(f.state(),before);assert.equal(f.calls.length,1);
 });
 
 test('native dispatch and web dispatch keep separate terminal owners and current maps',async t=>{
@@ -300,7 +300,7 @@ test('native control commands require native identity and authenticated reads',a
 test('an originating voice surface cannot be claimed by the other app',async t=>{
  const f=fixture(t,{scope:'native'});
  const result=await f.request('/voice/text',{transcript:'Create a visual explainer'},{'x-v2-app':'web','x-v2-request':crypto.randomUUID(),'x-v2-selection':JSON.stringify(chosen),'x-v2-work':JSON.stringify({targetId:null}),'x-v2-surface':f.client});
- assert.equal(result.status,400);assert.match(result.value.error,/another app/);assert.equal(f.calls.length,0);
+ assert.equal(result.status,400);assert.match(result.value.error,/outro aplicativo/);assert.equal(f.calls.length,0);
  const presence=await f.request('/voice/surface',{id:f.client,kind:'native',visible:true,mode:'idle'},{'x-v2-app':'web'});
  assert.equal(presence.status,400);assert.equal(f.hub.live().find(item=>item.id===f.client).kind,'native');
 });

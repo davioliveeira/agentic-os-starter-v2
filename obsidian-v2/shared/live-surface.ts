@@ -28,7 +28,7 @@ export class LiveHttpError extends Error {
 export async function liveJSON(request:LiveFetch,path:string,options?:RequestInit){
  const response=await request(path,options);
  let data;try{data=await response.json()}catch{}
- if(!response.ok)throw new LiveHttpError(response.status,typeof data?.error==='string'?data.error:'Live voice is unavailable.');
+ if(!response.ok)throw new LiveHttpError(response.status,typeof data?.error==='string'?data.error:'A voz ao vivo está indisponível.');
  return data;
 }
 export async function registeredStream(request:LiveFetch,lease:LiveSurfaceLease,signal:AbortSignal){
@@ -36,7 +36,7 @@ export async function registeredStream(request:LiveFetch,lease:LiveSurfaceLease,
  const response=await request('/voice/events?client='+encodeURIComponent(lease.surfaceId),{
   signal:AbortSignal.any([signal,deadline.signal]),headers:{'X-V2-Surface-Secret':lease.surfaceSecret}
  }).finally(()=>clearTimeout(timer));
- if(!response.ok||!response.body)throw new LiveHttpError(response.status,'Live surface connection could not open.');
+ if(!response.ok||!response.body)throw new LiveHttpError(response.status,'Não foi possível conectar esta janela à voz ao vivo.');
  return response.body.getReader();
 }
 export async function readSurfaceEvents(reader:ReadableStreamDefaultReader<Uint8Array>,onEvent:(event:any)=>void){
@@ -55,7 +55,7 @@ export async function readSurfaceEvents(reader:ReadableStreamDefaultReader<Uint8
     let event;try{event=JSON.parse(data)}catch{continue}
     onEvent(event);
    }
-   if(pending.length>65536)throw new Error('Live surface event was too large.');
+   if(pending.length>65536)throw new Error('Um evento da chamada excedeu o tamanho permitido.');
   }
  }finally{reader.releaseLock()}
 }

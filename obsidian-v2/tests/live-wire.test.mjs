@@ -67,7 +67,7 @@ test('a rejected session create keeps OpenAI\'s reason and never the key', async
  const transport = createLiveTransport({fetchImpl});
  await assert.rejects(transport.create(key, {}, new AbortController().signal), error => {
   assert.ok(error instanceof LiveCreateRejected);
-  assert.match(error.message, /^OpenAI rejected the Live session request \(HTTP 400 invalid_type: Invalid type for/);
+  assert.match(error.message, /^A OpenAI recusou a solicitação de sessão ao vivo \(HTTP 400 invalid_type: Invalid type for/);
   assert.doesNotMatch(error.message, /sk-/);
   return true;
  });
@@ -76,12 +76,12 @@ test('a rejected session create keeps OpenAI\'s reason and never the key', async
 test('a known rejection is said in plain words with what to do, and still never carries the key', async () => {
  const key = 'sk-proj-test' + 'y'.repeat(40);
  const reject = (status, code, message = 'detail ' + key) => createLiveTransport({fetchImpl: async () => new Response(JSON.stringify({error: {code, message}}), {status})}).create(key, {}, new AbortController().signal);
- const said = async (status, code) => { let text = ''; await assert.rejects(reject(status, code), error => { assert.ok(error instanceof LiveCreateRejected); text = error.message; return true; }); assert.doesNotMatch(text, /sk-/); assert.match(text, /^OpenAI rejected the Live session request/); return text; };
- assert.match(await said(401, 'invalid_api_key'), /did not accept the API key\. Run aos openai-key.*\(HTTP 401 invalid_api_key\)$/);
- assert.match(await said(429, 'insufficient_quota'), /has no credit\. Add credit under Billing.*ChatGPT Pro or Business claim the API credits your plan includes, then try again\. \(HTTP 429 insufficient_quota\)$/);
- assert.match(await said(429, 'rate_limit_exceeded'), /limiting requests.*Wait a minute/);
- assert.match(await said(404, 'model_not_found'), /not allowed to use the Live model \(gpt-live-1\.1\)/);
- assert.match(await said(503, ''), /problem on its side.*\(HTTP 503\)$/);
+ const said = async (status, code) => { let text = ''; await assert.rejects(reject(status, code), error => { assert.ok(error instanceof LiveCreateRejected); text = error.message; return true; }); assert.doesNotMatch(text, /sk-/); assert.match(text, /^A OpenAI recusou a solicitação de sessão ao vivo/); return text; };
+ assert.match(await said(401, 'invalid_api_key'), /não aceitou a chave de API\. Rode aos openai-key.*\(HTTP 401 invalid_api_key\)$/);
+ assert.match(await said(429, 'insufficient_quota'), /está sem créditos\. Adicione créditos em Billing.*resgate os créditos incluídos.*tente novamente\. \(HTTP 429 insufficient_quota\)$/);
+ assert.match(await said(429, 'rate_limit_exceeded'), /limitando as solicitações.*Aguarde um minuto/);
+ assert.match(await said(404, 'model_not_found'), /não tem permissão para usar o modelo de voz ao vivo \(gpt-live-1\.1\)/);
+ assert.match(await said(503, ''), /problema no serviço da OpenAI.*\(HTTP 503\)$/);
  assert.equal(liveRejection(400, 'invalid_type'), null);
 });
 
@@ -92,6 +92,6 @@ test('the key check tells accepted, refused, no model and unconfirmed apart with
  assert.equal((await check(401)).kind, 'refused');
  assert.equal((await check(404)).kind, 'no-model');
  assert.deepEqual(await check(403), {kind: 'unconfirmed', detail: 'HTTP 403'});
- assert.deepEqual(await checkLiveKey(key, {fetchImpl: async () => { throw new Error('offline ' + key); }}), {kind: 'unconfirmed', detail: 'OpenAI could not be reached'});
+ assert.deepEqual(await checkLiveKey(key, {fetchImpl: async () => { throw new Error('offline ' + key); }}), {kind: 'unconfirmed', detail: 'Não foi possível conectar à OpenAI'});
  assert.deepEqual(seen[0], ['https://api.openai.com/v1/models/gpt-live-1.1', true, 'GET']);
 });

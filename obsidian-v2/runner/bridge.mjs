@@ -194,7 +194,7 @@ server.on('request',async(req,res)=>{
    return json({error:'Native action not found'},404);
   }
   if(url.pathname==='/voice/events'&&req.method==='GET'){
-   const client=url.searchParams.get('client');if(!uuid(client)&&!liveBridge?.surfaces.registered(client))throw new Error('Invalid voice surface');
+   const client=url.searchParams.get('client');if(!uuid(client)&&!liveBridge?.surfaces.registered(client))throw new Error('Interface de voz inválida.');
    liveBridge?.surfaces.connect(client,appScope,req.headers['x-v2-surface-secret']);
    attachVoiceEvents(client,res,listeners,hub,id=>liveBridge?.surfaceGone(id));return;
   }
@@ -228,10 +228,10 @@ server.on('request',async(req,res)=>{
   if(['/voice/surface','/voice/ack','/voice/leave','/voice/announce'].includes(url.pathname)&&req.method==='POST'){
    const b=JSON.parse((await body(req)).toString());
    // A late heartbeat must not revive a surface that cannot receive events.
-   if(url.pathname==='/voice/surface'){verifySurface(b.id);if(b.kind!==appScope)throw new Error('Voice surface belongs to a different app.');if(!listeners.has(b.id)){hub.leave(b.id);return b.focus?json({error:'Voice connection is reconnecting. Try again.'},503):json(null)}return json(hub.presence(b))}
+   if(url.pathname==='/voice/surface'){verifySurface(b.id);if(b.kind!==appScope)throw new Error('A interface de voz pertence a outro aplicativo.');if(!listeners.has(b.id)){hub.leave(b.id);return b.focus?json({error:'A conexão de voz está se restabelecendo. Tente de novo.'},503):json(null)}return json(hub.presence(b))}
    if(url.pathname==='/voice/ack'){verifySurface(b.client);hub.ack(b.id,b.client,!!b.ok);return json({ok:true})}
    if(url.pathname==='/voice/leave'){verifySurface(b.id);hub.leave(b.id);liveBridge?.surfaceGone(b.id);return json({ok:true})}
-   if(typeof b.id!=='string'||b.id.length>400||typeof b.text!=='string'||b.text.length>2000)throw new Error('Invalid announcement');
+   if(typeof b.id!=='string'||b.id.length>400||typeof b.text!=='string'||b.text.length>2000)throw new Error('Anúncio inválido.');
    // The terminal publisher already announces these runs with full answer text.
    const runId=b.id.startsWith('run:')?b.id.slice(4):null;
    const record=runId?terminals.records.get(runId):null;
@@ -294,10 +294,10 @@ server.on('request',async(req,res)=>{
   if(url.pathname==='/voice/voices'&&req.method==='GET'){let service=null;try{const answer=await fetch(`${speech}/voices`,{signal:AbortSignal.timeout(3000)});if(answer.ok)service=await answer.json()}catch{}return json(voiceChoices(service))}
   if(url.pathname==='/voice/config'){
    if(req.method==='GET')return json(VOICE_MODELS);
-   if(req.method==='POST')return json({error:'Voice routing is fixed: Luna for Codex, Haiku for Claude.'},405);
+   if(req.method==='POST')return json({error:'A voz usa sempre Luna para o Codex e Haiku para o Claude.'},405);
   }
   if(url.pathname==='/voice/health'&&req.method==='GET'){const s=await speechHealth();return json({ok:!!s?.ok&&!!s?.stt?.ok,engine:'Whisper / Kokoro',speech:s,worker:!!health(root)})}
-  if(url.pathname==='/voice/cancel'&&req.method==='POST'){const b=JSON.parse((await body(req)).toString());if(!uuid(b.id))throw new Error('Invalid request ID');writeJson(root,`${ROOT}/voice-cancelled/${b.id}.json`,{ts:Date.now()});active.get(b.id)?.abort();return json({ok:true})}
+  if(url.pathname==='/voice/cancel'&&req.method==='POST'){const b=JSON.parse((await body(req)).toString());if(!uuid(b.id))throw new Error('ID da solicitação inválido.');writeJson(root,`${ROOT}/voice-cancelled/${b.id}.json`,{ts:Date.now()});active.get(b.id)?.abort();return json({ok:true})}
   if(url.pathname==='/voice/transcript'){
    const since=readJson(root,`${ROOT}/voice-clear.json`,{ts:0}).ts;
    const records=list('voice-results').filter(r=>r.ts>since&&voiceReceiptTransport(r)==='local').sort((a,b)=>a.ts-b.ts).slice(-30);if(req.method==='GET')return json({path:'system/voice/transcript',content:records.map(r=>`**Você (${r.provider}):** ${r.transcript}\n\n**Agente (${r.model||'comando direto'}):** ${r.reply}`).join('\n\n---\n\n')||'Ainda não há pedidos por voz.'});
@@ -305,14 +305,14 @@ server.on('request',async(req,res)=>{
    if(req.method==='DELETE'){writeJson(root,`${ROOT}/voice-clear.json`,{ts:Date.now()});return json({ok:true})}
   }
   if(url.pathname==='/voice/speak'&&['POST','GET'].includes(req.method)){
-   const b=req.method==='GET'?{text:url.searchParams.get('text')}:JSON.parse((await body(req)).toString());if(typeof b.text!=='string'||!b.text.trim()||b.text.length>2000)throw new Error('Invalid speech text');
+   const b=req.method==='GET'?{text:url.searchParams.get('text')}:JSON.parse((await body(req)).toString());if(typeof b.text!=='string'||!b.text.trim()||b.text.length>2000)throw new Error('Texto inválido para leitura em voz alta.');
    // Spoken replies switched off for this vault: no audio is ever sent, whatever a screen believed. The
    // screens treat this answer as "said, silently".
    if(liveBridge?.calls.audioHeld||!readVoicePrefs(root).spokenReplies)return json({muted:true});
    const stop=new AbortController();res.on('close',()=>stop.abort());localPlaybacks?.add(stop);
    try{// A GET is the player that plays audio as it arrives: it is sent sentence by sentence (voice-speed.mjs).
    // A POST is the buffered fallback, which decodes one complete file and keeps getting exactly that.
-   const out=await fetch(`${speech}/speak?text=${encodeURIComponent(speechText(spokenFlow(selectSpokenAnswer(b.text,{mode:'reply'}))))}${speakStreamQuery(req.method)}${speakPrefsQuery(readVoicePrefs(root))}`,{signal:AbortSignal.any([stop.signal,AbortSignal.timeout(60000)])});if(!out.ok)throw new Error('Local speech playback is unavailable');
+   const out=await fetch(`${speech}/speak?text=${encodeURIComponent(speechText(spokenFlow(selectSpokenAnswer(b.text,{mode:'reply'}))))}${speakStreamQuery(req.method)}${speakPrefsQuery(readVoicePrefs(root))}`,{signal:AbortSignal.any([stop.signal,AbortSignal.timeout(60000)])});if(!out.ok)throw new Error('A reprodução de voz local está indisponível.');
    res.writeHead(200,{'Content-Type':'audio/wav'});
    // A reply that broke off while being spoken is cut, not ended: the player then reports an interruption
    // instead of treating half a reply as the whole one.
@@ -322,7 +322,7 @@ server.on('request',async(req,res)=>{
   }
   if(['/voice/audio','/voice/text'].includes(url.pathname)&&req.method==='POST'){
    const surface=req.headers['x-v2-surface'];verifySurface(surface);
-   if(liveBridge?.calls.audioHeld&&(url.pathname==='/voice/audio'||liveBridge.calls.call.ownerSurface!==surface||liveBridge.calls.call.appScope!==appScope))throw new Error('Live call in progress.');
+   if(liveBridge?.calls.audioHeld&&(url.pathname==='/voice/audio'||liveBridge.calls.call.ownerSurface!==surface||liveBridge.calls.call.appScope!==appScope))throw new Error('Há uma chamada ao vivo em andamento.');
    return await handleVoiceHttp({root,terminals,hub,artifacts,artifactTarget,active,speech},req,res,{body,json,appScope,source:url.pathname==='/voice/audio'?'audio':'text'});
   }
   json({error:'Not found'},404);

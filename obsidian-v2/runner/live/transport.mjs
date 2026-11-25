@@ -5,11 +5,11 @@ export class LiveCreateRejected extends Error{}
 export const LIVE_MODEL='gpt-live-1.1';
 // What a member can do about OpenAI's answer, or null when the answer is not one of the known cases.
 export function liveRejection(status,code=''){
- if(status===401)return {kind:'refused',text:'OpenAI did not accept the API key. Run aos openai-key and enter a current key from platform.openai.com/api-keys'};
- if(code==='insufficient_quota'||code==='billing_not_active')return {kind:'no-credit',text:'the OpenAI API account for this key has no credit. Add credit under Billing at platform.openai.com, or on ChatGPT Pro or Business claim the API credits your plan includes, then try again'};
- if(status===429)return {kind:'busy',text:'OpenAI is limiting requests for this account right now. Wait a minute and try again'};
- if(status===403||status===404||code==='model_not_found')return {kind:'no-model',text:'this key is not allowed to use the Live model ('+LIVE_MODEL+'). Check the key\'s project and permissions at platform.openai.com'};
- if(status>=500)return {kind:'openai-down',text:'OpenAI had a problem on its side. Try again in a minute'};
+ if(status===401)return {kind:'refused',text:'A OpenAI não aceitou a chave de API. Rode aos openai-key e use uma chave válida de platform.openai.com/api-keys'};
+ if(code==='insufficient_quota'||code==='billing_not_active')return {kind:'no-credit',text:'a conta da API da OpenAI associada a esta chave está sem créditos. Adicione créditos em Billing, em platform.openai.com, ou resgate os créditos incluídos se seu plano ChatGPT oferecer esse benefício. Depois, tente novamente'};
+ if(status===429)return {kind:'busy',text:'a OpenAI está limitando as solicitações desta conta. Aguarde um minuto e tente de novo'};
+ if(status===403||status===404||code==='model_not_found')return {kind:'no-model',text:'esta chave não tem permissão para usar o modelo de voz ao vivo ('+LIVE_MODEL+'). Confira o projeto e as permissões da chave em platform.openai.com'};
+ if(status>=500)return {kind:'openai-down',text:'houve um problema no serviço da OpenAI. Tente novamente em um minuto'};
  return null;
 }
 // Asks OpenAI whether it accepts this key and shows it the Live model. It cannot see credit: only a call can.
@@ -17,7 +17,7 @@ export function liveRejection(status,code=''){
 export async function checkLiveKey(key,{httpOrigin=origin,fetchImpl=globalThis.fetch,timeoutMs=8000}={}){
  let response;
  try{response=await fetchImpl(httpOrigin+'/v1/models/'+LIVE_MODEL,{redirect:'error',headers:{Authorization:'Bearer '+key},signal:AbortSignal.timeout(timeoutMs)})}
- catch{return {kind:'unconfirmed',detail:'OpenAI could not be reached'}}
+ catch{return {kind:'unconfirmed',detail:'Não foi possível conectar à OpenAI'}}
  try{await response.body?.cancel()}catch{}
  if(response.ok)return {kind:'accepted',detail:''};
  if(response.status===401)return {kind:'refused',detail:'HTTP 401'};
@@ -34,16 +34,16 @@ export function createLiveTransport({httpOrigin=origin,wsOrigin=httpOrigin.repla
     reason=reason.split(key).join('').replace(/sk-[A-Za-z0-9_-]{8,}/g,'').replace(/\s+/g,' ').slice(0,180);
     // A known cause is said in plain words with what to do; anything else keeps OpenAI's own reason.
     const known=liveRejection(response.status,code);
-    if(known)throw new LiveCreateRejected('OpenAI rejected the Live session request: '+known.text+'. (HTTP '+response.status+(/^[a-z_]{1,40}$/.test(code)?' '+code:'')+')');
-    throw new LiveCreateRejected('OpenAI rejected the Live session request (HTTP '+response.status+(reason?' '+reason:'')+').');
+    if(known)throw new LiveCreateRejected('A OpenAI recusou a solicitação de sessão ao vivo: '+known.text+'. (HTTP '+response.status+(/^[a-z_]{1,40}$/.test(code)?' '+code:'')+')');
+    throw new LiveCreateRejected('A OpenAI recusou a solicitação de sessão ao vivo (HTTP '+response.status+(reason?' '+reason:'')+').');
    }
    const data=await response.json(),id=data?.session?.id;
-   if(!sessionId(id))throw new Error('Live session response did not include a session ID.');
+   if(!sessionId(id))throw new Error('A resposta da chamada ao vivo veio sem o ID da sessão.');
    // Keep a valid ID even if the SDP is missing so recovery can close it.
    return {id,answerSdp:data.transport?.sdp??data.transport?.answer_sdp??data.answer_sdp??data.sdp};
   },
   attach(key,id,{signal,onEvent,onLoss}){
-   if(!sessionId(id))throw new Error('Invalid Live session ID.');
+   if(!sessionId(id))throw new Error('O ID da sessão ao vivo é inválido.');
    return new Promise((resolve,reject)=>{
     if(signal.aborted)return reject(signal.reason);
     // Node 22's WebSocket accepts the Undici WebSocketInit dictionary.
@@ -52,7 +52,7 @@ export function createLiveTransport({httpOrigin=origin,wsOrigin=httpOrigin.repla
     const forget=()=>signal.removeEventListener('abort',abort);
     const close=()=>{intentional=true;forget();try{socket.close()}catch{}};
     const abort=()=>{close();if(!opened)reject(signal.reason)};
-    const loss=()=>{if(lost||intentional)return;lost=true;close();if(opened)onLoss();else reject(new Error('Live sideband could not attach.'))};
+    const loss=()=>{if(lost||intentional)return;lost=true;close();if(opened)onLoss();else reject(new Error('Não foi possível abrir a conexão auxiliar da chamada.'))};
     signal.addEventListener('abort',abort,{once:true});
     socket.addEventListener('open',()=>{if(intentional)return;opened=true;forget();resolve({send:event=>socket.send(JSON.stringify(event)),close})},{once:true});
     socket.addEventListener('message',({data})=>{if(intentional||typeof data!=='string'||data.length>1000000)return;let event;try{event=JSON.parse(data)}catch{return}onEvent(event)});

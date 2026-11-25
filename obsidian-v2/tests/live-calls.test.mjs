@@ -183,7 +183,7 @@ test('Live create persists the ID before bearer-authenticated attach and waits f
  f.api.event('session.usage.updated',{usage:{seconds:30}});
  await until(()=>call.ready);
  assert.equal((await call.updates.poll(0)).events[0].type,'ready');
- assert.deepEqual(f.calls.status(null),{state:'in-progress',message:'Live call in Obsidian'});
+ assert.deepEqual(f.calls.status(null),{state:'in-progress',message:'Chamada ao vivo no Obsidian'});
  f.api.event('session.delegation.created',{event_id:'same-event',delegation:{id:'one'}});
  f.api.event('session.delegation.created',{event_id:'same-event',delegation:{id:'should-not-exist'}});
  f.api.event('session.usage.updated',{event_id:'dedupe-tail',usage:{seconds:30}});
@@ -200,39 +200,39 @@ test('Live create persists the ID before bearer-authenticated attach and waits f
 test('Live start refuses consent, mode, ownership, Local overlap, and unresolved calls',async t=>{
  const f=await fixture(t,{confirmClose:false});
  f.change({authorized:false});await assert.rejects(f.start(),/consent/i);
- f.change({authorized:true});f.prefs.voiceMode='local';await assert.rejects(f.start(),/Select Live/);
- f.prefs.voiceMode='live';f.change({owner:false});await assert.rejects(f.start(),/voice owner/);
- f.change({owner:true,busy:true});await assert.rejects(f.start(),/Local voice/);f.change({busy:false});
+ f.change({authorized:true});f.prefs.voiceMode='local';await assert.rejects(f.start(),/selecione a voz ao vivo/);
+ f.prefs.voiceMode='live';f.change({owner:false});await assert.rejects(f.start(),/selecione esta janela/);
+ f.change({owner:true,busy:true});await assert.rejects(f.start(),/voz local em andamento/);f.change({busy:false});
  assert.equal(f.api.requests.length,0);await f.start();
- await assert.rejects(f.start(),/Still closing/);
+ await assert.rejects(f.start(),/chamada anterior ainda está sendo encerrada/);
  const stopped=f.calls.invalidate('Stopped');
  await until(()=>f.api.commands.some(({command})=>command.type==='session.close'));
  f.deadlines.advance(f.calls.limits.close);await stopped;
- await assert.rejects(f.start(),/Still closing/);
+ await assert.rejects(f.start(),/chamada anterior ainda está sendo encerrada/);
  f.advance(7200000);await f.calls.sweep();
  assert.equal(f.calls.recovery.cleanup.length,0);assert.equal(f.calls.usage.rows.get('fixture-session-1').state,'unconfirmed');
 });
 
 test('a lost create uses the cooldown and the 15-second estimate without retrying the create',async t=>{
  const f=await fixture(t,{onCreate:async()=>false});
- const timedOut=assert.rejects(f.start(),/unconfirmed/);
+ const timedOut=assert.rejects(f.start(),/confirmar a criação/);
  await until(()=>f.api.requests.length===1);f.deadlines.advance(f.calls.limits.create);
- await timedOut;await assert.rejects(f.start(),/cooling down/);
+ await timedOut;await assert.rejects(f.start(),/conexão anterior não foi confirmada/);
  assert.equal(f.api.requests.length,1);
  const [row]=f.calls.usage.rows.values();assert.equal(row.state,'unconfirmed');assert.equal(row.seconds,15);
- const restart=new LiveCalls(f.deps);await assert.rejects(restart.start({ownerSurface:'fixture',appScope:'native',sdp:'offer'}),/cooling down/);
+ const restart=new LiveCalls(f.deps);await assert.rejects(restart.start({ownerSurface:'fixture',appScope:'native',sdp:'offer'}),/conexão anterior não foi confirmada/);
 });
 test('an explicit create rejection releases the slot without starting a cooldown',async t=>{
  const f=await fixture(t,{onCreate:async({res})=>{res.writeHead(403).end();return false}});
- await assert.rejects(f.start(),/OpenAI rejected/);
- await assert.rejects(f.start(),/OpenAI rejected/);
+ await assert.rejects(f.start(),/A OpenAI recusou/);
+ await assert.rejects(f.start(),/A OpenAI recusou/);
  assert.equal(f.api.requests.length,2);assert.equal(f.calls.recovery.call,null);assert.equal(f.calls.usage.rows.size,0);
 });
 
 test('a late create success after owner invalidation persists and closes without returning SDP',async t=>{
  let finishCreate;
  const f=await fixture(t,{onCreate:()=>new Promise(resolve=>{finishCreate=resolve})});
- const refused=assert.rejects(f.start(),/could not be completed/);
+ const refused=assert.rejects(f.start(),/concluir a conexão/);
  await until(()=>finishCreate);await f.calls.invalidate('Owner changed.');
  assert.deepEqual(f.status(),{hold:1,release:1});
  finishCreate(true);await refused;
@@ -243,7 +243,7 @@ test('a late create success after owner invalidation persists and closes without
 test('attach timeout, readiness timeout, and closed as the first event all unwind',async t=>{
  await t.test('attach timeout',async t=>{
   const f=await fixture(t,{onAttach:(_attach,accept)=>{if(f.api.attaches.length>1)accept()}});
-  const timedOut=assert.rejects(f.start(),/attach timed out/);
+  const timedOut=assert.rejects(f.start(),/conexão auxiliar da chamada excedeu o tempo limite/);
   await until(()=>f.api.attaches.length===1);f.deadlines.advance(f.calls.limits.attach);
   await timedOut;assert.equal(f.api.attaches.length,2);assert.equal(f.calls.recovery.call,null);
  });
@@ -469,7 +469,7 @@ test('registered surfaces protect presence, focus, leave, artifacts, announcemen
  const started=(await request('/voice/live/start',{payload:{surfaceId:first.surfaceId,surfaceSecret:first.surfaceSecret,sdp:'offer'}})).value;
  const callHeaders={'x-v2-surface':first.surfaceId,'x-v2-call':started.callSecret};
  assert.equal((await request('/voice/live/status',{method:'GET',headers:{'x-v2-token':undefined}})).status,401);
- assert.deepEqual((await request('/voice/live/status',{method:'GET',headers:secondSecret})).value,{state:'in-progress',message:'Live call in HUD'});
+ assert.deepEqual((await request('/voice/live/status',{method:'GET',headers:secondSecret})).value,{state:'in-progress',message:'Chamada ao vivo no Jarvis'});
  assert.equal((await request('/voice/live/stop',{headers:secondSecret})).status,403);
  assert.equal((await request('/voice/live/context',{method:'GET',headers:callHeaders})).value.conversationEpoch,3);
  assert.equal((await request('/voice/live/context',{headers:callHeaders,payload:{selection:{provider:'claude',model:'sonnet'},workTarget:null,appScope:'web',conversationEpoch:3,peerConnected:true}})).status,200);

@@ -100,11 +100,11 @@ export class LiveSession {
    if(this.disposed||this.call!==call)return;
    const capable=this.options.media||runtimeOK();
    this.publish({occupied:!call&&value?.state==='in-progress'?String(value.message):null,
-    unavailable:!capable?'Live voice needs WebRTC and microphone access in this window.':value?.authorization?.ready===false?String(value.authorization.reason||'Live voice is unavailable.'):null,
+    unavailable:!capable?'A voz ao vivo precisa de WebRTC e acesso ao microfone nesta janela.':value?.authorization?.ready===false?String(value.authorization.reason||'A voz ao vivo está indisponível.'):null,
     ...(call&&typeof value?.cost?.usd==='number'?{cost:value.cost.usd}:{})});
-   if(call?.secret&&['idle','in-progress'].includes(value?.state))this.lost(call,'The bridge ended this Live call.');
+   if(call?.secret&&['idle','in-progress'].includes(value?.state))this.lost(call,'A ponte encerrou a chamada de voz ao vivo.');
   }catch(error){
-   if(!this.disposed&&!this.call)this.publish({occupied:null,unavailable:'Live voice status is unavailable.'});
+   if(!this.disposed&&!this.call)this.publish({occupied:null,unavailable:'Não foi possível verificar o estado da voz ao vivo.'});
   }finally{this.statusBusy=false}
  }
  private visible(){return this.options.visible?.()??(!inBrowser()||!document.hidden)}
@@ -113,7 +113,7 @@ export class LiveSession {
   return {'X-V2-Surface':call.lease.surfaceId,'X-V2-Surface-Secret':call.lease.surfaceSecret,...(call.secret?{'X-V2-Call':call.secret}:{})};
  }
  private active(call:Call){return this.call===call&&!call.abort.signal.aborted}
- private check(call:Call){if(!this.active(call))throw new Error('Live voice was interrupted.')}
+ private check(call:Call){if(!this.active(call))throw new Error('A voz ao vivo foi interrompida.')}
  private request(call:Call,path:string,body?:unknown){
   const timeout=path.startsWith('/voice/live/updates?')?26000:path==='/voice/live/start'?52000:path==='/voice/live/rollover'?35000:5000;
   const signal=AbortSignal.any([call.abort.signal,AbortSignal.timeout(timeout)]);
@@ -126,13 +126,13 @@ export class LiveSession {
    this.check(call);
    try{
     const lease=await liveJSON(this.options.fetch,'/voice/surface/register',jsonPost({},{signal:AbortSignal.any([signal,AbortSignal.timeout(5000)])}));
-    if(typeof lease?.surfaceId!=='string'||typeof lease?.surfaceSecret!=='string')throw new Error('Invalid Live surface registration.');
+    if(typeof lease?.surfaceId!=='string'||typeof lease?.surfaceSecret!=='string')throw new Error('O registro desta janela para a chamada é inválido.');
     this.check(call);call.lease=lease;
     // Its own signal: on hang-up the stream closes only after the stop request, so the bridge logs the real reason.
     call.reader=await registeredStream(this.options.fetch,lease,call.stream.signal);
     this.check(call);
     void readSurfaceEvents(call.reader,event=>this.surfaceEvent(call,event)).then(
-     ()=>this.lost(call,'Live voice connection was lost.'),()=>this.lost(call,'Live voice connection was lost.'));
+     ()=>this.lost(call,'A conexão com a voz ao vivo foi perdida.'),()=>this.lost(call,'A conexão com a voz ao vivo foi perdida.'));
     return;
    }catch(error){
     const lease=call.lease;call.lease=null;
@@ -161,7 +161,7 @@ export class LiveSession {
   if(this.heartbeatBusy)return;
   this.heartbeatBusy=true;
   try{await this.presence(call);if(this.active(call)){call.lastBeat=Date.now();void this.artifactTick(call)}}
-  catch(error){if(error instanceof LiveHttpError&&[400,401,403].includes(error.status))this.lost(call,'Live voice connection was lost.')}
+  catch(error){if(error instanceof LiveHttpError&&[400,401,403].includes(error.status))this.lost(call,'A conexão com a voz ao vivo foi perdida.')}
   finally{this.heartbeatBusy=false}
  }
  // The orb and the voice hotkey start a call or wake a muted one. They never end it: only End call (stop) does.
@@ -197,7 +197,7 @@ export class LiveSession {
   }catch(error){
    if(!this.active(call))return;
    const named=error as {name?:string;message?:string};
-   this.lost(call,named.name==='NotAllowedError'?'Microphone access was denied. Allow it for this app and try again.':named.message||'Live voice could not start.');
+   this.lost(call,named.name==='NotAllowedError'?'O acesso ao microfone foi negado. Permita o acesso neste aplicativo e tente novamente.':named.message||'Não foi possível iniciar a chamada de voz ao vivo.');
   }
  }
  private async artifactTick(call:Call){
@@ -221,7 +221,7 @@ export class LiveSession {
   const sdp=await stage.peer.offer(call.abort.signal);this.check(call);
   const lease=call.lease!;
   const reply=await this.request(call,rollover?'/voice/live/rollover':'/voice/live/start',{...lease,sdp});this.check(call);
-  if(typeof reply?.answerSdp!=='string'||typeof reply?.callSecret!=='string'||!Number.isSafeInteger(reply.gen))throw new Error('The bridge returned an invalid Live answer.');
+  if(typeof reply?.answerSdp!=='string'||typeof reply?.callSecret!=='string'||!Number.isSafeInteger(reply.gen))throw new Error('A ponte retornou uma resposta inválida ao conectar a chamada.');
   stage.gen=reply.gen;call.secret=reply.callSecret;if(!rollover)call.gen=stage.gen;
   await stage.peer.answer(reply.answerSdp);this.check(call);
   if(!rollover){stage.peer.select();this.pushContext()}
@@ -231,12 +231,12 @@ export class LiveSession {
   if(!stage||!this.active(call)||stage.gen===null||stage!==call.peer&&stage!==call.next)return;
   const state=stage.peer.state;
   if(state==='failed'||state==='closed'){
-   if(stage===call.next){this.dropReplacement(call);this.onError('The Live audio connection could not be renewed.');return}
-   if(!call.next?.connected){this.lost(call,'Live audio connection was lost.');return}
+   if(stage===call.next){this.dropReplacement(call);this.onError('Não foi possível renovar a conexão de áudio da chamada.');return}
+   if(!call.next?.connected){this.lost(call,'A conexão de áudio da chamada foi perdida.');return}
   }
   if(state==='disconnected'||state==='failed'||state==='closed'){stage.timer??=setTimeout(()=>{
-   if(stage===call.next){this.dropReplacement(call);this.onError('The Live audio connection could not be renewed.')}
-   else if(stage===call.peer)this.lost(call,'Live audio connection was lost.');
+   if(stage===call.next){this.dropReplacement(call);this.onError('Não foi possível renovar a conexão de áudio da chamada.')}
+   else if(stage===call.peer)this.lost(call,'A conexão de áudio da chamada foi perdida.');
   },5000);return}
   clearTimeout(stage.timer);stage.timer=undefined;
   if(state!=='connected'||stage.connected)return;
@@ -275,22 +275,22 @@ export class LiveSession {
     const result=await this.request(call,`/voice/live/updates?cursor=${call.cursor}`);this.check(call);
     for(const event of Array.isArray(result?.events)?result.events:[]){
      if(!Number.isSafeInteger(event?.seq)||event.seq<=call.cursor)continue;
-     if(event.seq!==call.cursor+1)throw new Error('A Live update was missing.');
+     if(event.seq!==call.cursor+1)throw new Error('Faltou uma atualização da chamada.');
      call.cursor=event.seq;this.event(call,event);
      if(!this.active(call))return;
     }
     backoff=250;lastSuccess=Date.now();
    }catch(error){
     if(!this.active(call))return;
-    if(error instanceof LiveHttpError&&[401,403].includes(error.status)||Date.now()-lastSuccess>45000){this.lost(call,'Live voice connection was lost.');return}
+    if(error instanceof LiveHttpError&&[401,403].includes(error.status)||Date.now()-lastSuccess>45000){this.lost(call,'A conexão com a voz ao vivo foi perdida.');return}
     await wait(backoff,call.abort.signal);backoff=Math.min(4000,backoff*2);
    }
   }
  }
  private event(call:Call,event:any){
   if(event.type==='teardown'){
-   const reason=typeof event.reason==='string'?event.reason:'Live call ended.';
-   this.lost(call,reason,/voice service restarted/i.test(reason));return;
+   const reason=typeof event.reason==='string'?event.reason:'A chamada de voz ao vivo terminou.';
+   this.lost(call,reason,/serviço de voz reiniciou|voice service restarted/i.test(reason));return;
   }
   if(event.type==='hotkey'){if(call.standbyMuted)void this.setMuted(false);return}
   if(event.type==='completion'&&typeof event.label==='string'&&typeof event.text==='string'){
@@ -300,7 +300,7 @@ export class LiveSession {
   if(event.type==='rollover'){if(!call.next)void this.rollover(call);return}
   if(event.type==='rollover-failed'){
    this.dropReplacement(call);
-   this.onError('The Live connection could not be renewed.');return;
+   this.onError('Não foi possível renovar a conexão da chamada.');return;
   }
   if(typeof event.gen==='number'&&event.gen!==call.gen&&event.gen!==call.next?.gen)return;
   if(event.type==='ready'){
@@ -323,7 +323,7 @@ export class LiveSession {
   }else{
    const effect=event.reply&&typeof event.reply==='object'?event.reply:event;
    if(event.type==='effect'||event.type==='reply'||effect.panels||effect.reveals||effect.deliverable||effect.obsidian||effect.workIds){
-    void Promise.resolve().then(()=>this.active(call)&&this.onEffect(effect)).catch(()=>this.onError('The Live reply could not be displayed.'));
+    void Promise.resolve().then(()=>this.active(call)&&this.onEffect(effect)).catch(()=>this.onError('Não foi possível exibir a resposta da voz ao vivo.'));
    }
   }
  }
@@ -346,7 +346,7 @@ export class LiveSession {
   }catch(error){
    if(!this.active(call))return;
    this.dropReplacement(call);
-   this.onError((error as Error).message||'The Live connection could not be renewed.');
+   this.onError((error as Error).message||'Não foi possível renovar a conexão da chamada.');
   }
  }
  private dropReplacement(call:Call){
@@ -401,7 +401,7 @@ export class LiveSession {
   }catch(error){if(!confirm&&this.snapshot.staged===staged)this.publish({staged:null});this.onError((error as Error).message)}
  }
  async report(path:string):Promise<{path:string;content:string}>{
-  const call=this.call;if(!call?.secret)throw new Error('This Live call has ended.');
+  const call=this.call;if(!call?.secret)throw new Error('A chamada de voz ao vivo terminou.');
   return this.request(call,'/voice/live/report?path='+encodeURIComponent(path));
  }
  dismissCompletion(seq:number){this.publish({completions:this.snapshot.completions?.filter(card=>card.seq!==seq)})}

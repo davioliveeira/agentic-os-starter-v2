@@ -115,9 +115,9 @@ test('turn assembly uses offsets, includes delayed fragments before the anchor, 
 
 test('delegations register before settling, route anchored text once, and refuse missing or stale context',async t=>{
  const f=await fixture(t,{context:false});await f.start();
- let id=f.turn('Open the dashboard');await f.say('Say that again',id);await f.idle();assert.equal(f.requests.length,0);
+ let id=f.turn('Open the dashboard');await f.say('Repita o pedido',id);await f.idle();assert.equal(f.requests.length,0);
  await f.post('/voice/live/context',{...f.saved(),conversationEpoch:4});
- id=f.turn('Open the dashboard');await f.say('Say that again',id);await f.idle();assert.equal(f.requests.length,0);
+ id=f.turn('Open the dashboard');await f.say('Repita o pedido',id);await f.idle();assert.equal(f.requests.length,0);
  await f.post('/voice/live/context',f.saved());
  const anchor=f.input('Open the', {offset_ms:100});
  f.delegate('anchored',140);
@@ -161,9 +161,9 @@ test('voice affirmation waits for its undo window, commits once, and never accep
  const f=await fixture(t);await f.start();
  let id=f.turn('Yes');await f.say('Diga o que você quer que eu faça.',id);await f.idle();
  const staged=await f.stage('Run morning intel');assert.equal(staged.mode,'voice');
- assert.match((await f.say('Say yes to go ahead.')).content,/^Just to check/);assert.equal(f.work.length,0);
+ assert.match((await f.say('Diga sim para prosseguir.')).content,/^Só para confirmar/);assert.equal(f.work.length,0);
  const affirmedAt=f.now();
- id=f.turn('Yes please');await f.say('Starting ',id);assert.equal(f.work.length,0);
+ id=f.turn('Sim');await f.say('Começando: ',id);assert.equal(f.work.length,0);
  await f.idle();
  assert.equal(f.call.staged.undoUntil,affirmedAt+1500);
  f.advance(affirmedAt+1499-f.now());assert.equal(f.work.length,0);
@@ -179,7 +179,7 @@ test('voice affirmation waits for its undo window, commits once, and never accep
 test('auto announces and stages a cancel-only action, then commits once at 2500 ms',async t=>{
  const f=await fixture(t,{mode:'auto'});await f.start();
  const stage=await f.stage('Run morning intel');await f.idle();
- assert.match((await f.say('Starting ')).content,/^Starting .+…$/);
+ assert.match((await f.say('Começando: ')).content,/^Começando: .+…$/);
  const update=f.call.updates.events.find(event=>event.type==='staged');
  assert.equal(update.mode,'auto');assert.equal(update.actionId,stage.actionId);
  assert.equal(update.expiresAt,f.now()+2500);
@@ -194,7 +194,7 @@ test('auto announces and stages a cancel-only action, then commits once at 2500 
 for(const mode of ['auto','voice']){
  async function arm(f){
   const stage=await f.stage('Run morning intel');await f.idle();
-  if(mode==='voice'){const id=f.turn('Yes');await f.say('Starting ',id);await f.idle()}
+  if(mode==='voice'){const id=f.turn('Yes');await f.say('Começando: ',id);await f.idle()}
   return stage;
  }
  test(`${mode} keeps the action armed during thanks and routes an independent inbox request`,async t=>{
@@ -214,18 +214,18 @@ for(const mode of ['auto','voice']){
  });
  test(`${mode} catches standalone, trailing and split cancellations at the end of the window`,async t=>{
   const f=await fixture(t,{mode});await f.start();
-  const phrases=[['wait'],['stop'],['okay wait'],['no stop'],['hang on, cancel that'],['ca','ncel']];
+  const phrases=[['wait'],['stop'],['okay wait'],['no stop'],['hang on, cancel that'],['ca','ncel'],['espera'],['pare'],['tá bom, espera'],['não, cancela'],['can','cela']];
   for(const deltas of phrases){
    const stage=await arm(f);f.advance(stage.undoUntil-f.now()-1);
    for(const delta of deltas){
     const offset=f.input(delta,{turn_id:'cancel-'+stage.actionId});
-    if(delta==='ca'){
+    if(delta==='ca'||delta==='can'){
      assert.equal(f.call.staged,stage);
      f.emit('session.output_transcript.delta',{offset_ms:offset+1,delta:'Starting the task.'});
     }
    }
    assert.equal(f.call.staged,null);
-   const id=f.delegate();f.advance(200);await f.say('Cancelled.',id);await f.idle();
+   const id=f.delegate();f.advance(200);await f.say('Cancelado.',id);await f.idle();
    assert.deepEqual(f.work,[]);
   }
   assert.equal(f.requests.length,phrases.length);
@@ -241,10 +241,10 @@ for(const mode of ['auto','voice']){
    f.advance(200);await f.idle();return id;
   }
   await requestWhileSettling(['ca','ncel']);
-  const cancel=f.delegate();f.advance(200);await f.say('Cancelled.',cancel);await f.idle();
+  const cancel=f.delegate();f.advance(200);await f.say('Cancelado.',cancel);await f.idle();
   assert.equal(f.call.staged,null);assert.equal(f.work.length,0);
   const id=await requestWhileSettling(['great thanks']);
-  await f.say('Starting ',id);
+  await f.say('Começando: ',id);
   f.advance(f.call.staged.undoUntil-f.now());await f.idle();assert.equal(f.work.length,1);
  });
 }
@@ -260,7 +260,7 @@ test('a follow-up using the shared router at the undo deadline cannot discard th
  const first=await f.stage('Run morning intel');await f.idle();
  const id=f.turn('Check my inbox');await until(()=>f.active.size);
  f.advance(first.undoUntil-f.now());assert.equal(f.call.staged,null);
- gate.resolve();await f.say('Starting Check my inbox',id);await f.idle();
+ gate.resolve();await f.say('Começando: Check my inbox',id);await f.idle();
  assert.deepEqual(commits,['Run morning intel']);
  f.advance(2500);await f.idle();assert.deepEqual(commits,['Run morning intel','Check my inbox']);
 });
@@ -273,8 +273,8 @@ for(const affirmation of ['go ahead','Okay, go ahead'])test(`a fresh spoken offe
  f.emit('session.output_transcript.delta',{turn_id:'offer',offset_ms:26,delta:' '});
  f.emit('session.output_transcript.delta',{turn_id:'offer',offset_ms:28,delta:'task on the Riemann hypothesis?'});
  for(const delta of [affirmation.slice(0,-6),' ','ahead'])f.input(delta,{turn_id:'accept'});
- f.delegate();f.advance(200);await f.say('Starting ');await f.idle();
- assert.equal(f.requests[0].request.transcript,`Do what you just offered. You said: "${offer}". The user replied: "${affirmation}".`);
+ f.delegate();f.advance(200);await f.say('Começando: ');await f.idle();
+ assert.equal(f.requests[0].request.transcript,`Faça o que acabou de oferecer. Você disse: "${offer}". A pessoa respondeu: "${affirmation}".`);
  assert.equal(f.work.length,0);f.advance(2500);await f.idle();
  assert.deepEqual(f.requests.map(r=>r.options.phase),['plan','commit']);assert.equal(f.work[0][0],'start');
  assert.match(f.work[0][1].prompt,/research task on the Riemann hypothesis/);
@@ -303,7 +303,7 @@ test('a read offer reads the last finished result without sending to a selected 
  await f.post('/voice/live/context',f.saved());
  let offset=f.input('Thanks.');
  f.emit('session.output_transcript.delta',{offset_ms:offset+1,delta:'Do you want to hear the result?'});
- let yes=f.turn('Yeah');await f.say('Nothing has finished yet.',yes);await f.idle();
+ let yes=f.turn('Yeah');await f.say('Ainda não há nenhum resultado.',yes);await f.idle();
  const job=f.work[0][1];
  f.hub.publish('plan-ready','Saved the launch plan.',{appScope:'web',kind:'completion',taskId:job.id,liveCallId:f.call.callId,deliverable:readReportPath});
  offset=f.input('Hello.');
@@ -346,7 +346,7 @@ test('a correction or delayed negation cancels an affirmed action; corrections a
  const f=await fixture(t);await f.start();
  for(const fragment of ['use the other one instead',"No, don't do that"]){
   await f.stage('Run morning intel');await f.idle();
-  const id=f.turn('Yes');await f.say('Starting ',id);await f.idle();
+  const id=f.turn('Yes');await f.say('Começando: ',id);await f.idle();
   f.advance(f.call.staged.undoUntil-f.now()-1);f.input(fragment);
   f.advance(1);await f.idle();assert.equal(f.call.staged,null);assert.equal(f.work.length,0);
  }
@@ -372,7 +372,7 @@ test('a correction during classification aborts the shared request before it can
 test('click alone confirms, once; cancel, expiry, changed target, and a different generation refuse',async t=>{
  const f=await fixture(t,{mode:'click'});await f.start();
  let s=await f.stage('Run morning intel');await f.idle();
- const yes=f.turn('Yes');await f.say('Tap Confirm on screen.',yes);await f.idle();assert.equal(f.work.length,0);
+ const yes=f.turn('Yes');await f.say('Toque em Confirmar na tela.',yes);await f.idle();assert.equal(f.work.length,0);
  assert.equal((await f.post('/voice/live/confirm',{actionId:s.actionId},{'x-v2-call':'wrong'})).status,403);
  const [accepted,duplicate]=await Promise.all([f.post('/voice/live/confirm',{actionId:s.actionId}),f.post('/voice/live/confirm',{actionId:s.actionId})]);
  assert.equal(accepted.status,200,accepted.value.error);assert.equal(duplicate.status,409);assert.equal(f.work.length,1);
@@ -383,7 +383,7 @@ test('click alone confirms, once; cancel, expiry, changed target, and a differen
  s=await f.stage('Run morning intel');await f.idle();
  const otherTask={id:randomUUID(),...chosen,execution:'cli',state:'ready',created:Date.now(),turns:[]};
  f.tasks.set(otherTask.id,otherTask);setCurrent(f.root,{get:id=>f.tasks.get(id)},{provider:'claude',id:otherTask.id});
- assert.match((await f.post('/voice/live/confirm',{actionId:s.actionId})).value.error,/target/);
+ assert.match((await f.post('/voice/live/confirm',{actionId:s.actionId})).value.error,/O destino do pedido/);
  await f.post('/voice/live/context',f.saved());
  s=await f.stage('Run morning intel');await f.idle();
  assert.equal(s.expiresAt,f.now()+45000);
@@ -413,16 +413,16 @@ test('routing holds the shared gate and sends one progress message; overlap and 
  await f.start();
  const id=f.turn('Check the saved reading');await until(()=>f.active.size===1);
  const progressAt=f.now()+8000;
- await assert.rejects(f.typed('Typed during the lookup'),/Another voice request/);
- const overlap=f.turn('Another question');await f.say('One second',overlap);
- const progress=()=>f.appends().filter(e=>e.delegation_id===id&&e.content==='Still looking…');
+ await assert.rejects(f.typed('Typed during the lookup'),/outra solicitação por voz/);
+ const overlap=f.turn('Another question');await f.say('Um momento',overlap);
+ const progress=()=>f.appends().filter(e=>e.delegation_id===id&&e.content==='Ainda estou procurando…');
  f.advance(progressAt-f.now()-1);assert.equal(progress().length,0);
  f.advance(1);assert.equal(progress().length,1);
  f.advance(20000);assert.equal(progress().length,1);
  assert.equal(f.requests.length,1);assert.equal(f.active.size,1);
  gate.resolve();await f.say('Finished the lookup.',id);await f.idle();
  f.active.set('local-request',new AbortController());
- const busy=f.turn('Another saved reading');await f.say('One second',busy);assert.equal(f.requests.length,1);
+ const busy=f.turn('Another saved reading');await f.say('Um momento',busy);assert.equal(f.requests.length,1);
  f.active.clear();
  assertAppends(f.appends());
 });
@@ -431,7 +431,7 @@ test('a pending task plan stays quiet past the read progress threshold',async t=
  const gate=deferred();
  const f=await fixture(t,{route:async()=>{await gate.promise;return {kind:'read',reply:'Ready.'}}});
  await f.start();const id=f.turn('Draft a research brief');await until(()=>f.active.size===1);
- f.advance(12000);assert.equal(f.appends().some(event=>event.delegation_id===id&&event.content==='Still looking…'),false);
+ f.advance(12000);assert.equal(f.appends().some(event=>event.delegation_id===id&&event.content==='Ainda estou procurando…'),false);
  gate.resolve();await f.say('Ready.',id);await f.idle();
 });
 
@@ -507,8 +507,8 @@ test('Live report references do not authorize an ordinary report read or a Local
  assert.throws(()=>readVoiceReport(f.root,readReportPath,[],[receipt]),/Only referenced/);
  const ctx={root:f.root,active:f.active};
  const request={id:receipt.id,selection:chosen,transcript:'Attempt replay'};
- await assert.rejects(handleVoiceRequest(ctx,request,{source:'text'}),/different selection/);
- await assert.rejects(handleVoiceRequest(ctx,{...request,liveCallId:'other-call'},{source:'live'}),/different selection/);
+ await assert.rejects(handleVoiceRequest(ctx,request,{source:'text'}),/outra seleção/);
+ await assert.rejects(handleVoiceRequest(ctx,{...request,liveCallId:'other-call'},{source:'live'}),/outra seleção/);
 });
 
 test('the startup carry summary contains only earlier Live receipts from today and this app',async t=>{
@@ -602,12 +602,12 @@ test('a hand-off reports what it is doing: handed off, then starting and started
 
  const read=await fixture(t,{route:async()=>({kind:'read',reply:'Nothing urgent came in.',briefSource:'inbox/research/morning-intel/today.md'})});await read.start();
  const id=read.turn('Any important email today');await read.say('Nothing urgent came in.',id);await read.idle();
- assert.deepEqual(phases(read),[{key:id,phase:'handoff',label:''},{key:id,phase:'answered',label:'the morning brief'}]);
+ assert.deepEqual(phases(read),[{key:id,phase:'handoff',label:''},{key:id,phase:'answered',label:'resumo da manhã'}]);
 
  // A status question answered from the tasks says so on its card, not "saved notes".
  const status=await fixture(t,{route:async()=>({kind:'read',reply:'Inbox Brief is still working, 2 minutes in.',decision:{rule:'router.taskStatus'}})});await status.start();
  const asked=status.turn('Why is this taking so long');await status.say('Inbox Brief is still working, 2 minutes in.',asked);await status.idle();
- assert.deepEqual(phases(status).at(-1),{key:asked,phase:'answered',label:'task status'});
+ assert.deepEqual(phases(status).at(-1),{key:asked,phase:'answered',label:'andamento da tarefa'});
 });
 
 test('a request refused because the selected task is busy says so; any other failure keeps the short retry',async t=>{
@@ -615,13 +615,13 @@ test('a request refused because the selected task is busy says so; any other fai
  let failure=refusal;
  const f=await fixture(t,{route:async()=>{throw new Error(failure)}});await f.start();
  let id=f.turn('Add a section about history to it');
- const spoken=await f.say('still working',id);await f.idle();
- assert.match(spoken.content,/^That task is still working, so I can't add to it yet\. Ask me again when it finishes, or say start a new task and what you want\.$/);
- assert.equal(f.appends().some(event=>/Say that again/.test(event.content)),false);
+ const spoken=await f.say('ainda está em andamento',id);await f.idle();
+ assert.match(spoken.content,/^Essa tarefa ainda está em andamento\. Peça de novo quando ela terminar ou diga que quer começar outra tarefa e explique o que precisa\.$/);
+ assert.equal(f.appends().some(event=>/Repita o pedido/.test(event.content)),false);
  failure='This conversation has an unfinished workflow. Continue it before starting another workflow in this terminal.';
- id=f.turn('Run the weekly review in there');await f.say('still working',id);await f.idle();
+ id=f.turn('Run the weekly review in there');await f.say('ainda está em andamento',id);await f.idle();
  failure='Something unexpected broke.';
- id=f.turn('Open the dashboard');await f.say('Say that again in a moment.',id);await f.idle();
+ id=f.turn('Open the dashboard');await f.say('Repita o pedido daqui a pouco.',id);await f.idle();
  assert.equal(f.work.length,0);
 });
 
@@ -635,12 +635,12 @@ test('on a call, a follow-up for a working task waits for it; if the task frees 
  assert.match((await f.say('Vou colocar seu pedido na fila',id)).content,/^Vou colocar seu pedido na fila até essa tarefa terminar\.$/);
  f.advance(2500);await f.idle();
  assert.equal(f.work.length,2);assert.deepEqual(f.work[1].slice(0,2),['queue',first]);assert.match(f.work[1][2],/Make the second half shorter and punchier/);
- assert.equal(f.appends().some(event=>/Say that again|still working/.test(event.content)),false);
+ assert.equal(f.appends().some(event=>/Repita o pedido|ainda está em andamento/.test(event.content)),false);
  // The same request, when the task finishes its turn inside the cancel window, is not refused for having changed.
  id=f.turn('Give it a stronger closing line');await until(()=>f.call?.staged);await f.idle();
  f.tasks.get(first).state='ready';
  f.advance(2500);await f.idle();
  assert.equal(f.work.length,3);assert.deepEqual(f.work[2].slice(0,2),['send',first]);
- assert.equal(f.appends().some(event=>/Say that again/.test(event.content)),false);
+ assert.equal(f.appends().some(event=>/Repita o pedido/.test(event.content)),false);
  assert.ok(stage.actionId);
 });

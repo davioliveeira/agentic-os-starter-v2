@@ -10,7 +10,7 @@ export interface LivePeerOptions {
 }
 const wait=(signal:AbortSignal,target:RTCPeerConnection,property:'icegatheringstatechange',ready:()=>boolean)=>new Promise<void>((resolve,reject)=>{
  const close=()=>{target.removeEventListener(property,change);signal.removeEventListener('abort',abort)};
- const abort=()=>{close();reject(new Error('Live voice connection was interrupted.'))};
+ const abort=()=>{close();reject(new Error('A conexão com a voz ao vivo foi interrompida.'))};
  const change=()=>{if(ready()){close();resolve()}};
  target.addEventListener(property,change);signal.addEventListener('abort',abort,{once:true});
  if(signal.aborted)abort();else change();
@@ -27,7 +27,7 @@ export class LivePeer {
  private selected=false;
  private remote:MediaStream|null=null;
  constructor(private options:LivePeerOptions){
-  const track=options.stream.getAudioTracks()[0];if(!track)throw new Error('No microphone track is available.');
+  const track=options.stream.getAudioTracks()[0];if(!track)throw new Error('O microfone não forneceu uma faixa de áudio.');
   this.track=track;this.track.enabled=false;
   options.connection.addTrack(track,options.stream);
   this.channel=options.connection.createDataChannel('oai-events');
@@ -50,7 +50,7 @@ export class LivePeer {
   const deadline=AbortSignal.any([signal,AbortSignal.timeout(12000)]);
   await wait(deadline,pc,'icegatheringstatechange',()=>pc.iceGatheringState==='complete');
   signal.throwIfAborted();
-  const sdp=pc.localDescription?.sdp;if(!sdp)throw new Error('Could not prepare the Live audio connection.');
+  const sdp=pc.localDescription?.sdp;if(!sdp)throw new Error('Não foi possível preparar a conexão de áudio da chamada.');
   return sdp;
  }
  answer(sdp:string){return this.options.connection.setRemoteDescription({type:'answer',sdp})}
@@ -68,7 +68,7 @@ export class LivePeer {
    this.silent=context.createGain();this.silent.gain.value=0;
    this.source.connect(this.analyser);this.analyser.connect(this.silent);this.silent.connect(context.destination);
   }catch{}
-  void audio.play().then(()=>{if(!this.closed&&this.remote===remote)onPlaying()},()=>{if(!this.closed&&this.remote===remote)onError('Live audio playback was blocked. Check autoplay permissions, then start the call again.')});
+  void audio.play().then(()=>{if(!this.closed&&this.remote===remote)onPlaying()},()=>{if(!this.closed&&this.remote===remote)onError('A reprodução do áudio da chamada foi bloqueada. Permita a reprodução automática e inicie a chamada novamente.')});
  }
  getLevel(){
   if(!this.analyser||!this.samples)return null;

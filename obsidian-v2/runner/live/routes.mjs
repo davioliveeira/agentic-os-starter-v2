@@ -54,7 +54,7 @@ export function createLiveBridge({hub,listeners,active,stopLocalAudio=()=>{},rea
    }
    const call=calls.owner(surface,appScope,secret);
    if(route==='/voice/live/status'&&method==='GET')return json({...calls.status(call),...(!calls.audioHeld?{authorization:calls.authorization()}: {})});
-   if(!call)return json({error:'Live call authentication required'},403);
+   if(!call)return json({error:'Esta chamada ao vivo exige autenticação.'},403);
    if(route==='/voice/live/stop'&&method==='POST'){
     // The window says why it hung up ("hung up" for the user's own button), so the call log can tell the two apart.
     let reason='hung up';try{reason=clientStopReason(JSON.parse((await body(req,2000)).toString()||'{}').reason)}catch{}
@@ -70,23 +70,23 @@ export function createLiveBridge({hub,listeners,active,stopLocalAudio=()=>{},rea
    }
    if(['/voice/live/confirm','/voice/live/cancel'].includes(route)&&method==='POST'){
     const {actionId}=JSON.parse((await body(req)).toString());
-    if(!uuid(actionId))return json({error:'Invalid Live action ID.'},400);
+    if(!uuid(actionId))return json({error:'O ID da ação ao vivo é inválido.'},400);
     try{
-     if(!calls.delegations||!calls.current(call))throw new Error('That action is no longer available. Say the request again.');
+     if(!calls.delegations||!calls.current(call))throw new Error('Essa ação não está mais disponível. Repita o pedido.');
      return json(await (route.endsWith('/confirm')?calls.delegations.confirm(call,actionId):calls.delegations.cancel(call,actionId)));
     }catch(error){return json({error:error.message},409)}
    }
    if(route==='/voice/live/report'&&method==='GET'){
-    if(!calls.current(call)||!calls.surfaceAlive(call.ownerSurface,appScope))return json({error:'Live call authentication required'},403);
+    if(!calls.current(call)||!calls.surfaceAlive(call.ownerSurface,appScope))return json({error:'Esta chamada ao vivo exige autenticação.'},403);
     try{return json(readLiveVoiceReport(options.root,url.searchParams.get('path')||'',call.answers?.reports))}
-    catch{return json({error:'This report is unavailable in this Live call.'},404)}
+    catch{return json({error:'Este relatório está indisponível nesta chamada.'},404)}
    }
    if(route==='/voice/live/context'&&method==='GET')return json({conversationEpoch:readEpoch(call.provider,appScope)});
    if(route==='/voice/live/context'&&method==='POST'){
     const {selection,workTarget,appScope:scope,conversationEpoch,peerConnected,gen}=JSON.parse((await body(req)).toString());
-    if(scope!==appScope||workTarget!==null&&!uuid(workTarget)||!Number.isSafeInteger(conversationEpoch)||conversationEpoch<0||peerConnected!==undefined&&peerConnected!==true)throw new Error('Invalid Live voice context.');
+    if(scope!==appScope||workTarget!==null&&!uuid(workTarget)||!Number.isSafeInteger(conversationEpoch)||conversationEpoch<0||peerConnected!==undefined&&peerConnected!==true)throw new Error('O contexto da voz ao vivo é inválido.');
     const chosen=validateSelection(selection);
-    if(!calls.current(call))throw new Error('Live call has ended.');
+    if(!calls.current(call))throw new Error('A chamada ao vivo terminou.');
     // A Live call survives a provider switch; the switch only moves where new hand-offs go.
     if(chosen.provider!==call.provider)calls.switchProvider(call,chosen.provider);
     const target=calls.routeGeneration(call,gen);
@@ -96,13 +96,13 @@ export function createLiveBridge({hub,listeners,active,stopLocalAudio=()=>{},rea
    }
    if(route==='/voice/live/updates'&&method==='GET'){
     const cursor=url.searchParams.get('cursor')??'0',gone=new AbortController();
-    if(!/^\d+$/.test(cursor))throw new Error('Invalid Live updates cursor.');
+    if(!/^\d+$/.test(cursor))throw new Error('O cursor de atualizações da chamada é inválido.');
     const disconnect=()=>gone.abort();res.on('close',disconnect);if(res.destroyed)disconnect();
     try{const result=await call.updates.poll(Number(cursor),gone.signal);if(!res.destroyed)return json(result)}
     finally{res.off('close',disconnect)}
     return;
    }
-   return json({error:'Live voice route not found'},404);
+   return json({error:'Rota da voz ao vivo não encontrada.'},404);
   }
  };
 }

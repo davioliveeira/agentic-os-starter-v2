@@ -54,31 +54,31 @@ export class LiveCalls {
  get audioHeld(){return !!this.call?.localHeld}
  current(call){return call.state!=='closing'&&(this.call===call&&this.gen===call.gen||this.replacement===call&&this.call===call.from&&this.call?.state!=='closing')}
  async start({ownerSurface,appScope,sdp}){
-  if(this.stopping||this.storageError)throw new Error('Live voice recovery is unavailable.');
+  if(this.stopping||this.storageError)throw new Error('A recuperação da voz ao vivo está indisponível.');
   const auth=this.authorization();if(!auth.ready)throw new Error(auth.reason);
-  const prefs=this.prefs();if(prefs.voiceMode!=='live')throw new Error('Select Live voice first.');
-  if(!this.ownerIsCurrent(ownerSurface,appScope))throw new Error('Select this surface as the voice owner first.');
-  if(this.localBusy())throw new Error('A Local voice request is still active.');
-  if(this.call||this.replacement||this.recovery.cleanup.length||this.recovery.call?.id||this.recoveryBusy)throw new Error('Still closing the last Live call.');
-  if(this.recovery.call?.cooldownUntil>this.now())throw new Error('Live voice is cooling down after an unconfirmed connection.');
+  const prefs=this.prefs();if(prefs.voiceMode!=='live')throw new Error('Primeiro, selecione a voz ao vivo.');
+  if(!this.ownerIsCurrent(ownerSurface,appScope))throw new Error('Primeiro, selecione esta janela para usar a voz.');
+  if(this.localBusy())throw new Error('Ainda há um pedido de voz local em andamento.');
+  if(this.call||this.replacement||this.recovery.cleanup.length||this.recovery.call?.id||this.recoveryBusy)throw new Error('A chamada anterior ainda está sendo encerrada.');
+  if(this.recovery.call?.cooldownUntil>this.now())throw new Error('Aguarde alguns instantes antes de tentar a voz ao vivo de novo. A conexão anterior não foi confirmada.');
   if(this.recovery.call?.attemptId){
    const {attemptId,startedAt}=this.recovery.call;
    this.usage.update(attemptId,startedAt,{seconds:15},'unconfirmed');this.recovery.record(null);
   }
-  if(typeof sdp!=='string'||!sdp.trim()||sdp.length>100000)throw new Error('Invalid Live SDP offer.');
-  const key=this.key();if(!key)throw new Error('Live voice needs current consent. Run aos openai-key.');
+  if(typeof sdp!=='string'||!sdp.trim()||sdp.length>100000)throw new Error('A oferta SDP da chamada é inválida.');
+  const key=this.key();if(!key)throw new Error('A voz ao vivo precisa de uma autorização atualizada. Rode aos openai-key.');
   const call=this.call={gen:++this.gen,ownerSurface,appScope,callSecret:liveSecret(),provider:this.provider(),state:'creating',startedAt:this.now(),
    callId:randomUUID(),life:new AbortController(),updates:new LiveUpdates(this.limits.poll),closed:deferred(),done:deferred(),seen:new Set(),localHeld:true,inputMuted:false};
   this.last=null;this.log({event:'start',call:call.callId.slice(0,8),appScope});
   try{
    await this.holdAudio();
    if(this.speechMode&&this.current(call))call.speechLease=await this.speechMode.acquire(call.life.signal);
-   if(!this.current(call))throw new Error('Live call ended before connecting.');
+   if(!this.current(call))throw new Error('A chamada terminou antes de conectar.');
    return await this.connectUpstream(call,sdp,prefs,key);
   }catch(error){
-   call.attaching=false;await this.end(call,'Live call could not start.',key);
+   call.attaching=false;await this.end(call,'Não foi possível iniciar a chamada ao vivo.',key);
    const message=error?.message;
-   throw new Error(['Live call ended before connecting.','Live connection could not be completed.','Live session creation was unconfirmed. Try again after the cooldown.','Live sideband attach timed out.',speechUpdate,speechBusy,speechRestarted].includes(message)||String(message).startsWith('OpenAI rejected the Live session request')?message:'Live call could not start.');
+   throw new Error(['A chamada terminou antes de conectar.','Não foi possível concluir a conexão da chamada.','Não foi possível confirmar a criação da sessão ao vivo. Aguarde alguns instantes e tente de novo.','A conexão auxiliar da chamada excedeu o tempo limite.',speechUpdate,speechBusy,speechRestarted].includes(message)||String(message).startsWith('A OpenAI recusou a solicitação de sessão ao vivo')?message:'Não foi possível iniciar a chamada ao vivo.');
   }finally{call.done.resolve()}
  }
  readSnapshot(call,now,prefs){return this.snapshot(this.root,{now,tasks:()=>this.tasks(call.appScope),liveShareWork:prefs.liveShareWork,liveShareBrief:prefs.liveShareBrief})}
@@ -87,7 +87,7 @@ export class LiveCalls {
    call.snapshotSections=sections(snapshot);call.refreshAt=this.now()+this.limits.snapshotRefresh;
    call.turns=new LiveTurns(call.startedAt);call.answers=new LiveAnswers(call);call.taskUpdates=new LiveTaskUpdates(call);
    const history=call.from?call.from.transcriptTail||'':prefs.liveCarryToday?this.history(this.root,call.appScope,now):'';
-   if(!this.current(call))throw new Error('Live call ended before connecting.');
+   if(!this.current(call))throw new Error('A chamada terminou antes de conectar.');
    // Persist the cooldown marker before sending. A bridge crash in this
    // window has the same uncertainty as a lost HTTP response.
    call.attemptId='unknown-'+randomUUID();
@@ -104,11 +104,11 @@ export class LiveCalls {
     timedOut=true;
     if(error instanceof LiveCreateRejected)this.clearCreateMarker(call);
     else{this.markUnconfirmedCreate(call);this.usage.update(call.attemptId,call.startedAt,{seconds:15},'unconfirmed')}
-    throw error instanceof LiveCreateRejected?new Error(error.message):new Error('Live session creation was unconfirmed. Try again after the cooldown.');
+    throw error instanceof LiveCreateRejected?new Error(error.message):new Error('Não foi possível confirmar a criação da sessão ao vivo. Aguarde alguns instantes e tente de novo.');
    }
    call.sessionId=created?.id;
    if(!validLiveSessionId(call.sessionId)){
-    call.sessionId=null;this.markUnconfirmedCreate(call);this.usage.update(call.attemptId,call.startedAt,{seconds:15},'unconfirmed');throw new Error('Live session creation was unconfirmed. Try again after the cooldown.');
+    call.sessionId=null;this.markUnconfirmedCreate(call);this.usage.update(call.attemptId,call.startedAt,{seconds:15},'unconfirmed');throw new Error('Não foi possível confirmar a criação da sessão ao vivo. Aguarde alguns instantes e tente de novo.');
    }
    if(call.from){
     // Journal the replacement before attach while keeping the old ID as the
@@ -117,11 +117,11 @@ export class LiveCalls {
     this.clearCreateMarker(call);
    }else this.recovery.record(this.recordFor(call));
    this.usage.update(call.sessionId,call.startedAt);
-   if(!this.current(call)||typeof created.answerSdp!=='string'||!created.answerSdp.trim()||created.answerSdp.length>100000)throw new Error('Live connection could not be completed.');
+   if(!this.current(call)||typeof created.answerSdp!=='string'||!created.answerSdp.trim()||created.answerSdp.length>100000)throw new Error('Não foi possível concluir a conexão da chamada.');
    call.attaching=true;
    try{call.socket=await this.attach(call,key)}finally{call.attaching=false}
    if(call.attachLost){call.socket?.close();call.socket=null}
-   if(!this.current(call)||call.remoteClosed||call.attachLost)throw new Error('Live call ended before connecting.');
+   if(!this.current(call)||call.remoteClosed||call.attachLost)throw new Error('A chamada terminou antes de conectar.');
    call.attached=true;call.state='active';
    if(call.from?.inputMuted){this.sendMute(call,true);call.inputMuted=true}
    this.ready(call);
@@ -140,22 +140,22 @@ export class LiveCalls {
   else if(stored?.attemptId===call.attemptId)this.recovery.record(null);
  }
  async rollover(call,sdp){
-  if(!this.current(call)||this.call!==call||!call.ready||!call.rolloverSent||call.rolloverAttempted||this.replacement)throw new Error('A Live rollover is not available.');
-  if(typeof sdp!=='string'||!sdp.trim()||sdp.length>100000)throw new Error('Invalid Live SDP offer.');
-  const key=this.key(),prefs=this.prefs();if(!key||prefs.voiceMode!=='live')throw new Error('Live voice is unavailable.');
+  if(!this.current(call)||this.call!==call||!call.ready||!call.rolloverSent||call.rolloverAttempted||this.replacement)throw new Error('A renovação da chamada está indisponível.');
+  if(typeof sdp!=='string'||!sdp.trim()||sdp.length>100000)throw new Error('A oferta SDP da chamada é inválida.');
+  const key=this.key(),prefs=this.prefs();if(!key||prefs.voiceMode!=='live')throw new Error('A voz ao vivo está indisponível.');
   call.rolloverAttempted=true;
   const next=this.replacement={from:call,ownerSurface:call.ownerSurface,appScope:call.appScope,callSecret:call.callSecret,provider:call.provider,
    gen:this.gen+1,state:'creating',startedAt:this.now(),callId:call.callId,life:new AbortController(),closed:deferred(),done:deferred(),seen:new Set(),updates:call.updates,inputMuted:false,
    lastTranscriptAt:call.lastTranscriptAt,transcriptTail:call.transcriptTail};
   try{return await this.connectUpstream(next,sdp,prefs,key)}
-  catch{await this.end(next,'The Live connection could not be renewed.',key);throw new Error('The Live connection could not be renewed.')}
+  catch{await this.end(next,'Não foi possível renovar a chamada.',key);throw new Error('Não foi possível renovar a chamada.')}
   finally{next.done.resolve()}
  }
  routeGeneration(call,gen){
   if(gen===undefined||gen===call.gen)return call;
   const next=this.replacement;
   if(next?.from===call&&gen===next.gen&&this.current(next))return next;
-  throw new Error('Live connection generation changed.');
+  throw new Error('A sessão ativa da chamada mudou.');
  }
  peerConnected(call){
   if(!call.peerConnected&&call.turns&&!call.turns.rows.length)call.turns.startedAt=this.now();
@@ -184,11 +184,11 @@ export class LiveCalls {
   void this.end(old,'Live connection renewed.');
  }
  sendMute(call,muted){
-  if(!call.socket||call.remoteClosed)throw new Error('Live sideband is unavailable.');
+  if(!call.socket||call.remoteClosed)throw new Error('A conexão auxiliar da chamada está indisponível.');
   call.socket.send({type:muted?'session.input_audio.mute':'session.input_audio.unmute'});
  }
  mute(call,muted){
-  if(!this.current(call)||typeof muted!=='boolean')throw new Error('Live microphone setting is unavailable.');
+  if(!this.current(call)||typeof muted!=='boolean')throw new Error('O controle do microfone da chamada está indisponível.');
   this.sendMute(call,muted);call.inputMuted=muted;
   const next=this.replacement;
   if(next?.from===call&&next.socket&&this.current(next)){
@@ -198,7 +198,7 @@ export class LiveCalls {
  }
  recordFor(call){return {id:call.sessionId,startedAt:call.startedAt,expiresAt:call.expiresAt??null}}
  attach(call,key){
-  return bounded(this.schedule,this.limits.attach,'Live sideband attach timed out.',signal=>this.transport.attach(key,call.sessionId,{signal,
+  return bounded(this.schedule,this.limits.attach,'A conexão auxiliar da chamada excedeu o tempo limite.',signal=>this.transport.attach(key,call.sessionId,{signal,
    onEvent:event=>{try{this.event(call,event)}catch{if(this.current(call))void this.end(call,'Live call state could not be saved.');else call.closed.resolve(false)}},
    onLoss:()=>{call.socket=null;if(this.current(call)){if(call.attaching)call.attachLost=true;else void this.end(call,'Live sideband disconnected.')}else call.closed.resolve(false)}
   }));
@@ -451,9 +451,9 @@ export class LiveCalls {
   if(call){
    const rows=[...(call.previousIds||[]),call.sessionId].map(id=>this.usage?.rows.get(id)).filter(Boolean);
    return {state:call.state,ready:!!call.ready,paused:!!call.paused,gen:call.gen,startedAt:call.leaseStartedAt??call.startedAt,expiresAt:call.expiresAt??null,
-    cost:rows.length?{label:'Live voice session cost, est.',seconds:rows.reduce((sum,row)=>sum+row.seconds,0),usd:rows.reduce((sum,row)=>sum+liveEstimate(row),0)}:null,monthToDate:usage};
+    cost:rows.length?{label:'Custo estimado da chamada ao vivo',seconds:rows.reduce((sum,row)=>sum+row.seconds,0),usd:rows.reduce((sum,row)=>sum+liveEstimate(row),0)}:null,monthToDate:usage};
   }
-  return active?{state:'in-progress',message:`Live call in ${active.appScope==='native'?'Obsidian':'HUD'}`}:{state:'idle',monthToDate:usage};
+  return active?{state:'in-progress',message:`Chamada ao vivo no ${active.appScope==='native'?'Obsidian':'Jarvis'}`}:{state:'idle',monthToDate:usage};
  }
  async shutdown(){
   this.stopping=true;const call=this.call,next=this.replacement;

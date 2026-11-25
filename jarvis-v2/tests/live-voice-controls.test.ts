@@ -18,7 +18,7 @@ test('older bridge adds no Live controls; unavailable Live shows a disabled opti
  assert.match(unavailable,/Run aos openai-key to set up Live voice/);
  assert.doesNotMatch(unavailable,/Confirmar ações|Encerrar chamada por inatividade|Ativar por voz/);
  const enabled=settings(live);
- assert.match(enabled,/Diga “yes”/);assert.match(enabled,/Clique para confirmar/);
+ assert.match(enabled,/Diga “sim”/);assert.match(enabled,/Clique para confirmar/);
  assert.match(enabled,/Confirmar só paradas e edições/);
  assert.match(enabled,/Conclusões e impedimentos/);assert.match(enabled,/Só na tela/);assert.match(enabled,/Acompanhar tarefas longas/);
  assert.match(enabled,/Ativar por voz/);assert.match(enabled,/Lembrar chamadas de hoje/);
@@ -47,9 +47,9 @@ test('Live controls send the saved bridge keys and keep idle minutes numeric',as
 test('the call bar renders the exact pending action and only offers click confirmation in click mode',()=>{
  const staged={actionId:'fixture',description:'Start the morning-intel workflow',expiresAt:Date.now()+10000};
  const call=(mode:'voice'|'click')=>renderToStaticMarkup(createElement(LiveCallBar,{live:{...initialLive,state:'listening',ready:true,startedAt:Date.now(),cost:0.12,staged:{...staged,mode}}}));
- assert.match(call('click'),/LIVE 00:00 · ~\$0.12/);
+ assert.match(call('click'),/Ao vivo 00:00 · ~US\$\s0,12/);
  assert.match(call('click'),/Start the morning-intel workflow/);assert.match(call('click'),/>Confirmar<\/button>/);
  assert.match(call('voice'),/>Cancelar<\/button>/);assert.doesNotMatch(call('voice'),/>Confirmar<\/button>/);
  const busy=renderToStaticMarkup(createElement(LiveCallBar,{live:{...initialLive,occupied:'Live call in Obsidian'}}));
- assert.match(busy,/Live call in Obsidian/);assert.doesNotMatch(busy,/Hang up/);
+ assert.match(busy,/Live call in Obsidian/);assert.doesNotMatch(busy,/Encerrar chamada/);
 });

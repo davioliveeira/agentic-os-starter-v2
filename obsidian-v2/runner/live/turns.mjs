@@ -1,6 +1,6 @@
 const WINDOW=90000;
-export const CORRECTION_RE=/(?:\b(?:actually|wait|hold on|never\s*mind|scratch that|no|instead)\b|\b(?:don['’]?t|do not|didn['’]?t mean)\b)/i;
-const UNDO_CANCEL_RE=/\b(?:stop|wait|cancel|hold on|hang on|no|don['’]?t|do not|never\s*mind|scratch that)\b/i;
+export const CORRECTION_RE=/(?<![\p{L}\p{N}_])(?:actually|wait|hold on|never\s*mind|scratch that|no|instead|don['’]?t|do not|didn['’]?t mean|na verdade|em vez disso|quis dizer|esper[ae]|deixa pra lá|não)(?![\p{L}\p{N}_])/iu;
+const UNDO_CANCEL_RE=/(?<![\p{L}\p{N}_])(?:stop|wait|cancel|hold on|hang on|no|don['’]?t|do not|never\s*mind|scratch that|pare|cancel[ae]|esper[ae]|deixa pra lá|não)(?![\p{L}\p{N}_])/iu;
 const offset=value=>Number.isFinite(value)&&value>=0?value:null;
 const join=rows=>rows.map(row=>row.text).join('').trim();
 function recentOffer(exchanges,anchor,at){

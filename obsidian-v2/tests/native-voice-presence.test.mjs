@@ -86,6 +86,6 @@ test('event disconnect cancels remote capture and ignores its late transcript af
 
 test('focus rejected during an event reconnect never dispatches a request',async t=>{
  replace(t,'window',new EventTarget());const doc=new EventTarget();doc.hidden=false;replace(t,'document',doc);replace(t,'AudioContext',undefined);replace(t,'EventSource',class{close(){}});
- const requests=[],voice=new VoiceSession(async(path,options)=>{requests.push(path);return JSON.parse(options.body)?.focus?{status:503,json:{error:'Voice connection is reconnecting. Try again.'}}:{status:200,json:null}},async()=>({provider:'codex',model:'astra'}),'native',{heartbeat:()=>()=>{}});let message='';voice.onMessage=text=>message=text;
- voice.connect();await flush();await voice.sendText('Do not dispatch without ownership');assert.equal(requests.includes('/voice/text'),false);assert.match(message,/reconnecting/);assert.equal(voice.mode,'error');await voice.destroy();
+ const requests=[],voice=new VoiceSession(async(path,options)=>{requests.push(path);return JSON.parse(options.body)?.focus?{status:503,json:{error:'A conexão de voz está se restabelecendo. Tente de novo.'}}:{status:200,json:null}},async()=>({provider:'codex',model:'astra'}),'native',{heartbeat:()=>()=>{}});let message='';voice.onMessage=text=>message=text;
+ voice.connect();await flush();await voice.sendText('Do not dispatch without ownership');assert.equal(requests.includes('/voice/text'),false);assert.match(message,/conexão de voz está se restabelecendo/);assert.equal(voice.mode,'error');await voice.destroy();
 });

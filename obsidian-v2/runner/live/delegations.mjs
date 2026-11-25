@@ -5,17 +5,17 @@ import {liveAffirmation,LIVE_NO_OFFER} from '../voice-router.mjs';
 import {handleVoiceRequest} from '../voice-request.mjs';
 import {CORRECTION_RE} from './turns.mjs';
 
-const retry='Say that again in a moment.';
-const busy='One second, still on the last one.';
-const expired='That action is no longer available. Say the request again.';
+const retry='Repita o pedido daqui a pouco.';
+const busy='Um momento, ainda estou cuidando do pedido anterior.';
+const expired='Essa ação não está mais disponível. Repita o pedido.';
 // A request that cannot be delivered says why when the reason is one the caller can act on. "Say that again in a
 // moment" told a caller nothing when the real answer was "the task you started is still working" (2026-11-23).
-const busyTarget='That task is still working, so I can\'t add to it yet. Ask me again when it finishes, or say start a new task and what you want.';
+const busyTarget='Essa tarefa ainda está em andamento. Peça de novo quando ela terminar ou diga que quer começar outra tarefa e explique o que precisa.';
 const spokenFailure=error=>/working or needs terminal input|unfinished workflow/i.test(String(error?.message||''))?busyTarget:retry;
 const readOffer=/\b(?:hear|read|tell you|go over|walk you through|what['’]s in it|the result|the summary)\b/i;
 const compoundReadAction=/\b(?:and then|(?:and|then) (?:run|start|create|draft|write|delete|send))\b/i;
 const pendingRead=/^(?:what (?:is|are|was|were|did|does|do|happened)|when (?:is|are|was|did|does|do)|how (?:many|much)|(?:check|read|show|summarize) (?:me )?(?:the |my )?(?:saved reading|report|result|summary|note|schedule|calendar|inbox))\b/i;
-const cancelWords=/^(?:no(?: thanks)?|don['’]?t|do not|(?:cancel|stop)(?: (?:it|that(?: task)?))?|wait|hold on|never\s*mind(?: the report)?|scratch that)[.!?\s]*$/i;
+const cancelWords=/^(?:no(?: thanks)?|don['’]?t|do not|(?:cancel|stop)(?: (?:it|that(?: task)?))?|wait|hold on|never\s*mind(?: the report)?|scratch that|não(?: obrigado)?|cancel[ae]|par[ae]|esper[ae]|deixa(?: pra lá)?)[.!?\s]*$/i;
 const immediate=action=>{
  const sites=new Set(action.effects.map(effect=>effect.site));
  const newWork=new Set(action.effects.filter(effect=>['start','startWorkflow','enqueue'].includes(effect.site)).map(effect=>effect.details.job.id));
@@ -121,13 +121,13 @@ export class LiveDelegations {
   if(call.undoCancelledBy<=pending.anchor)delete call.undoCancelledBy;
   let transcript=turn.text;
   const affirm=liveAffirmation(transcript);
-  if(undoInterrupted){call.answers.speak(delegation,'Cancelled.');return}
+  if(undoInterrupted){call.answers.speak(delegation,'Cancelado.');return}
   if(((interrupted||staged&&!staged.undo)&&cancelWords.test(transcript))||(interrupted&&affirm)){
-   this.clear(call,'staged-cancelled');call.answers.speak(delegation,'Cancelled.');return;
+   this.clear(call,'staged-cancelled');call.answers.speak(delegation,'Cancelado.');return;
   }
   if(affirm&&staged&&!staged.undo){
    if(!this.unchanged(call,staged.captured)||staged.expiresAt<=this.now()){this.clear(call);call.answers.speak(delegation,retry);return}
-   if(staged.mode==='click'){call.answers.speak(delegation,'Tap Confirm on screen.');return}
+   if(staged.mode==='click'){call.answers.speak(delegation,'Toque em Confirmar na tela.');return}
    this.startUndo(call,staged,delegation,pending.anchor,turn.lastAt+this.limits.undo);
    return;
   }
@@ -135,11 +135,11 @@ export class LiveDelegations {
    if(!turn.offer){call.answers.speak(delegation,LIVE_NO_OFFER);return}
    if(readOffer.test(turn.offer)){
     const result=call.taskUpdates?.lastResult;
-    if(result){call.answers.result(delegation,result);this.activity(call,pending,'answered','the last result')}
-    else call.answers.speak(delegation,'Nothing has finished yet.');
+    if(result){call.answers.result(delegation,result);this.activity(call,pending,'answered','último resultado')}
+    else call.answers.speak(delegation,'Ainda não há nenhum resultado.');
     return;
    }
-   transcript=`Do what you just offered. You said: "${turn.offer}". The user replied: "${turn.text}".`;
+   transcript=`Faça o que acabou de oferecer. Você disse: "${turn.offer}". A pessoa respondeu: "${turn.text}".`;
   }
   if(!staged?.undo)this.clear(call,'staged-cancelled');
   if(call.turns.correctionAfter(pending.anchor)){pending.cancelled=true;return}
@@ -150,12 +150,12 @@ export class LiveDelegations {
   if(!this.unchanged(call,captured)){call.answers.speak(delegation,retry);return}
   if(result.kind==='read'){
    call.answers.result(delegation,result,this.view(result,call));
-   this.activity(call,pending,'answered',result.briefSource?'the morning brief':result.decision?.rule==='router.taskStatus'?'task status':'saved notes');return;
+   this.activity(call,pending,'answered',result.briefSource?'resumo da manhã':result.decision?.rule==='router.taskStatus'?'andamento da tarefa':'notas salvas');return;
   }
-  if(result.kind!=='action')throw new Error('Invalid Live voice plan.');
+  if(result.kind!=='action')throw new Error('O plano da voz ao vivo é inválido.');
   const setting=this.prefs().liveConfirm??'auto';
   return {actionId:randomUUID(),captured,request,delegation,anchor:pending.anchor,mode:setting==='destructive'?'click':setting,
-   action:result.action,description:result.description,spokenDescription:result.action.effects.some(effect=>effect.site==='reopenArtifact')?'reopen the selected file':result.description,
+   action:result.action,description:result.description,spokenDescription:result.action.effects.some(effect=>effect.site==='reopenArtifact')?'reabrir o arquivo selecionado':result.description,
    immediate:setting==='destructive'&&immediate(result.action)};
  }
  async stage(call,pending,stage){
@@ -172,7 +172,7 @@ export class LiveDelegations {
   const windowEnd=stage.mode==='auto'?this.now()+this.limits.autoUndo:stage.expiresAt;
   call.updates.push({type:'staged',actionId:stage.actionId,description:stage.description,mode:stage.mode,expiresAt:windowEnd});
   if(stage.mode==='auto'){this.startUndo(call,stage,delegation,pending.anchor,windowEnd);return}
-  call.answers.speak(delegation,stage.mode==='click'?"Here's what I'd do. Tap Confirm on screen.":`Just to check: ${stage.spokenDescription}. Say yes to go ahead.`);
+  call.answers.speak(delegation,stage.mode==='click'?'Veja o que eu faria. Toque em Confirmar na tela.':`Só para confirmar: ${stage.spokenDescription}. Diga sim para prosseguir.`);
  }
  startUndo(call,stage,delegation,anchor,until){
   if(this.interruptUndo(call,anchor,until))return;
@@ -190,25 +190,25 @@ export class LiveDelegations {
   // Two cases need their own sentence, because "Starting…" would say the wrong thing: a workflow that runs on its
   // own while the selected task works, and a follow-up that waits for that task.
   const explained=receipt?.reply&&receipt.decision?.effects?.some(effect=>effect==='busy-target-separate'||effect==='queueFollowup');
-  call.answers.speak(delegation,slash||explained?receipt.reply:`Starting ${stage.spokenDescription.replace(/^Start /i,'')}…`);
+  call.answers.speak(delegation,slash||explained?receipt.reply:`Começando: ${stage.spokenDescription.replace(/^(?:Start|Iniciar) /i,'')}…`);
  }
  view(result,call){return this.requestContext().liveView?.(result,call.appScope)??result}
  async route(call,pending,request,delegation,phase,stage){
   const cancelProgress=phase==='plan'&&pendingRead.test(request.transcript)&&!compoundReadAction.test(request.transcript)?this.schedule(()=>{
-   if(this.isCurrent(call)&&!pending.cancelled)call.answers.speak(delegation,'Still looking…');
+   if(this.isCurrent(call)&&!pending.cancelled)call.answers.speak(delegation,'Ainda estou procurando…');
   },this.limits.progress):null;
   const watchDisconnect=abort=>{
    const signal=pending.abort.signal;signal.addEventListener('abort',abort,{once:true});if(signal.aborted)abort();
    return ()=>signal.removeEventListener('abort',abort);
   };
   const guard=()=>{
-   if(phase==='plan'||!stage?.consumed||pending.cancelled||pending.abort.signal.aborted||!this.unchanged(call,stage.captured))throw new Error('The Live voice target or call changed. Say the request again.');
+   if(phase==='plan'||!stage?.consumed||pending.cancelled||pending.abort.signal.aborted||!this.unchanged(call,stage.captured))throw new Error('O destino do pedido ou a chamada mudou. Repita o pedido.');
   };
   try{return await this.handle(this.requestContext(),{...request,watchDisconnect},{source:'live',transport:'live',phase,guard,plannedAction:stage?.action})}
   finally{cancelProgress?.()}
  }
  async commit(call,pending,stage,delegation){
-  if(!this.unchanged(call,stage.captured))throw new Error('The voice target, selection or conversation changed. Say the request again.');
+  if(!this.unchanged(call,stage.captured))throw new Error('O destino do pedido, a seleção ou a conversa mudou. Repita o pedido.');
   pending.committing=true;
   let result;
   try{result=await this.route(call,pending,stage.request,delegation,'commit',stage)}
@@ -233,7 +233,7 @@ export class LiveDelegations {
   const pending={anchor:stage.anchor,abort:new AbortController()};
   try{
    if(followUp)await followUp.plan.catch(()=>{});
-   if(!this.unchanged(call,stage.captured))throw new Error('The voice target, selection or conversation changed. Say the request again.');
+   if(!this.unchanged(call,stage.captured))throw new Error('O destino do pedido, a seleção ou a conversa mudou. Repita o pedido.');
    if((call.routing&&call.routing!==followUp)||this.active.size)throw new Error(busy);
    call.routing=pending;
    await this.commit(call,pending,stage,delegation??stage.delegation);return {ok:true}

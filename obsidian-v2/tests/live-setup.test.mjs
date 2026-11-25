@@ -30,17 +30,17 @@ test('OpenAI setup requires consent and saves once without echoing the key',asyn
  const saved=collectOpenAIKey({runtimeDir:dir,open:url,timeoutMs:3000,check:async value=>{checked.push(value);return {kind:'accepted'}}});const address=await opened;
  assert.equal(ready(),false);
  const get=await fetch(address),page=await get.text();
- assert.equal(get.status,200);assert.match(page,/microphone audio.*vault snapshot.*About me.*task titles.*inbox counts.*report excerpts.*store: false/);
- assert.match(page,/Need a key\?.*platform\.openai\.com.*separate from ChatGPT.*Add credit under Billing.*ChatGPT Pro or Business.*api-keys/s);
+ assert.equal(get.status,200);assert.match(page,/áudio do microfone.*resumo do cofre.*Sobre mim.*títulos e status.*contagens da caixa de entrada.*trechos de relatórios.*store: false/);
+ assert.match(page,/Precisa de uma chave\?.*platform\.openai\.com.*separada do ChatGPT.*Adicione créditos em Billing.*créditos de API.*api-keys/s);
  const submit=async(consent,origin=new URL(address).origin,value=key)=>fetch(address,{method:'POST',headers:{Origin:origin},body:new URLSearchParams({key:value,consent})});
  assert.equal((await submit('no')).status,400);
  assert.equal((await submit('yes','null')).status,403);
  assert.equal((await submit('yes',undefined,'invalid')).status,400);assert.equal(ready(),false);
  // Nothing typed wrong is ever sent to OpenAI, and an OpenRouter key is named for what it is.
  const router=await submit('yes',undefined,['sk','or','v1','0123456789abcdef0123456789'].join('-'));
- assert.equal(router.status,400);assert.match(await router.text(),/OpenRouter key, which is for Jev/);assert.deepEqual(checked,[]);
+ assert.equal(router.status,400);assert.match(await router.text(),/chave do OpenRouter para o Jev/);assert.deepEqual(checked,[]);
  const result=await submit('yes'),done=await result.text();assert.equal(result.status,200);assert.equal(done.includes(key),false);
- assert.match(done,/OpenAI accepted the key.*choose <strong>Live<\/strong>.*credit on the OpenAI API account/s);assert.deepEqual(checked,[key]);
+ assert.match(done,/OpenAI aceitou a chave.*selecione <strong>Ao vivo<\/strong>.*créditos na conta da API da OpenAI/s);assert.deepEqual(checked,[key]);
  assert.deepEqual(await saved,{saved:true,check:'accepted'});assert.equal(ready(),true);assert.equal(readLiveKey(dir)===key,true);
  if(process.platform!=='win32')assert.equal(fs.statSync(liveKeyFile(dir)).mode&0o777,0o600);
  for(const fields of [{consentVersion:CONSENT_VERSION+1},{consentAt:'not-a-date'},{consentAt:'2099-01-01'},{key:'invalid'}]){
@@ -57,15 +57,15 @@ test('a key OpenAI refuses is never saved and the page stays open; one it cannot
  const saved=collectOpenAIKey({runtimeDir:dir,open:url,timeoutMs:3000,check:async()=>({kind:answers.shift()})});const address=await opened;
  const submit=()=>fetch(address,{method:'POST',headers:{Origin:new URL(address).origin},body:new URLSearchParams({key,consent:'yes'})});
  const refused=await submit(),again=await refused.text();
- assert.equal(refused.status,400);assert.match(again,/OpenAI did not accept that key/);assert.match(again,/<form method="post"/);assert.equal(again.includes(key),false);
+ assert.equal(refused.status,400);assert.match(again,/OpenAI não aceitou esta chave/);assert.match(again,/<form method="post"/);assert.equal(again.includes(key),false);
  assert.equal(ready(),false);assert.equal(fs.existsSync(liveKeyFile(dir)),false);
  const warned=await submit(),page=await warned.text();
- assert.equal(warned.status,200);assert.match(page,/Saved, with a warning.*did not show it the Live model \(gpt-live-1\.1\)/s);
+ assert.equal(warned.status,200);assert.match(page,/Chave salva com um aviso.*modelo de voz ao vivo \(gpt-live-1\.1\)/s);
  assert.deepEqual(await saved,{saved:true,check:'no-model'});assert.equal(ready(),true);
- assert.match(openAIKeyOutcome({saved:true,check:'no-model'}),/^Saved, but OpenAI did not show this key the Live model/);
- assert.match(openAIKeyOutcome({saved:true,check:'accepted'}),/^Saved\. OpenAI accepted the key\./);
- assert.match(openAIKeyOutcome({saved:true,check:'unconfirmed'}),/could not be reached.*first call is the test/);
- assert.match(openAIKeyOutcome({saved:false,reason:'timeout'}),/^No key was saved/);
+ assert.match(openAIKeyOutcome({saved:true,check:'no-model'}),/^Chave salva com um aviso.*modelo de voz ao vivo/);
+ assert.match(openAIKeyOutcome({saved:true,check:'accepted'}),/^Chave salva\. A OpenAI aceitou a chave\./);
+ assert.match(openAIKeyOutcome({saved:true,check:'unconfirmed'}),/conectar à OpenAI.*primeira chamada servirá de teste/);
+ assert.match(openAIKeyOutcome({saved:false,reason:'timeout'}),/chave não foi salva/);
 });
 
 test('a check that throws or answers nonsense still saves the key, marked unconfirmed',async t=>{
@@ -73,7 +73,7 @@ test('a check that throws or answers nonsense still saves the key, marked unconf
  let url;const opened=new Promise(resolve=>{url=resolve});
  const saved=collectOpenAIKey({runtimeDir:dir,open:url,timeoutMs:3000,check:async()=>{throw new Error('offline')}});const address=await opened;
  const response=await fetch(address,{method:'POST',headers:{Origin:new URL(address).origin},body:new URLSearchParams({key,consent:'yes'})});
- assert.equal(response.status,200);assert.match(await response.text(),/could not be checked with OpenAI just now/);
+ assert.equal(response.status,200);assert.match(await response.text(),/verificar a chave com a OpenAI agora/);
  assert.deepEqual(await saved,{saved:true,check:'unconfirmed'});assert.equal(liveAuthorization(dir).ready,true);
 });
 

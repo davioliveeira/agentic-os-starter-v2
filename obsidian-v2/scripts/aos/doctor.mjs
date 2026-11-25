@@ -316,8 +316,8 @@ export async function doctor({root = projectRoot, ci = false, full = false, phas
 
   // Live voice is optional. With a key saved, ask OpenAI whether it still accepts it; credit only shows on a call.
   const live = liveAuthorization(at.runtime);
-  if (!live.ready && /^Run aos openai-key to set up/.test(live.reason || '')) add('SKIP', LIVE_CHECK, 'configuração opcional com `node aos.mjs openai-key`');
-  else if (!live.ready) add('FAIL', LIVE_CHECK, String(live.reason || 'a chave salva está indisponível').replace(/\s*Run aos openai-key\.?$/, ''), 'Rode `node aos.mjs openai-key` e salve novamente a chave e a autorização.', {optional: true});
+  if (!live.ready && /^Rode aos openai-key para configurar/.test(live.reason || '')) add('SKIP', LIVE_CHECK, 'configuração opcional com `node aos.mjs openai-key`');
+  else if (!live.ready) add('FAIL', LIVE_CHECK, String(live.reason || 'a chave salva está indisponível').replace(/\s*Rode aos openai-key\.?$/, ''), 'Rode `node aos.mjs openai-key` e salve novamente a chave e a autorização.', {optional: true});
   else if (ci) add('PASS', LIVE_CHECK, 'chave e autorização salvas. O teste com a OpenAI foi pulado com --ci');
   else await group([LIVE_CHECK], async () => {
     const result = await checkLive(readLiveKey(at.runtime));

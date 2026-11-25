@@ -7,21 +7,21 @@ import {checkLiveKey,LIVE_MODEL} from '../../runner/live/transport.mjs';
 
 const KEYS_URL='https://platform.openai.com/api-keys';
 const link=(url,text)=>`<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>`;
-const page=content=>`<!doctype html><meta charset="utf-8"><title>Agentic OS — Live voice</title><main>${content}</main>`;
-const form=note=>page(`<h1>Set up Live voice</h1><p>Live voice sends your microphone audio, a vault snapshot (your About me, today's plan and Daily Drivers, task titles and status, inbox counts, metrics, news and radar, and any notes you add with live-context), delegated answers, and report excerpts to OpenAI. You can turn off Share task titles in the Live settings. Share morning brief is off unless you turn it on; it also sends your whole morning brief, including its email section. The bridge requests store: false. OpenAI bills your API account for the call.</p><p>Your API key is saved on this computer. Saving it here records your consent for these data flows.</p>
-<h2>Need a key?</h2><ol><li>Sign in at ${link('https://platform.openai.com','platform.openai.com')}. This is OpenAI's API account, separate from ChatGPT.</li><li>Add credit under Billing. On ChatGPT Pro or Business, claim the monthly API credits your plan includes there instead. Calls stop working when the credit runs out.</li><li>Create a key on the ${link(KEYS_URL,'API keys page')}, copy it whole, and paste it below.</li></ol>
-<form method="post" autocomplete="off"><label>OpenAI API key <input name="key" type="password" required></label><p><label><input name="consent" value="yes" type="checkbox" required> I consent to sending this data to OpenAI during Live calls.</label></p><button>Save key and consent</button></form>${note?'<p role="alert"><strong>'+note+'</strong></p>':''}`);
-const NEXT='<p>Next: open the <strong>···</strong> menu on the HUD Voice card or beside the Obsidian orb, choose <strong>Live</strong>, start a call and allow the microphone. Your first call also needs credit on the OpenAI API account.</p><p>You can close this tab.</p>';
+const page=content=>`<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>Agentic OS — Voz ao vivo</title><main>${content}</main></html>`;
+const form=note=>page(`<h1>Configurar voz ao vivo</h1><p>A voz ao vivo envia à OpenAI o áudio do microfone, um resumo do cofre (seção Sobre mim, plano de hoje, rotinas diárias, títulos e status das tarefas, contagens da caixa de entrada, métricas, notícias, radar e notas adicionadas com live-context), respostas de tarefas delegadas e trechos de relatórios. Você pode desativar a opção de compartilhar títulos nas configurações da voz ao vivo. O compartilhamento do resumo da manhã vem desativado. Ao ativá-lo, você também envia o resumo completo, incluindo a seção de e-mails. A ponte envia a opção store: false. A OpenAI cobra as chamadas da sua conta da API.</p><p>A chave da API fica salva neste computador. Ao salvá-la aqui, você registra seu consentimento para o envio desses dados.</p>
+<h2>Precisa de uma chave?</h2><ol><li>Entre em ${link('https://platform.openai.com','platform.openai.com')}. A conta da API da OpenAI é separada do ChatGPT.</li><li>Adicione créditos em Billing. Se seu plano do ChatGPT incluir créditos de API, você pode resgatá-los. As chamadas param quando o saldo acaba.</li><li>Crie uma chave na ${link(KEYS_URL,'página de chaves da API')}, copie-a por inteiro e cole-a abaixo.</li></ol>
+<form method="post" autocomplete="off"><label>Chave de API da OpenAI <input name="key" type="password" required></label><p><label><input name="consent" value="yes" type="checkbox" required> Autorizo o envio desses dados à OpenAI durante as chamadas ao vivo.</label></p><button>Salvar chave e autorização</button></form>${note?'<p role="alert"><strong>'+note+'</strong></p>':''}`);
+const NEXT='<p>Abra o menu <strong>···</strong> no cartão de voz do Jarvis ou ao lado do orbe no Obsidian, selecione <strong>Ao vivo</strong>, inicie uma chamada e permita o uso do microfone. Sua primeira chamada também precisa de créditos na conta da API da OpenAI.</p><p>Você já pode fechar esta aba.</p>';
 const DONE={
- accepted:'<h1>Saved</h1><p>OpenAI accepted the key.</p>'+NEXT,
- 'no-model':`<h1>Saved, with a warning</h1><p>OpenAI accepted the key but did not show it the Live model (${LIVE_MODEL}), so a call may be refused. Check the key's project and permissions on the ${link(KEYS_URL,'API keys page')}, then start a call to find out.</p>`+NEXT,
- unconfirmed:'<h1>Saved</h1><p>The key could not be checked with OpenAI just now, so your first call is the test. If the call is refused, the message on screen says why.</p>'+NEXT,
+ accepted:'<h1>Chave salva</h1><p>A OpenAI aceitou a chave.</p>'+NEXT,
+ 'no-model':`<h1>Chave salva com um aviso</h1><p>A OpenAI aceitou a chave, mas o modelo de voz ao vivo (${LIVE_MODEL}) não apareceu entre os modelos disponíveis para ela. A chamada pode ser recusada. Confira o projeto e as permissões da chave na ${link(KEYS_URL,'página de chaves da API')} e teste uma chamada.</p>`+NEXT,
+ unconfirmed:'<h1>Chave salva</h1><p>Não foi possível verificar a chave com a OpenAI agora. A primeira chamada servirá de teste. Se ela for recusada, a mensagem na tela mostrará o motivo.</p>'+NEXT,
 };
 // What is wrong with what was typed, before anything is sent anywhere.
 function typed(key,consent){
- if(/^sk-or-/.test(key))return 'That is an OpenRouter key, which is for Jev. Live voice needs an OpenAI API key from platform.openai.com/api-keys.';
- if(!LIVE_KEY_SHAPE.test(key))return 'That does not look like an OpenAI API key. It starts with sk- and has to be copied whole from platform.openai.com/api-keys.';
- if(consent!=='yes')return 'Select the consent checkbox to continue.';
+ if(/^sk-or-/.test(key))return 'Esta é uma chave do OpenRouter para o Jev. A voz ao vivo usa uma chave da API da OpenAI, disponível em platform.openai.com/api-keys.';
+ if(!LIVE_KEY_SHAPE.test(key))return 'O formato da chave da API da OpenAI é inválido. Copie toda a chave, incluindo o prefixo sk-, de platform.openai.com/api-keys.';
+ if(consent!=='yes')return 'Marque a caixa de autorização para continuar.';
  return '';
 }
 
@@ -34,14 +34,14 @@ export function collectOpenAIKey({runtimeDir,timeoutMs=300000,open=openUrl,annou
   const server=http.createServer((req,res)=>{
    const host='127.0.0.1:'+server.address().port,origin='http://'+host,supplied=Buffer.from(String(req.url||''));
    const reply=(status,html)=>{res.writeHead(status,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin','Content-Security-Policy':"default-src 'none'; form-action 'self'; frame-ancestors 'none'"});res.end(html)};
-   if(req.headers.host!==host||supplied.length!==wanted.length||!timingSafeEqual(supplied,wanted))return reply(404,page('<h1>Not found</h1>'));
+   if(req.headers.host!==host||supplied.length!==wanted.length||!timingSafeEqual(supplied,wanted))return reply(404,page('<h1>Página não encontrada</h1>'));
    if(req.method==='GET'&&!saved)return reply(200,form());
-   if(req.method!=='POST'||req.headers.origin!==origin||!/^application\/x-www-form-urlencoded(?:;|$)/i.test(req.headers['content-type']||''))return reply(403,page('<h1>Refused</h1>'));
+   if(req.method!=='POST'||req.headers.origin!==origin||!/^application\/x-www-form-urlencoded(?:;|$)/i.test(req.headers['content-type']||''))return reply(403,page('<h1>Solicitação recusada</h1>'));
    let size=0;const chunks=[];
    req.on('data',chunk=>{size+=chunk.length;if(size>4096)req.destroy();else chunks.push(chunk)});
    req.on('end',async()=>{
-    if(finished||saved)return reply(409,page('<h1>This page has already been used</h1>'));
-    if(checking)return reply(409,form('The key is still being checked. Wait a moment.'));
+    if(finished||saved)return reply(409,page('<h1>Esta página já foi usada</h1>'));
+    if(checking)return reply(409,form('A chave ainda está sendo verificada. Aguarde um momento.'));
     const data=new URLSearchParams(Buffer.concat(chunks).toString('utf8')),key=(data.get('key')||'').trim();
     const problem=typed(key,data.get('consent'));
     if(problem)return reply(400,form(problem));
@@ -50,10 +50,10 @@ export function collectOpenAIKey({runtimeDir,timeoutMs=300000,open=openUrl,annou
     checking=true;
     try{const result=await check(key);if(['accepted','refused','no-model'].includes(result?.kind))kind=result.kind}catch{}
     finally{checking=false}
-    if(finished)return reply(409,page('<h1>This page timed out</h1><p>Run the command again.</p>'));
-    if(kind==='refused')return reply(400,form('OpenAI did not accept that key. Copy it again from platform.openai.com/api-keys, or create a new one there, and try once more.'));
+    if(finished)return reply(409,page('<h1>Esta página expirou</h1><p>Rode o comando novamente.</p>'));
+    if(kind==='refused')return reply(400,form('A OpenAI não aceitou esta chave. Copie-a novamente de platform.openai.com/api-keys ou crie outra e tente de novo.'));
     try{writePrivate(liveKeyFile(runtimeDir),JSON.stringify({key,consentAt:new Date().toISOString(),consentVersion:CONSENT_VERSION}))}
-    catch{return reply(500,form('The key could not be saved. Check the installation folder and try again.'))}
+    catch{return reply(500,form('Não foi possível salvar a chave. Confira a pasta da instalação e tente novamente.'))}
     saved=true;res.once('finish',()=>finish({saved:true,check:kind}));reply(200,page(DONE[kind]));
    });
   });
@@ -68,8 +68,8 @@ export function collectOpenAIKey({runtimeDir,timeoutMs=300000,open=openUrl,annou
 
 // The line the command prints after the page closes, for the member and for the agent helping them.
 export function openAIKeyOutcome(result){
- if(!result?.saved)return 'No key was saved: the page was not completed within five minutes. Run the command again when you are ready.';
- if(result.check==='accepted')return 'Saved. OpenAI accepted the key. Choose Live in the voice menu and start a call.';
- if(result.check==='no-model')return `Saved, but OpenAI did not show this key the Live model (${LIVE_MODEL}). A call may be refused until the key's project is allowed to use it.`;
- return 'Saved. OpenAI could not be reached to check the key, so the first call is the test.';
+ if(!result?.saved)return 'A página expirou após cinco minutos e a chave não foi salva. Rode o comando novamente quando quiser continuar.';
+ if(result.check==='accepted')return 'Chave salva. A OpenAI aceitou a chave. Selecione Ao vivo no menu de voz e inicie uma chamada.';
+ if(result.check==='no-model')return `Chave salva com um aviso. O modelo de voz ao vivo (${LIVE_MODEL}) não apareceu entre os modelos disponíveis para esta chave. Confira se o projeto da chave tem permissão para usar o modelo.`;
+ return 'Chave salva. Não foi possível conectar à OpenAI para verificar a chave. A primeira chamada servirá de teste.';
 }

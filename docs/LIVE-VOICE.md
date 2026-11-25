@@ -1,77 +1,67 @@
-# Live voice
+# Voz ao vivo
 
-**Local** is the default. It uses Whisper and Kokoro on your computer for speech. **Live** uses GPT-Live for a two-way call and hands requests that need a saved report or an action back to Agentic OS.
+A voz **Local** vem habilitada por padrão e usa Whisper e Kokoro no seu computador. O modo **Ao vivo** usa o GPT-Live em uma chamada e encaminha ao Agentic OS os pedidos que precisam gerar um relatório ou executar uma ação.
 
-## Before you start: an OpenAI API key
+<a id="before-you-start-an-openai-api-key"></a>
 
-Live needs a key from OpenAI's API platform, which is a separate account from ChatGPT.
+## Antes de começar, crie uma chave da API da OpenAI
 
-**On ChatGPT Pro or Business, Live can be covered by credits you already get.** Those plans include monthly OpenAI API credits: Pro $100, $200 or $500 a month depending on the tier, Business $20 per Standard seat or $100 per Premium seat (up to $500 a month). You claim them once, in ChatGPT's billing settings or the API platform's, and they go to the API account linked there; use a key from that account. Unused credit lapses at the end of each month. ChatGPT Plus does not include them. OpenAI sets and can change these terms; [their help page](https://help.openai.com/en/articles/20001626-api-credits-benefit-for-eligible-chatgpt-subscriptions) has the current ones.
+1. Entre em [platform.openai.com](https://platform.openai.com). A plataforma da API é separada do ChatGPT.
+2. Adicione créditos em **Billing**. Se seu plano do ChatGPT incluir créditos da API, resgate-os e use uma chave da conta vinculada ao benefício. As chamadas param quando o saldo acaba. Consulte as [condições de elegibilidade e resgate da OpenAI](https://help.openai.com/en/articles/20001626-api-credits-benefit-for-eligible-chatgpt-subscriptions).
+3. Crie uma chave na [página de chaves da API](https://platform.openai.com/api-keys) e copie-a inteira, incluindo o prefixo `sk-`. Você vai colá-la na página local aberta pelo comando abaixo.
 
-1. Sign in at [platform.openai.com](https://platform.openai.com).
-2. Under **Billing**, add credit, or on Pro or Business check that your included credits are there. Calls are paid from that credit and stop working when it runs out.
-3. Create a key on the [API keys page](https://platform.openai.com/api-keys) and copy it whole. It starts with `sk-`. Keep it out of chat: you paste it into a page on your own computer in the next step.
+## Configurar a voz ao vivo
 
-## Set up Live
+1. Na pasta do Agentic OS, rode `node aos.mjs openai-key` ou `aos openai-key`. Você também pode pedir ao seu agente de código para **configurar a voz ao vivo**. Abra a página local, leia quais dados são enviados, cole a chave e registre sua autorização. A página verifica a chave na OpenAI e permite outra tentativa se ela for recusada.
+2. Abra o menu **···** ao lado do orbe no Obsidian ou no cartão de voz do Jarvis. Escolha **Ao vivo**, inicie uma chamada e permita o microfone. Só uma janela pode controlar a chamada por vez.
+3. Na barra da chamada, você pode silenciar o microfone ou selecionar **Encerrar chamada**. A chamada também termina por inatividade, ao fechar ou recarregar a janela, ao voltar para **Local** ou quando a ponte reinicia. O orbe, Escape, Ctrl+Alt+J, a troca de terminal e a troca de janela mantêm a chamada ativa.
+4. Na primeira chamada, faça uma pergunta comum e depois pergunte “Qual é meu plano de hoje?”. Por fim, diga “Rode a skill Inbox Brief”. Esse último pedido é encaminhado ao Agentic OS. Para interromper a ação no modo padrão, diga “pare” nos primeiros 2,5 segundos.
 
-The easiest way is to tell your coding agent **“set up Live voice”**. It runs the steps below with you.
+Se a chamada falhar, a mensagem na tela indica a causa conhecida e o próximo passo. `node aos.mjs doctor` verifica o acesso da chave salva na linha **Voz ao vivo (chave da OpenAI)**. O saldo da conta precisa ser conferido na plataforma da API.
 
-1. From the starter folder, run `node aos.mjs openai-key` (or `aos openai-key` if you use the shortcut). Open the local page it gives you, review the disclosure, enter your OpenAI API key, and save your consent there. The page checks the key with OpenAI before it saves anything. A key OpenAI refuses is not saved, and the page tells you so, which lets you paste it again.
-2. Open **···** beside the Obsidian orb or on the HUD Voice card. Choose **Live** and start a call from that screen. Grant microphone access when asked. Only one of the two screens can own a call at a time.
-3. Use the call bar to **Mute** or **End call**. A call ends when you select **End call**, after your **End call after idle** time without speech, or when you close or reload its window. It also ends if you switch to **Local** in the voice menu or the bridge restarts. Clicking the orb, pressing Escape or Ctrl+Alt+J, opening a terminal, using another window and leaving the tab in the background all leave it running.
-4. Try three things on your first call. Ask a general question. Ask “What’s on my plan today?”, which Live answers from what it already has. Then say “Run Inbox Brief”, which it hands to V2. Say “stop” within about 2.5 seconds if you don’t want that to run.
+## Ajustar a chamada
 
-If a call will not start, the message on screen says why and what to do: a key OpenAI no longer accepts, no credit on the API account, or a key that is not allowed to use the Live model. `node aos.mjs doctor` has a **Live voice (OpenAI key)** line that checks the saved key at any time. It cannot see your credit; only a call shows that.
+- **Executar direto** é o padrão. A voz ao vivo anuncia a ação e dá cerca de 2,5 segundos para dizer “pare”, dizer “espera” ou selecionar **Cancelar**. As outras opções ficam em **Configurações da voz ao vivo → Confirmar ações**.
+- **Diga “sim”** pede confirmação antes de agir. Depois do “sim”, você tem 1,5 segundo para dizer “espera”, corrigir o pedido ou selecionar **Cancelar**. **Clique para confirmar** exige o clique. **Confirmar só paradas e edições** inicia tarefas novas direto e pede um clique antes de parar ou substituir tarefas, editar notas ou trocar de conversa.
+- O microfone fica aberto em espera por padrão para você poder retomar a conversa pela voz. Você pode desativar essa opção e reativar o microfone com um clique ou **Ctrl+Alt+J** no Windows.
+- **Encerrar chamada por inatividade** vem configurado para 30 minutos. Você pode escolher 15 ou 60 minutos. As chamadas se renovam automaticamente antes do limite de sessão da OpenAI. **Lembrar chamadas de hoje** vem desativado. Ao ativá-lo, uma nova chamada pode receber um resumo curto das chamadas anteriores no mesmo aplicativo.
+- **Compartilhar títulos de tarefas** vem ativado. Desative a opção para retirar as tarefas em andamento do contexto da chamada.
+- **Compartilhar boletim da manhã** vem desativado. Ao ativá-lo, a OpenAI recebe o resumo completo no começo da chamada, incluindo a seção de e-mails. Assim, a voz ao vivo pode responder direto a perguntas como “Tem algum e-mail importante hoje?” e “Quais são as três prioridades?”. Com a opção desativada, ela recebe só as manchetes e encaminha essas perguntas ao Agentic OS.
 
-## Make it work the way you want
+## Acompanhar tarefas na chamada
 
-- **Just do it** is the default. Live announces the action right away. Say “stop” or “wait”, or select **Cancel**, within about 2.5 seconds to cancel before V2 carries it out. You can choose another mode in **Live settings → Confirm actions**.
-- **Say yes** asks before V2 acts. After you say yes, you have 1.5 seconds to say “wait”, correct the request, or tap **Cancel**. **Tap to confirm** waits for a click. **Ask only for stops & edits** starts new work immediately and asks for a click before stops, replacements, note edits, and conversation switches.
-- **Wake on voice** leaves the mic open in standby by default. Turn it off to mute the mic in standby. Click to wake it, or press **Ctrl+Alt+J** on Windows.
-- **End call after idle** defaults to 30 minutes without speech. You can choose 15 or 60 minutes. Calls renew themselves before OpenAI's 2-hour session limit. **Remember today’s calls** is off by default. Turning it on can send a short summary of earlier Live exchanges from the same app when a new call begins.
-- **Share task titles** is on by default. Turn it off to leave work in progress out of the snapshot.
-- **Share morning brief** is off by default. Turn it on to give Live your whole morning brief at the start of each call, including its email section. Live can then answer “Any important email today?” or “What are my three moves?” straight away and offer to check for anything newer. That text goes to OpenAI. With it off, Live gets only the brief’s top headlines and hands those questions to V2.
+A voz ao vivo confirma o pedido uma vez e deixa você continuar falando enquanto a tarefa roda. Pergunte “Como está a pesquisa?” ou “O que está rodando?”. Para iniciar uma skill instalada numa conversa nova com o provedor selecionado, diga, por exemplo, “Rode a skill today”.
 
-## How Live handles tasks
+No Jarvis, um cartão ao lado do núcleo mostra que o pedido está sendo delegado. Em seguida, mostra a tarefa iniciada ou a nota usada na resposta e desaparece após alguns segundos.
 
-Live acknowledges a task once, then you can keep talking while it runs. Ask “How’s that going?”, “Status of the research task”, or “What’s running?” for the current state. Say “slash today” or “run slash plan-tomorrow for next week” to start an installed skill in a fresh conversation with the selected provider.
+A voz espera uma pausa para falar sobre conclusões e impedimentos. Tarefas concluídas quase juntas são anunciadas em conjunto. Em espera, um som curto e um cartão sinalizam a atualização. Quando a chamada retomar e houver uma pausa, a voz fala a atualização. Os resultados continuam na tela após o fim da chamada. No Jarvis, abra o item em **Terminais** ou selecione **Ver** no aviso. No Obsidian, confira a lista de tarefas ou selecione **Ver** no aviso.
 
-In Jarvis, each request Live hands off shows a card beside the core: **Handing off** while V2 works out the request, then the name of the task it started or the note it answered from. The card clears by itself after a few seconds.
+Em **Configurações da voz ao vivo → Atualizações de tarefas**, escolha **Conclusões e impedimentos** (padrão), **Só na tela** ou **Acompanhar tarefas longas**. A última opção acrescenta uma atualização a cada três minutos para as tarefas iniciadas na chamada.
 
-Live waits for a pause before saying what finished, what failed, or which task needs your input. Tasks that finish close together are announced together. In standby, a short chime and a card signal an update. Live speaks it when the call wakes and there’s a pause. After hangup, results stay on screen. In Jarvis, select a task chip in **Terminals** or **View** in the toast to inspect it. In Obsidian, check the work list or select **View** in its notice.
+## Quais pedidos são delegados
 
-Use **Live settings → Task updates** to choose **Done & blockers** (default), **Screen only**, or **Check in on long tasks**, which adds a check-in every three minutes for tasks started in the call.
-
-## What Live answers and what it hands off
-
-| Live’s role | Examples |
+| Modo | Exemplos |
 |---|---|
-| Answers directly | General knowledge, explanations, advice, brainstorming, conversation, and anything in the call’s snapshot. |
-| Hands off to V2 | Your data beyond the snapshot, actions on your computer, web research, and current news beyond the snapshot. |
-| Never | Guessing facts about you or your vault. |
+| Resposta direta | Conhecimento geral, explicações, ideias, conversa e dados já incluídos no contexto da chamada. |
+| Encaminhamento ao Agentic OS | Dados fora do contexto da chamada, ações no computador, pesquisa na internet e notícias que precisam ser consultadas. |
 
-If Live offers a concrete next step, say “go ahead” within a minute. An offer to read a result uses the latest result from the call. Other accepted offers route as fresh requests.
+Quando faltam dados sobre você ou o cofre, a voz ao vivo encaminha a consulta. Se ela oferecer uma ação concreta, diga “sim” em até um minuto. Quando ela oferecer para ler um resultado, a confirmação usa o último resultado disponível na chamada. As outras ofertas aceitas são encaminhadas como novos pedidos.
 
-## What is sent and what it costs
+## Dados enviados e custo estimado
 
-Live sends audio, the vault snapshot, and answers to handed-off requests to OpenAI with `store:false`. At the start of every call the snapshot can include your **About me**, today’s top three priorities and schedule from the `/today` daily note, your Daily Drivers, up to five task titles with provider and status, counts of new notes in your vault’s `inbox/` folders for the last 24 hours (notes, not email), metrics and the latest video, headlines, radar, and any notes you added yourself. Task prompts, replies, and report paths stay out of the snapshot. The note counts contain no note names.
+A voz ao vivo envia áudio, o contexto do cofre e respostas de tarefas delegadas à OpenAI com a opção `store:false`. Dependendo das suas configurações, esse contexto pode incluir **Sobre mim**, as três prioridades do dia e a agenda da nota diária do `/today`, rotinas diárias, até cinco títulos de tarefas com provedor e status, contagens de notas novas nas pastas de `inbox/` nas últimas 24 horas, métricas, vídeo mais recente, manchetes, radar e notas adicionadas por você. O contexto inicial deixa de fora os nomes das notas contadas na caixa de entrada, as solicitações e respostas das tarefas e os caminhos dos relatórios.
 
-With **Share morning brief** on, the whole morning brief takes the place of the headlines: every section, including its email section, with links removed, up to 36,000 bytes. With it off, email contents stay on your computer.
+Quando o compartilhamento do resumo da manhã está ativado, o resumo inteiro substitui as manchetes, até 36.000 bytes e sem os links. Ele inclui a seção de e-mails. Com a opção desativada, o conteúdo dos e-mails fica no seu computador.
 
-### Choose what Live knows
+### Escolher o contexto da chamada
 
-The snapshot is yours to shape. Run `node aos.mjs live-context show` to see what a call reads, or ask your coding agent, for example *"add my goals note to Live"* or *"stop sending the radar to Live"*.
+- Rode `node aos.mjs live-context show` para listar o que entra no contexto. Use `node aos.mjs live-context show --full` para ver exatamente o que seria enviado agora.
+- Desative uma seção com `node aos.mjs live-context section radar off`. As outras seções configuráveis são `today`, `inbox`, `numbers` e `news`. Se você ainda não usa o fluxo que preenche uma seção, ela fica vazia.
+- Adicione suas notas com `node aos.mjs live-context add "projects/goals.md" --label "Metas"`. Ao apontar para uma pasta, o sistema usa a nota mais recente. Você pode adicionar até seis entradas. Cada uma é lida até cerca de 6.000 caracteres.
+- Guarde informações duradouras na seção Sobre mim, detalhes de hoje na nota diária e outros materiais de referência nas notas adicionadas ao contexto. Claude e Codex leem essa seção do `AGENTS.md` do cofre. A voz ao vivo recebe até 2.000 bytes. Rode `node aos.mjs about show` para conferir o texto.
 
-- **Turn parts off.** `node aos.mjs live-context section radar off` (or `today`, `inbox`, `numbers`, `news`). A part fed by a workflow you do not run is empty anyway.
-- **Add your own notes and reports.** `node aos.mjs live-context add "projects/goals.md" --label "Goals"`. Add a folder instead of a note and Live reads the newest note in it, so a report one of your skills saves each day stays current. Up to six; each is read up to about 6,000 characters, so a short summary note works better than a long one.
-- **See it exactly.** `node aos.mjs live-context show --full` prints the snapshot as it would be sent now.
+Pedidos digitados seguem o fluxo normal do Agentic OS. O GPT-Live recebe os resultados curtos das tarefas que ele delegou. Com **Ao vivo** selecionado, as atualizações dessas tarefas continuam na tela depois de encerrar a chamada.
 
-Long-lived facts about you belong in About me; today's details belong in your daily note; anything else you want on every call goes in a note you add here.
+A barra da chamada usa **US$ 0,05 por minuto ativo** e **US$ 0,02 por minuto em espera** como estimativas internas. Quando a OpenAI informa só o tempo total, o medidor aplica a taxa ativa. Consulte o consumo na conta da API para conferir a cobrança.
 
-Your Claude and Codex agents read **About me** from the vault’s `AGENTS.md`. Live reads up to 2,000 bytes of that section. Run `node aos.mjs about show` to see the text Live receives, or ask your coding agent “update my About me” to review and change it.
-
-Typed requests use the regular V2 route and stay out of GPT-Live. Live receives short outcomes from the work it hands off. With Live selected, task updates stay on screen after hangup.
-
-The call bar estimates **$0.05 per active minute** and **$0.02 per standby minute**. When OpenAI does not report a breakdown, the meter uses the active rate for all reported seconds. Pro and Business API credits require eligibility and activation on the linked OpenAI API organization. Check that organization's API usage page for actual charges.
-
-For setup and playback errors, see [Live voice troubleshooting](TROUBLESHOOTING.md#live-voice).
+Consulte [Solução de problemas da voz ao vivo](TROUBLESHOOTING.md#live-voice) se precisar corrigir um erro de configuração ou áudio.

@@ -45,7 +45,7 @@ for(const audio of [false,true])for(const scope of ['native','web'])test(`${scop
  const pending=f.voice({id,audio});await entered;const response=f.response;
  try{response.destroyed=true;response.emit('close');assert.equal(signal.aborted,true)}finally{await f.request('/voice/cancel',{id});await pending}
  assert.equal(f.active.size,0);assert.equal(f.claim(id).cancelled,true);assert.equal(response.listenerCount('close'),0);
- const replay=await f.voice({id});assert.match(replay.value.error,/cancelled|already submitted/);assert.equal(f.counts().routes,1);
+ const replay=await f.voice({id});assert.equal(replay.value.error,'Solicitação por voz cancelada.');assert.equal(f.counts().routes,1);
 });
 
 test('a normal response completion does not cancel accepted work',async t=>{
@@ -72,7 +72,7 @@ test('oversized strings are bounded and invalid target metadata is not retained'
 
 test('transcription failures identify the stage without storing audio or inventing a transcript',async t=>{
  const f=fixture(t,{stt:async()=>({ok:false})}),id=crypto.randomUUID(),response=await f.voice({id,audio:true});
- assert.equal(response.status,400);assert.match(response.value.error,/Local transcription failed/);assert.equal(f.claim(id).stage,'transcribing');assert.equal(f.claim(id).transcript,undefined);assert.equal(f.claim(id).error,response.value.error);assert.equal(f.counts().routes,0);assert.equal(f.active.size,0);
+ assert.equal(response.status,400);assert.equal(response.value.error,'A transcrição local falhou. Verifique o serviço de voz do V2.');assert.equal(f.claim(id).stage,'transcribing');assert.equal(f.claim(id).transcript,undefined);assert.equal(f.claim(id).error,response.value.error);assert.equal(f.counts().routes,0);assert.equal(f.active.size,0);
 });
 
 test('post-transcription validation failures keep the transcript without parsing context into diagnostics',async t=>{
@@ -83,13 +83,13 @@ test('post-transcription validation failures keep the transcript without parsing
 test('failed request replay preserves the original claim byte for byte and never redispatches',async t=>{
  const f=fixture(t),id=crypto.randomUUID();await f.voice({id});const before=fs.readFileSync(f.claimPath(id)),counts=f.counts();
  const replay=await f.voice({id,text:'Different replacement text',targetId:crypto.randomUUID()});
- assert.equal(replay.status,400);assert.match(replay.value.error,/already submitted/);assert.deepEqual(fs.readFileSync(f.claimPath(id)),before);assert.deepEqual(f.counts(),counts);assert.equal(f.active.size,0);
+ assert.equal(replay.status,400);assert.match(replay.value.error,/já foi enviada/);assert.deepEqual(fs.readFileSync(f.claimPath(id)),before);assert.deepEqual(f.counts(),counts);assert.equal(f.active.size,0);
 });
 
 test('best-effort diagnostic failures preserve the original routing error and mandatory duplicate guard',async t=>{
  let writes=0;const f=fixture(t,{write:(...args)=>{if(++writes>1)throw new Error('Diagnostic storage unavailable');return writeJson(...args)}}),id=crypto.randomUUID();
  const response=await f.voice({id});assert.equal(response.status,400);assert.equal(response.value.error,'Voice classification timed out');assert.equal(f.claim(id).id,id);assert.equal(f.active.size,0);assert.equal(writes,3);
- const before=fs.readFileSync(f.claimPath(id));assert.match((await f.voice({id})).value.error,/already submitted/);assert.deepEqual(fs.readFileSync(f.claimPath(id)),before);assert.equal(f.counts().routes,1);
+ const before=fs.readFileSync(f.claimPath(id));assert.match((await f.voice({id})).value.error,/já foi enviada/);assert.deepEqual(fs.readFileSync(f.claimPath(id)),before);assert.equal(f.counts().routes,1);
 });
 
 test('a failed mandatory claim still prevents routing',async t=>{
@@ -108,5 +108,5 @@ test('live cancellation records failure without weakening cancelled-ID protectio
  const f=fixture(t,{route:async(_root,_request,signal)=>{started();await new Promise((_,reject)=>signal.addEventListener('abort',()=>reject(new Error('Voice request cancelled')),{once:true}))}}),id=crypto.randomUUID();
  const pending=f.voice({id});await entered;const cancel=await f.request('/voice/cancel',{id});assert.equal(cancel.status,200);
  const response=await pending;assert.equal(response.status,400);assert.equal(response.value.error,'Voice request cancelled');assert.equal(f.claim(id).cancelled,true);assert.equal(f.claim(id).stage,'routing');assert.equal(f.active.size,0);
- const before=fs.readFileSync(f.claimPath(id)),counts=f.counts(),replay=await f.voice({id});assert.match(replay.value.error,/cancelled/);assert.deepEqual(fs.readFileSync(f.claimPath(id)),before);assert.deepEqual(f.counts(),counts);
+ const before=fs.readFileSync(f.claimPath(id)),counts=f.counts(),replay=await f.voice({id});assert.equal(replay.value.error,'Solicitação por voz cancelada.');assert.deepEqual(fs.readFileSync(f.claimPath(id)),before);assert.deepEqual(f.counts(),counts);
 });

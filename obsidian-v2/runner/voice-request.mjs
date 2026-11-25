@@ -44,12 +44,12 @@ export function handleVoiceHttp(ctx,req,res,{body,json,appScope,source}){
 export async function handleVoiceRequest(ctx,request,{source='text',guard,phase,plannedAction,transport=source==='live'?'live':'local'}={}){
  const {root,terminals,hub,artifacts,artifactTarget,active,speech,route=routeVoice,routeOptions={},fetchAudio=fetch,write=writeJson}=ctx;
  const {id,appScope='web',origin='live',respond=result=>result}=request;
- if(!voiceRequestId(id))throw new Error('Invalid request ID');
+ if(!voiceRequestId(id))throw new Error('ID da solicitação inválido.');
  const chosen=validateSelection(request.readSelection?request.readSelection():request.selection);
- if(fs.existsSync(vaultPath(root,`${ROOT}/voice-cancelled/${id}.json`)))throw new Error('Voice request cancelled');
+ if(fs.existsSync(vaultPath(root,`${ROOT}/voice-cancelled/${id}.json`)))throw new Error('Solicitação por voz cancelada.');
  const receipt=readJson(root,`${ROOT}/voice-results/${id}.json`,null);
  if(receipt){
-  if((receipt.appScope||'web')!==appScope||receipt.provider!==chosen.provider||(receipt.requestedWorkerModel??receipt.workerModel)!==chosen.model||voiceReceiptTransport(receipt)!==transport||transport==='live'&&receipt.liveCallId!==request.liveCallId)throw new Error('Request ID already belongs to a different selection');
+  if((receipt.appScope||'web')!==appScope||receipt.provider!==chosen.provider||(receipt.requestedWorkerModel??receipt.workerModel)!==chosen.model||voiceReceiptTransport(receipt)!==transport||transport==='live'&&receipt.liveCallId!==request.liveCallId)throw new Error('O ID da solicitação já está associado a outra seleção.');
   const result={...receipt,transport:voiceReceiptTransport(receipt)};
   return respond(phase==='plan'?{kind:'read',...result}:result,true);
  }
@@ -57,7 +57,7 @@ export async function handleVoiceRequest(ctx,request,{source='text',guard,phase,
  // Commit checks stale context read-only so a refusal cannot change it.
  if(phase!=='commit')reconcileCurrent(root,terminals,{scope:appScope});
  const conversationEpoch=request.conversationEpoch??readConversationEpoch(root,chosen.provider,appScope);
- if(active.size)throw new Error('Another voice request is being processed. Wait or cancel it first.');
+ if(active.size)throw new Error('Já estou processando outra solicitação por voz. Aguarde ou cancele a solicitação em andamento.');
  const controller=new AbortController();active.set(id,controller);
  const unwatch=request.watchDisconnect?.(()=>controller.abort());
  const claim=`${ROOT}/voice-requests/${id}.json`;
@@ -68,28 +68,28 @@ export async function handleVoiceRequest(ctx,request,{source='text',guard,phase,
   const exists=fs.existsSync(vaultPath(root,claim));
   if(phase==='commit'){
    const previous=exists?readJson(root,claim,null):null;
-   if(!plannedAction||previous?.stage!=='completed'||previous.plannedDigest!==digest(plannedAction))throw new Error('This voice request has no available planned action.');
-  }else if(exists)throw new Error('This voice request was already submitted. Start a new request to retry.');
+   if(!plannedAction||previous?.stage!=='completed'||previous.plannedDigest!==digest(plannedAction))throw new Error('Não há nenhuma ação pendente para esta solicitação por voz.');
+  }else if(exists)throw new Error('Esta solicitação por voz já foi enviada. Faça uma nova solicitação para tentar de novo.');
   if(phase!=='commit'){write(root,claim,{...diagnostic,stage});claimed=true}
   let transcript;
   if(source!=='audio')transcript=request.readTranscript?await request.readTranscript():request.transcript;
   else{
-   const audio=await request.readAudio();if(audio.length<1000)throw new Error('Recording was too short.');
+   const audio=await request.readAudio();if(audio.length<1000)throw new Error('A gravação foi muito curta.');
    stage='transcribing';preconnectJev();try{prepareJev({provider:chosen.provider})}catch{}
    // Overlap the small model's startup with transcription. The handle is
    // discarded even if transcription fails or the request is cancelled.
    try{prepared=prepareFastVoice(root,chosen)}catch{}
    const stt=await fetchAudio(`${speech}/stt`,{method:'POST',headers:{'Content-Type':request.contentType||'audio/webm'},body:audio,signal:AbortSignal.any([controller.signal,AbortSignal.timeout(30000)])});
-   if(!stt.ok)throw new Error('Local transcription failed. Check the V2 speech service.');transcript=(await stt.json()).text;
+   if(!stt.ok)throw new Error('A transcrição local falhou. Verifique o serviço de voz do V2.');transcript=(await stt.json()).text;
   }
   stage='validating';if(typeof transcript==='string')diagnostic.transcript=transcript.slice(0,4000);
-  if(controller.signal.aborted)throw new Error('Voice request cancelled');
+  if(controller.signal.aborted)throw new Error('Solicitação por voz cancelada.');
   const work=request.readWork?.(),workTarget=request.readWork?work?.targetId||null:request.workTarget??null;
   const terminalMode=request.readWork?!!work:request.terminalMode??Object.hasOwn(request,'workTarget');
   if(voiceRequestId(workTarget))diagnostic.workTarget=workTarget;
   const supplied=typeof request.surface==='string'?request.surface:null;
   const surface=supplied?hub?.live().find(item=>item.id===supplied):null;
-  if(supplied&&(!surface||surface.kind!==appScope))throw new Error('Voice surface belongs to another app or is disconnected.');
+  if(supplied&&(!surface||surface.kind!==appScope))throw new Error('A interface de voz pertence a outro aplicativo ou está desconectada.');
   const client=supplied||hub?.live().find(item=>item.id===hub.owner&&item.kind===appScope)?.id;
   const target=artifactTarget?.(client,chosen.provider,conversationEpoch,appScope)??null;
   stage='routing';recordDiagnostic({});
@@ -103,7 +103,7 @@ export async function handleVoiceRequest(ctx,request,{source='text',guard,phase,
      artifacts.bind(taskId,{...target,epoch:conversationEpoch});
      const turn={id:`reopen:${requestId}`,artifacts:[{...artifact,open:true,isFinal:true}]};
      check?.('publishArtifact',{taskId,artifact,turnId:turn.id,target});
-     if(!artifacts.publish(task,turn,''))throw new Error('That file was already queued to open.');
+     if(!artifacts.publish(task,turn,''))throw new Error('Esse arquivo já está na fila para ser aberto.');
      hub.emit({type:'pending'});
     }
    }:{}),...routeOptions,guard,phase,plannedAction,transport,handoffTarget:target,

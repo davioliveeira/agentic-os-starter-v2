@@ -2,9 +2,9 @@ import {randomUUID} from 'node:crypto';
 import {setTimeout as wait} from 'node:timers/promises';
 import {readPrivate} from './private-store.mjs';
 
-export const speechUpdate='Update the voice service before starting Live voice.';
-export const speechBusy='The voice service is still capturing. Try Live voice again in a moment.';
-export const speechRestarted='The voice service restarted. Start a new Live call.';
+export const speechUpdate='Atualize o serviço de voz antes de iniciar uma chamada ao vivo.';
+export const speechBusy='O serviço de voz ainda está gravando. Tente iniciar a chamada daqui a pouco.';
+export const speechRestarted='O serviço de voz reiniciou. Inicie uma nova chamada.';
 const boot=value=>typeof value==='string'&&value.length>0;
 
 export function liveSpeechMode({speech,authFile,fetchImpl=fetch,readAuth=()=>readPrivate(authFile,null),now=Date.now,enabled=process.platform==='win32',
