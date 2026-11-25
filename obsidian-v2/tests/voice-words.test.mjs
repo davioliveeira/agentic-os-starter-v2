@@ -120,11 +120,11 @@ test('teaching and forgetting change only those lines of the profile', () => {
   saveVoiceWords(root, {forget: ['jev', 'Skool'], restore: ['jev', 'Skool']});
   assert.deepEqual(profileOf(root), {dailyDrivers: ['Inbox triage', 'Deep work block'], speechLanguage: 'pt'}, 'back to nothing leaves no trace');
   // Bad input and an unreadable profile change nothing.
-  for (const [input, message] of [[{add: 'Jev'}, /must be a list/], [{add: ['J']}, /at least two letters/], [{add: [5]}, /at least two letters/], [{learn: 'no'}, /true or false/], [{add: Array.from({length: 70}, (_, index) => `Word${index}x`)}, /60 of your own words/]])
+  for (const [input, message] of [[{add: 'Jev'}, /palavras em uma lista/], [{add: ['J']}, /pelo menos duas letras/], [{add: [5]}, /pelo menos duas letras/], [{learn: 'no'}, /true ou false/], [{add: Array.from({length: 70}, (_, index) => `Word${index}x`)}, /até 60 palavras personalizadas/]])
     assert.throws(() => saveVoiceWords(root, input), message);
   assert.deepEqual(profileOf(root), {dailyDrivers: ['Inbox triage', 'Deep work block'], speechLanguage: 'pt'});
   const broken = vault('{"dailyDrivers": [');
-  assert.throws(() => saveVoiceWords(broken, {add: ['Jev']}), /not valid JSON, so nothing was saved/);
+  assert.throws(() => saveVoiceWords(broken, {add: ['Jev']}), /precisa conter JSON válido/);
   assert.equal(fs.readFileSync(path.join(broken, 'system', 'v2', 'profile.json'), 'utf8'), '{"dailyDrivers": [');
   // A vault with no profile yet gets one.
   const fresh = vault(); saveVoiceWords(fresh, {add: ['Jev']}); assert.deepEqual(profileOf(fresh), {voiceWords: ['Jev']});

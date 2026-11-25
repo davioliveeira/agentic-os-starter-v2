@@ -15,7 +15,7 @@ test("preview isolation, input validation, provider capture, and completion", as
   try {
     const preview = await import("../lib/preview");
     assert.equal(preview.TEST_ROOT, path.join(fixture, "test-vault"));
-    assert.throws(() => preview.previewState(), /marker missing/);
+    assert.throws(() => preview.previewState(), /sem o identificador V2/);
     fs.writeFileSync(path.join(fixture, "test-vault/.jarvis-v2-test-vault"), "jarvis-v2-preview-only");
     assert.equal(preview.previewState().preview.provider, "codex");
     assert.throws(() => preview.selectProvider("unsupported"));
@@ -28,16 +28,16 @@ test("preview isolation, input validation, provider capture, and completion", as
     preview.selectProvider("claude");
     assert.equal(preview.previewState().preview.provider, "claude");
     assert.equal(job.provider, "codex");
-    assert.throws(() => preview.simulateJob("metrics-pull"), /already running/);
+    assert.throws(() => preview.simulateJob("metrics-pull"), /demonstração em execução/);
     const dbPath = path.join(fixture, "test-vault/system/preview.json");
     const db = JSON.parse(fs.readFileSync(dbPath, "utf8"));
     db.runs[0].ts_started = new Date(Date.now() - 9000).toISOString();
     fs.writeFileSync(dbPath, JSON.stringify(db));
     const done = preview.previewState().runs.find(run => run.id === job.id)!;
     assert.equal(done.status, "ok");
-    assert.match(preview.previewReport(done.deliverable_path!), /captured as \*\*codex\*\*/);
-    assert.match(preview.previewReport(done.deliverable_path!), /no model was called/);
-    assert.throws(() => preview.previewReport("../../.claude/.env"), /not found/);
+    assert.match(preview.previewReport(done.deliverable_path!), /registrou \*\*codex\*\*/);
+    assert.match(preview.previewReport(done.deliverable_path!), /sem chamar um modelo/);
+    assert.throws(() => preview.previewReport("../../.claude/.env"), /Relatório não encontrado/);
     assert.equal(preview.sameOrigin(new Request("http://127.0.0.1:3217/api/queue", { headers: { origin: "https://other.example" }})), false);
     assert.equal(preview.sameOrigin(new Request("http://127.0.0.1:3217/api/queue")), false);
     assert.equal(preview.sameOrigin(new Request("http://127.0.0.1:3217/api/queue", { headers: { 'sec-fetch-site': 'same-origin' } })), true);

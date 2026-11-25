@@ -40,14 +40,14 @@ test('saving a voice setting keeps everything else the member put in their profi
 
 test('a bad value or an unreadable profile changes nothing', () => {
   const root = vault({dailyDrivers: ['Inbox triage']}), before = fs.readFileSync(path.join(root, 'system', 'v2', 'profile.json'), 'utf8');
-  for (const [changes, message] of [[{spokenReplies: 'off'}, /true or false/], [{voice: '../x'}, /not a voice name/], [{voice: 5}, /not a voice name/], [{rate: 3}, /between 0\.8 and 1\.4/], [{rate: '1'}, /between/], [{volume: 2}, /Unknown voice setting/], [null, /must be an object/], [[], /must be an object/]])
+  for (const [changes, message] of [[{spokenReplies: 'off'}, /true ou false/], [{voice: '../x'}, /identificador de voz válido/], [{voice: 5}, /identificador de voz válido/], [{rate: 3}, /entre 0\.8 e 1\.4/], [{rate: '1'}, /entre/], [{volume: 2}, /Configuração de voz desconhecida/], [null, /precisam formar um objeto/], [[], /precisam formar um objeto/]])
     assert.throws(() => saveVoicePrefs(root, changes), message);
   assert.equal(fs.readFileSync(path.join(root, 'system', 'v2', 'profile.json'), 'utf8'), before);
   // One bad setting among good ones saves none of them.
-  assert.throws(() => saveVoicePrefs(root, {spokenReplies: false, rate: 99}), /between/);
+  assert.throws(() => saveVoicePrefs(root, {spokenReplies: false, rate: 99}), /entre/);
   assert.equal(fs.readFileSync(path.join(root, 'system', 'v2', 'profile.json'), 'utf8'), before);
   const broken = vault('{"dailyDrivers": ["Inbox triage"],');
-  assert.throws(() => saveVoicePrefs(broken, {spokenReplies: false}), /not valid JSON, so the voice setting was not saved/);
+  assert.throws(() => saveVoicePrefs(broken, {spokenReplies: false}), /precisa conter JSON válido/);
   assert.equal(fs.readFileSync(path.join(broken, 'system', 'v2', 'profile.json'), 'utf8'), '{"dailyDrivers": ["Inbox triage"],', 'the member\'s file is left exactly as it was');
 });
 
@@ -83,12 +83,12 @@ test('the voice service is told the choice only when there is one', () => {
 });
 
 test('voices are listed with a name a person can read', () => {
-  assert.equal(voiceLabel('bm_george'), 'George · British, male');
-  assert.equal(voiceLabel('af_heart'), 'Heart · American, female');
-  assert.equal(voiceLabel('pf_dora'), 'Dora · Portuguese, female');
+  assert.equal(voiceLabel('bm_george'), 'George · Inglês britânico, voz masculina');
+  assert.equal(voiceLabel('af_heart'), 'Heart · Inglês americano, voz feminina');
+  assert.equal(voiceLabel('pf_dora'), 'Dora · Português, voz feminina');
   assert.equal(voiceLabel('not a voice'), 'not a voice');
   assert.deepEqual(voiceChoices({language: 'en', default: 'bm_george', voices: ['af_heart', 'bm_george', '<script>', 7]}),
-    {language: 'en', fallback: 'bm_george', voices: [{id: 'af_heart', label: 'Heart · American, female', group: 'American', name: 'Heart (female)'}, {id: 'bm_george', label: 'George · British, male', group: 'British', name: 'George (male)'}]});
+    {language: 'en', fallback: 'bm_george', voices: [{id: 'af_heart', label: 'Heart · Inglês americano, voz feminina', group: 'Inglês americano', name: 'Heart (voz feminina)'}, {id: 'bm_george', label: 'George · Inglês britânico, voz masculina', group: 'Inglês britânico', name: 'George (voz masculina)'}]});
   assert.deepEqual(voiceChoices(null), {language: 'en', fallback: null, voices: []}, 'a voice service that cannot list its voices offers none');
 });
 
@@ -143,13 +143,13 @@ test('with spoken replies off the reply is written and its links appear, and no 
 const {createVoicePrefsStore, voiceGroups, rateLabel} = jiti('../shared/voice-prefs.ts');
 test('both screens read the same settings, show only what was really saved, and an older bridge shows none', async () => {
   let saved = {spokenReplies: true, voice: null, rate: 1}, voicesAsked = 0;
-  const voices = [{id: 'af_heart', label: 'Heart · American, female', group: 'American', name: 'Heart (female)'}, {id: 'bm_george', label: 'George · British, male', group: 'British', name: 'George (male)'}, {id: 'bm_lewis', label: 'Lewis · British, male', group: 'British', name: 'Lewis (male)'}];
+  const voices = [{id: 'af_heart', label: 'Heart · Inglês americano, voz feminina', group: 'Inglês americano', name: 'Heart (voz feminina)'}, {id: 'bm_george', label: 'George · Inglês britânico, voz masculina', group: 'Inglês britânico', name: 'George (voz masculina)'}, {id: 'bm_lewis', label: 'Lewis · Inglês britânico, voz masculina', group: 'Inglês britânico', name: 'Lewis (voz masculina)'}];
   const bridge = async (route, options = {}) => {
     if (route === '/voice/voices') { voicesAsked++; return {status: 200, json: {language: 'en', fallback: 'bm_george', voices}}; }
     if (route !== '/voice/prefs') return {status: 404, json: {error: 'not found'}};
     if (options.method !== 'POST') return {status: 200, json: saved};
     const changes = JSON.parse(options.body);
-    if (changes.rate > 1.4) return {status: 400, json: {error: 'Speed must be between 0.8 and 1.4.'}};
+    if (changes.rate > 1.4) return {status: 400, json: {error: 'A velocidade deve ficar entre 0.8 e 1.4.'}};
     saved = {...saved, ...changes}; return {status: 200, json: saved};
   };
   const first = createVoicePrefsStore(bridge), second = createVoicePrefsStore(bridge);
@@ -158,7 +158,7 @@ test('both screens read the same settings, show only what was really saved, and 
   assert.equal(first.getSnapshot().ready, true);
   assert.deepEqual(first.getSnapshot().prefs, {spokenReplies: true, voice: null, rate: 1});
   assert.equal(first.getSnapshot().fallback, 'bm_george');
-  assert.deepEqual(voiceGroups(first.getSnapshot().voices).map(set => [set.group, set.voices.map(voice => voice.name)]), [['American', ['Heart (female)']], ['British', ['George (male)', 'Lewis (male)']]]);
+  assert.deepEqual(voiceGroups(first.getSnapshot().voices).map(set => [set.group, set.voices.map(voice => voice.name)]), [['Inglês americano', ['Heart (voz feminina)']], ['Inglês britânico', ['George (voz masculina)', 'Lewis (voz masculina)']]]);
   // A change saved on one screen...
   assert.deepEqual(await first.save({spokenReplies: false, voice: 'af_heart'}), {spokenReplies: false, voice: 'af_heart', rate: 1});
   assert.equal(first.getSnapshot().prefs.spokenReplies, false);
@@ -167,14 +167,14 @@ test('both screens read the same settings, show only what was really saved, and 
   assert.deepEqual(second.getSnapshot().prefs, {spokenReplies: false, voice: 'af_heart', rate: 1});
   await first.refresh(); assert.equal(voicesAsked, 2, 'once per screen');
   // A refused change is an error the screen can show, and nothing changes.
-  await assert.rejects(first.save({rate: 3}), /between 0\.8 and 1\.4/);
+  await assert.rejects(first.save({rate: 3}), /entre 0\.8 e 1\.4/);
   assert.equal(first.getSnapshot().prefs.rate, 1);
   // An older bridge has no voice settings: the controls are simply not shown.
   const old = createVoicePrefsStore(async () => ({status: 404, json: {error: 'Unknown route'}}));
   await old.refresh(); assert.equal(old.getSnapshot().ready, false);
   const down = createVoicePrefsStore(async () => { throw new Error('offline'); });
   await down.refresh(); assert.equal(down.getSnapshot().ready, false);
-  assert.equal(rateLabel(1), 'Normal'); assert.equal(rateLabel(0.9), 'Slower (0.9×)'); assert.equal(rateLabel(1.2), 'Faster (1.2×)');
+  assert.equal(rateLabel(1), 'Normal'); assert.equal(rateLabel(0.9), 'Mais devagar (0,9×)'); assert.equal(rateLabel(1.2), 'Mais rápido (1,2×)');
 });
 
 test('the shared preferences store only shows Live fields returned by the bridge', async () => {

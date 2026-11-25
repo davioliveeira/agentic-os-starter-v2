@@ -75,7 +75,7 @@ test('a priority renamed before the click is read cannot toggle a different task
     fs.writeFileSync(f.file, concurrent);
     const response = await createDailyPost({ requestBridge: f.transport })(request());
     assert.equal(response.status, 409);
-    assert.match((await response.json()).error, /priority changed/);
+    assert.match((await response.json()).error, /A prioridade mudou/);
     assert.equal(fs.readFileSync(f.file, 'utf8'), concurrent);
     assert.equal(f.calls.includes('/notes/replace'), false);
   } finally { f.cleanup(); }

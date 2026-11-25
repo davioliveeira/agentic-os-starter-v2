@@ -259,7 +259,7 @@ export class VoiceSession {
    });
    this.endPlayback=null;this.revealTimers.forEach(clearTimeout);this.revealTimers=[];
    if(token!==this.generation)return false;this.source=null;if(!ok)throw new Error('O áudio foi interrompido.');this.set('idle');return true;
-  }catch(e){if(token===this.generation){this.request?.abort();this.set('error');this.onMessage(`${input}\n\nSpoken playback failed. The written result is still available.`,true)}return false}
+  }catch(e){if(token===this.generation){this.request?.abort();this.set('error');this.onMessage(`${input}\n\nFalha na reprodução de voz. O resultado escrito continua disponível.`,true)}return false}
   finally{if(token===this.generation){this.barge?.close();this.barge=null}if(this.playback===playback){this.playback=null;this.speechReveals=[]}}
  }
 

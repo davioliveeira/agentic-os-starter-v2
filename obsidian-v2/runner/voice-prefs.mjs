@@ -44,21 +44,21 @@ export function readVoicePrefs(root) {
 // Changes only the named settings and keeps everything else in the member's profile untouched. A profile
 // that exists but cannot be read is never overwritten: the member's Daily Drivers live in the same file.
 export function saveVoicePrefs(root, changes) {
-  if (!changes || typeof changes !== 'object' || Array.isArray(changes)) throw new Error('Voice settings must be an object.');
+  if (!changes || typeof changes !== 'object' || Array.isArray(changes)) throw new Error('As configurações de voz precisam formar um objeto.');
   // Read, change and write back as one step: the bridge and `node aos.mjs voice` may both be saving.
   return withFileLock(profileFile(root), () => saveVoicePrefsLocked(root, changes));
 }
 function saveVoicePrefsLocked(root, changes) {
   let profile;
-  try { profile = readProfile(root); } catch { throw new Error('system/v2/profile.json in this vault is not valid JSON, so the voice setting was not saved. Fix or remove that file first.'); }
+  try { profile = readProfile(root); } catch { throw new Error('Corrija ou remova system/v2/profile.json no cofre. O arquivo precisa conter JSON válido para salvar a configuração de voz.'); }
   for (const [name, value] of Object.entries(changes)) {
-    if (name === 'spokenReplies') { if (typeof value !== 'boolean') throw new Error('spokenReplies takes true or false.'); if (value) delete profile.spokenReplies; else profile.spokenReplies = false; }
-    else if (name === 'voice') { if (value === null || value === '') delete profile.voice; else if (typeof value === 'string' && VOICE_ID.test(value)) profile.voice = value; else throw new Error('That is not a voice name.'); }
-    else if (name === 'rate') { if (typeof value !== 'number' || !Number.isFinite(value) || value < VOICE_RATE.min || value > VOICE_RATE.max) throw new Error(`Speed must be between ${VOICE_RATE.min} and ${VOICE_RATE.max}.`); const rounded = Math.round(value * 100) / 100; if (rounded === 1) delete profile.voiceRate; else profile.voiceRate = rounded; }
+    if (name === 'spokenReplies') { if (typeof value !== 'boolean') throw new Error('Use true ou false em spokenReplies.'); if (value) delete profile.spokenReplies; else profile.spokenReplies = false; }
+    else if (name === 'voice') { if (value === null || value === '') delete profile.voice; else if (typeof value === 'string' && VOICE_ID.test(value)) profile.voice = value; else throw new Error('Informe um identificador de voz válido.'); }
+    else if (name === 'rate') { if (typeof value !== 'number' || !Number.isFinite(value) || value < VOICE_RATE.min || value > VOICE_RATE.max) throw new Error(`A velocidade deve ficar entre ${VOICE_RATE.min} e ${VOICE_RATE.max}.`); const rounded = Math.round(value * 100) / 100; if (rounded === 1) delete profile.voiceRate; else profile.voiceRate = rounded; }
     else if(Object.hasOwn(LIVE_PREF_CHOICES,name)){
-      if(!LIVE_PREF_CHOICES[name].includes(value))throw new Error(`Invalid ${name}. Choose ${LIVE_PREF_CHOICES[name].join(', ')}.`);
+      if(!LIVE_PREF_CHOICES[name].includes(value))throw new Error(`Valor inválido para ${name}. Escolha entre ${LIVE_PREF_CHOICES[name].join(', ')}.`);
       if(value===LIVE_PREF_DEFAULTS[name])delete profile[name];else profile[name]=value;
-    }else throw new Error(`Unknown voice setting: ${String(name).slice(0, 40)}`);
+    }else throw new Error(`Configuração de voz desconhecida: ${String(name).slice(0, 40)}`);
   }
   const file = profileFile(root), temporary = `${file}.${crypto.randomUUID()}.tmp`;
   fs.mkdirSync(path.dirname(file), {recursive: true});
@@ -73,18 +73,18 @@ export function speakPrefsQuery(prefs) {
 }
 
 // "bm_george" -> "George · British, male". The first letter is the accent or language, the second the gender.
-const ACCENTS = {a: 'American', b: 'British', e: 'Spanish', f: 'French', h: 'Hindi', i: 'Italian', j: 'Japanese', p: 'Portuguese', z: 'Chinese'};
+const ACCENTS = {a: 'Inglês americano', b: 'Inglês britânico', e: 'Espanhol', f: 'Francês', h: 'Hindi', i: 'Italiano', j: 'Japonês', p: 'Português', z: 'Chinês'};
 export function voiceLabel(id) {
   if (typeof id !== 'string' || !VOICE_ID.test(id)) return String(id);
   const name = id.slice(3);
-  return `${name[0].toUpperCase()}${name.slice(1)} · ${ACCENTS[id[0]] || 'Other'}, ${id[1] === 'f' ? 'female' : id[1] === 'm' ? 'male' : 'voice'}`;
+  return `${name[0].toUpperCase()}${name.slice(1)} · ${ACCENTS[id[0]] || 'Outros'}, ${id[1] === 'f' ? 'voz feminina' : id[1] === 'm' ? 'voz masculina' : 'voz'}`;
 }
 // What both screens show in their voice list, from what the voice service says it can speak. `group` and
 // `name` are the same label in two short parts ("British" / "George (male)"), for a list grouped by accent:
 // the menus are narrow, and a full label would be cut off.
 export function voiceChoices(service) {
   const ids = Array.isArray(service?.voices) ? service.voices.filter(id => typeof id === 'string' && VOICE_ID.test(id)).slice(0, 80) : [];
-  const name = id => `${id[3].toUpperCase()}${id.slice(4)} (${id[1] === 'f' ? 'female' : id[1] === 'm' ? 'male' : 'voice'})`;
+  const name = id => `${id[3].toUpperCase()}${id.slice(4)} (${id[1] === 'f' ? 'voz feminina' : id[1] === 'm' ? 'voz masculina' : 'voz'})`;
   return {language: typeof service?.language === 'string' ? service.language : 'en', fallback: typeof service?.default === 'string' && VOICE_ID.test(service.default) ? service.default : null,
-    voices: ids.map(id => ({id, label: voiceLabel(id), group: ACCENTS[id[0]] || 'Other', name: name(id)}))};
+    voices: ids.map(id => ({id, label: voiceLabel(id), group: ACCENTS[id[0]] || 'Outros', name: name(id)}))};
 }

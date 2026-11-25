@@ -19,6 +19,8 @@ function LiveTerminal({id,onError,readOnly=false}:{id:string;onError:(message:st
   const host=useRef<HTMLDivElement>(null);
   useEffect(()=>{
     if(!host.current)return;
+    Terminal.strings.promptLabel='Entrada do terminal';
+    Terminal.strings.tooMuchOutput='O terminal tem muitas linhas para anunciar. Navegue pelas linhas para lê-las.';
     const term=new Terminal({fontFamily:'Consolas, monospace',fontSize:14,scrollback:2500,theme:{background:'#0b0e14',foreground:'#e5e9ef'},allowProposedApi:false,disableStdin:readOnly});
     const fit=new FitAddon();term.loadAddon(fit);term.open(host.current);
     let gone=false,busy=false,cursor=0,instance='';
@@ -203,7 +205,7 @@ export default function AgentWorkDrawer({tasks,activityTasks,tasksLoaded,target,
         </div>}
         {answerTarget===current.id&&current.turns.length>0&&<section className="agent-answer" id="terminal-saved-answer" aria-label="Resposta salva"><pre>{answer||current.turns.at(-1)?.text}</pre></section>}
       </>:<div className="agent-empty" role={unavailable?'status':undefined}>
-        <strong>{unavailable?'Este terminal não está mais salvo.':target?'Abrindo terminal…':`New ${provider==='codex'?'Codex':'Claude Code'} terminal`}</strong>
+        <strong>{unavailable?'Este terminal não está mais salvo.':target?'Abrindo terminal…':`Novo terminal do ${provider==='codex'?'Codex':'Claude Code'}`}</strong>
         <p>{unavailable?'Seu rascunho continua aqui. Copie-o para uma nova solicitação para recomeçar em outra conversa.':target?'Conectando ao terminal compartilhado.':'Descreva a tarefa abaixo. Cada solicitação independente abre uma aba de terminal.'}</p>
         {unavailable&&former&&prompt.trim()&&<button type="button" disabled={sending||!vaultRoot} onClick={copyExpiredDraft}>Usar rascunho em novo terminal</button>}
       </div>}
@@ -220,7 +222,7 @@ export default function AgentWorkDrawer({tasks,activityTasks,tasksLoaded,target,
         </form>
       </div>}
       <footer><span title={voiceTask?.title}>Conversa por voz: {voiceTask?shortConversationTitle(voiceTask):voiceTarget?'Indisponível':'Nova conversa'}</span><span>Fechar a aba encerra o terminal. A conversa fica no histórico e pode ser retomada por voz.</span></footer>
-      <details className="agent-services" onToggle={e=>{if(e.currentTarget.open)void workRequest('/services').then(setServices).catch(e=>setError(String(e)))}}><summary>Conexões e rascunhos</summary><p>Os rascunhos da caixa de mensagem ficam neste dispositivo. Ao parar o terminal, texto não enviado pode se perder. Tarefas paradas expiram em 7 dias, a menos que você use Manter.</p>{services&&<><p>Ponte do terminal conectada · {services.bridge.memoryMiB} MiB · {active} sessões abertas. Voz: {services.speech.health?.ok?'online':'unavailable'}{services.speech.shared?' (compartilhada com o V1)':''}. Os conectores usam a sessão do terminal selecionado. Para parar os serviços ociosos do V2, execute <code>scripts/services.ps1 -Action Stop</code> na pasta do Obsidian V2. Encerre as tarefas ativas primeiro.</p>{Object.entries(services.providers||{}).map(([name,value])=>{const cli=value as {installed:boolean;version?:string;command?:string;source?:string;detail?:string};return <p key={name}><strong>{name==='codex'?'Codex':'Claude Code'}</strong> · {cli.installed?cli.version||'Versão indisponível':'Não instalado'}{cli.source?` · ${cli.source}`:''}{cli.command&&<code>{cli.command}</code>}{cli.detail&&<span>{cli.detail}</span>}</p>})}</>}</details>
+      <details className="agent-services" onToggle={e=>{if(e.currentTarget.open)void workRequest('/services').then(setServices).catch(e=>setError(String(e)))}}><summary>Conexões e rascunhos</summary><p>Os rascunhos da caixa de mensagem ficam neste dispositivo. Ao parar o terminal, texto não enviado pode se perder. Tarefas paradas expiram em 7 dias, a menos que você use Manter.</p>{services&&<><p>Ponte do terminal conectada · {services.bridge.memoryMiB} MiB · {active} sessões abertas. Voz: {services.speech.health?.ok?'disponível':'indisponível'}{services.speech.shared?' (compartilhada com o V1)':''}. Os conectores usam a sessão do terminal selecionado. Para parar os serviços ociosos do V2, execute <code>scripts/services.ps1 -Action Stop</code> na pasta do Obsidian V2. Encerre as tarefas ativas primeiro.</p>{Object.entries(services.providers||{}).map(([name,value])=>{const cli=value as {installed:boolean;version?:string;command?:string;source?:string;detail?:string};return <p key={name}><strong>{name==='codex'?'Codex':'Claude Code'}</strong> · {cli.installed?cli.version||'Versão indisponível':'Não instalado'}{cli.source?` · ${cli.source}`:''}{cli.command&&<code>{cli.command}</code>}{cli.detail&&<span>{cli.detail}</span>}</p>})}</>}</details>
     </div>}
   </section>;
 }

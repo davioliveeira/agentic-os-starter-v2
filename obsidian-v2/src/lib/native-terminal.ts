@@ -45,7 +45,7 @@ export function terminalConversation(leaf:WorkspaceLeaf):{id:string;provider:Pro
 }
 export function attachmentViewState(config:TerminalRuntime,task:Task,base:Profile={type:'integrated'},platform='win32',lifetimeEndpoint?:string) {
  if(!uuid.test(task.id)||!['codex','claude'].includes(task.provider))throw new Error('Esta tarefa do terminal é inválida.');
- const title=`${task.provider==='codex'?'Codex':'Claude'} · ${(task.title||'Conversation').replace(/[\x00-\x1f\x7f]/g,' ').replace(/\s+/g,' ').trim().slice(0,70)}`;
+ const title=`${task.provider==='codex'?'Codex':'Claude'} · ${(task.title||'Conversa').replace(/[\x00-\x1f\x7f]/g,' ').replace(/\s+/g,' ').trim().slice(0,70)}`;
  return {type:NATIVE_TERMINAL_VIEW,active:false,state:{[NATIVE_TERMINAL_VIEW]:{
   cwd:config.vault,focus:false,profileSourceId:null,serial:null,userTitle:title,
   profile:{type:'integrated',name:title,executable:config.nodeExecutable,args:[config.attachmentScript,'--runtime',config.runtimeDir,'--task',task.id],
@@ -71,11 +71,11 @@ export class NativeTerminalTabs {
   * Navigation never types into, resets, or adopts an existing shell as an agent. */
  async openShell(forceNew=false):Promise<void> {
   const plugin=this.plugin();
-  if(!plugin){this.fallback('Enable the Terminal plugin in Obsidian to open a terminal.');return}
+  if(!plugin){this.fallback('Ative o plugin Terminal no Obsidian para abrir um terminal.');return}
   const vault=(this.app.vault.adapter as typeof this.app.vault.adapter&{getBasePath?:()=>string}).getBasePath?.();
-  if(!vault){this.fallback('Terminal requires a local vault.');return}
+  if(!vault){this.fallback('O Terminal precisa de um cofre local.');return}
   const settings=plugin.settings?.value,profileId=settings?.defaultProfile,profile=profileId?settings?.profiles?.[profileId]:undefined;
-  if(!profile||profile.type!=='integrated'){this.fallback('Choose an integrated default profile in Terminal settings.');return}
+  if(!profile||profile.type!=='integrated'){this.fallback('Escolha um perfil integrado como padrão nas configurações do Terminal.');return}
   if(!forceNew){
    const existing=this.app.workspace.getLeavesOfType(NATIVE_TERMINAL_VIEW).find(leaf=>{
     const state=profileState(leaf);
@@ -88,8 +88,8 @@ export class NativeTerminalTabs {
   }
   const commands=(this.app as App&{commands?:{executeCommandById?:(id:string)=>boolean}}).commands;
   try{
-   if(!commands?.executeCommandById?.('terminal:open-terminal.default.root'))this.fallback('The Terminal command is unavailable. Enable its commands in Terminal settings.');
-  }catch(error){this.fallback(`Terminal could not open: ${String(error instanceof Error?error.message:error)}`)}
+   if(!commands?.executeCommandById?.('terminal:open-terminal.default.root'))this.fallback('O comando do Terminal está indisponível. Ative os comandos nas configurações do plugin.');
+  }catch(error){this.fallback(`O Terminal não abriu: ${String(error instanceof Error?error.message:error)}`)}
  }
  /** No task mutation occurs here: the launched program only attaches to a CLI
   * already owned by the bridge. It never resumes a stopped conversation. */
@@ -106,17 +106,17 @@ export class NativeTerminalTabs {
   if(direct)return direct;
   try{
    const basePath=(this.app.vault.adapter as typeof this.app.vault.adapter&{getBasePath?:()=>string}).getBasePath?.();
-   if(!basePath)return this.fallback('Native Terminal requires a local vault.');
+   if(!basePath)return this.fallback('O terminal nativo precisa de um cofre local.');
    const config=checkedTerminalRuntime(JSON.parse(await this.app.vault.adapter.read(`${this.options.pluginDir}/terminal-runtime.json`)),basePath);
    const snapshot=await this.options.readSnapshot();
-   if(canonical(snapshot.vault)!==canonical(config.vault))return this.fallback('The terminal bridge is connected to a different vault.');
-   if(snapshot.attachmentProtocol!==1)return this.fallback('The V2 bridge needs its terminal attachment update. Restart the updated bridge when its work is safe to interrupt.');
+   if(canonical(snapshot.vault)!==canonical(config.vault))return this.fallback('A ponte do terminal está ligada a outro cofre.');
+   if(snapshot.attachmentProtocol!==1)return this.fallback('A ponte V2 precisa da atualização que conecta o terminal. Reinicie a ponte atualizada depois que terminarem as tarefas ativas.');
    const task=snapshot.tasks.find(task=>task.id===id);
-   if(!task)return this.fallback('That saved conversation is no longer available.');
-   if(task.execution==='native')return this.fallback('Open this conversation from Jarvis to restore its native terminal.');
-   if(task.execution==='headless')return this.fallback('This workflow runs in the background. Its report appears on the dashboard.');
-   if(task.execution==='script')return this.fallback('This refresh runs as a script. Its results appear on the dashboard.');
-   if(!task.pid&&['stopped','error'].includes(task.state))return this.fallback('That conversation is stopped. Resume it from Jarvis history, or open a new terminal.');
+   if(!task)return this.fallback('A conversa salva está indisponível.');
+   if(task.execution==='native')return this.fallback('Abra esta conversa no Jarvis para recuperar o terminal nativo.');
+   if(task.execution==='headless')return this.fallback('Este fluxo roda em segundo plano. O relatório aparece no painel.');
+   if(task.execution==='script')return this.fallback('Esta atualização roda em um script. O resultado aparece no painel.');
+   if(!task.pid&&['stopped','error'].includes(task.state))return this.fallback('A conversa foi encerrada. Retome pelo Histórico do Jarvis ou abra um novo terminal.');
    const existing=this.app.workspace.getLeavesOfType(NATIVE_TERMINAL_VIEW).find(leaf=>{
     const target=terminalConversation(leaf),state=profileState(leaf),profile=state?.profile;
     return target?.id===id&&target.provider===task.provider&&canonical(String(profile.executable))===canonical(config.nodeExecutable)&&canonical(String(profile.args?.[0]))===canonical(config.attachmentScript)&&canonical(String(profile.args?.[2]))===canonical(config.runtimeDir);
@@ -148,6 +148,6 @@ export class NativeTerminalTabs {
     }
     throw error;
    }
-  }catch(error){return this.fallback(`Native Terminal could not open: ${String(error instanceof Error?error.message:error)}`)}
+  }catch(error){return this.fallback(`O terminal nativo não abriu: ${String(error instanceof Error?error.message:error)}`)}
  }
 }

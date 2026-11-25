@@ -229,10 +229,10 @@ export function parseOutliers(md: string): OutlierItem[] {
 
 /** Classify a `## ` heading line into a trending section bucket. */
 function sectionFor(heading: string): TrendingSection {
-	if (/Fastest Growing/i.test(heading)) {
+	if (/Fastest Growing|maior crescimento/i.test(heading)) {
 		return /24h/i.test(heading) ? "velocity-day" : "velocity-month";
 	}
-	if (/This Month/i.test(heading)) return "month";
+	if (/This Month|em alta no mês/i.test(heading)) return "month";
 	return "week";
 }
 
@@ -274,10 +274,10 @@ export function parseTrendingRepos(md: string): TrendingRepo[] {
 		const next = matches[i + 1];
 		const blockEnd = next ? next.idx : md.length;
 		const block = md.slice(cur.idx, blockEnd);
-		const stars = (block.match(/\*\*Stars:\*\*\s*([0-9.,k]+)/i)?.[1] ?? "").trim();
-		const lang = (block.match(/\*\*Language:\*\*\s*([A-Za-z+#.\-]+)/)?.[1] ?? "").trim();
-		const desc = (block.match(/\*\*Description:\*\*\s*(.*)/m)?.[1] ?? "").trim();
-		const growth = (block.match(/\*\*Growth:\*\*\s*(\+[0-9.,k]+)/i)?.[1] ?? "").trim();
+		const stars = (block.match(/\*\*(?:Stars|Estrelas):\*\*\s*([0-9.,k]+)/i)?.[1] ?? "").trim();
+		const lang = (block.match(/\*\*(?:Language|Linguagem):\*\*\s*([A-Za-z+#.\-]+)/)?.[1] ?? "").trim();
+		const desc = (block.match(/\*\*(?:Description|Descrição):\*\*\s*(.*)/m)?.[1] ?? "").trim();
+		const growth = (block.match(/\*\*(?:Growth|Crescimento):\*\*\s*(\+[0-9.,k]+)/i)?.[1] ?? "").trim();
 		const parts = cur.full.split("/");
 		const owner = parts.length > 1 ? (parts[0] ?? "") : "";
 		const name = parts.length > 1 ? (parts[1] ?? cur.full) : cur.full;

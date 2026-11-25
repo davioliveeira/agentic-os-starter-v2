@@ -18,7 +18,7 @@ export function TerminalTabs({tabs,history,target,historyOpen,loaded,onHistory,o
           <button aria-pressed={target===task.id} onClick={()=>onSelect(task.id)} title={task.title}>{shortTaskTitle(task)}<small>{task.execution==='script'?'Atualização da fonte':task.provider==='codex'?'Codex':'Claude Code'} · {taskStatus(task)}</small></button>
           <button className={armed===task.id?'is-armed':undefined} aria-label={armed===task.id?`Parar e fechar: ${task.title}`:`Fechar aba: ${task.title}`} title={closeHint[tabCloseAction(task)]} disabled={task.state==='stopping'} onClick={()=>onClose(task.id)}>{armed===task.id?'Parar?':'×'}</button>
         </div>)}
-        {!tabs.length&&<span className="agent-tabs-empty">{loaded?'No open terminals':'Conectando…'}</span>}
+        {!tabs.length&&<span className="agent-tabs-empty">{loaded?'Nenhum terminal aberto':'Conectando…'}</span>}
       </nav>
       <button className="agent-history-toggle" aria-expanded={historyOpen} aria-controls="terminal-history" onClick={()=>onHistory(!historyOpen)}>Histórico</button>
     </div>

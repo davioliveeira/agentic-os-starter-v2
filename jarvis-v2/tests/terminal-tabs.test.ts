@@ -57,6 +57,8 @@ test('the rendered terminal strip keeps history behind its button and uses hones
   const expanded=renderToStaticMarkup(React.createElement(TerminalTabs,{...props,historyOpen:true}));
   assert.match(expanded,/Old stopped fixture/);assert.match(expanded,/Encerrado · Mantido/);assert.doesNotMatch(expanded,/completed|successful/i);
   assert.match(expanded,/Abrir o histórico mostra as sessões salvas/);
+  const empty=renderToStaticMarkup(React.createElement(TerminalTabs,{...props,tabs:[],target:null}));
+  assert.match(empty,/Nenhum terminal aberto/);
 });
 
 function elements(node:React.ReactNode):React.ReactElement<any>[] {

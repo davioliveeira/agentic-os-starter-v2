@@ -101,17 +101,17 @@ function saveVoiceWordsLocked(vault, {add = [], forget = [], restore = [], learn
   const file = profileFile(vault);
   let profile = {};
   try { profile = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '')); if (!profile || typeof profile !== 'object' || Array.isArray(profile)) throw new Error('not an object'); }
-  catch (error) { if (error.code !== 'ENOENT') throw new Error('system/v2/profile.json in this vault is not valid JSON, so nothing was saved. Fix or remove that file first.'); profile = {}; }
-  const words = value => { if (!Array.isArray(value)) throw new Error('Words must be a list.'); const cleaned = value.map(cleanWord); if (cleaned.some(word => word.length < 2)) throw new Error('A word needs at least two letters.'); return cleaned; };
+  catch (error) { if (error.code !== 'ENOENT') throw new Error('Corrija ou remova system/v2/profile.json no cofre. O arquivo precisa conter JSON válido para salvar o vocabulário de voz.'); profile = {}; }
+  const words = value => { if (!Array.isArray(value)) throw new Error('Informe as palavras em uma lista.'); const cleaned = value.map(cleanWord); if (cleaned.some(word => word.length < 2)) throw new Error('Use pelo menos duas letras por palavra.'); return cleaned; };
   const merge = (current, extra) => [...new Map([...(Array.isArray(current) ? current.map(cleanWord).filter(Boolean) : []), ...extra].map(word => [key(word), word])).values()];
   const without = (current, gone) => { const drop = new Set(gone.map(key)); return (Array.isArray(current) ? current.map(cleanWord).filter(Boolean) : []).filter(word => !drop.has(key(word))); };
   const adding = words(add), forgetting = words(forget), restoring = words(restore);
   // Teaching a word you once told it to forget brings it back; forgetting a word you taught removes it.
   let yours = without(merge(profile.voiceWords, adding), forgetting), ignored = without(merge(profile.voiceWordsIgnore, forgetting), [...adding, ...restoring]);
-  if (yours.length > VOICE_WORDS_LIMIT) throw new Error(`Voice can listen for ${VOICE_WORDS_LIMIT} of your own words at most. Remove some first.`);
+  if (yours.length > VOICE_WORDS_LIMIT) throw new Error(`O vocabulário aceita até ${VOICE_WORDS_LIMIT} palavras personalizadas. Remova algumas para continuar.`);
   if (yours.length) profile.voiceWords = yours; else delete profile.voiceWords;
   if (ignored.length) profile.voiceWordsIgnore = ignored.slice(0, 200); else delete profile.voiceWordsIgnore;
-  if (learn !== undefined) { if (typeof learn !== 'boolean') throw new Error('learn takes true or false.'); if (learn) delete profile.voiceWordsLearn; else profile.voiceWordsLearn = false; }
+  if (learn !== undefined) { if (typeof learn !== 'boolean') throw new Error('Use true ou false em learn.'); if (learn) delete profile.voiceWordsLearn; else profile.voiceWordsLearn = false; }
   fs.mkdirSync(path.dirname(file), {recursive: true});
   const temporary = `${file}.${crypto.randomUUID()}.tmp`;
   fs.writeFileSync(temporary, JSON.stringify(profile, null, 1));

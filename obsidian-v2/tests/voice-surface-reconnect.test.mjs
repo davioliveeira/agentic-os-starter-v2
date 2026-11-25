@@ -152,15 +152,15 @@ test('cancelling while the replacement stream connects never takes ownership or 
 test('a coordination timeout retires its socket and only a new user attempt can retry focus',async t=>{
  const f=fixture(t);let focusCount=0,signal;
  const surface=new VoiceSurface(async(path,options)=>{const body=JSON.parse(options.body);if(body.focus){focusCount++;signal=options.signal;return new Promise(()=>{})}return f.transport(path,options)},'native',()=> 'idle',async()=>true,()=>{},f.info);t.after(()=>surface.destroy());
- await flush();const old=f.streams[0];old.open();await flush();const pending=assert.rejects(surface.focus(),/coordination timed out/);await flush();
+ await flush();const old=f.streams[0];old.open();await flush();const pending=assert.rejects(surface.focus(),/serviço de voz demorou demais/);await flush();
  await f.advance(5000);await pending;assert.equal(signal.aborted,true);assert.equal(old.closes,1);assert.equal(focusCount,1);
  await f.advance(1000);assert.equal(f.streams.length,2);f.streams[1].open();await flush();assert.equal(focusCount,1);
 });
 
 test('connection readiness is bounded and destruction cancels its waiting timer',async t=>{
- const f=fixture(t),surface=f.create();await flush();const first=f.streams[0];const timeout=assert.rejects(surface.focus(),/reconnecting/);await flush();
+ const f=fixture(t),surface=f.create();await flush();const first=f.streams[0];const timeout=assert.rejects(surface.focus(),/se restabelecendo/);await flush();
  await f.advance(5000);await timeout;assert.equal(first.closes,1);await f.advance(1000);assert.equal(f.streams.length,2);
- const disposed=assert.rejects(surface.focus(),/interrupted/);await flush();surface.destroy();await disposed;await flush();
+ const disposed=assert.rejects(surface.focus(),/interrompida/);await flush();surface.destroy();await disposed;await flush();
  assert.equal(f.timers.size,0);assert.equal(f.requests.some(request=>request.body.focus),false);
 });
 

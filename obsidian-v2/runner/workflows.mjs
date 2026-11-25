@@ -109,16 +109,16 @@ export async function directWorkflow(root,job,{signal}={}){
    try{await runCommand(pythonCommand(),[path.join(base,'runner/scripts/github-trending/fetch.py')],{cwd:root,env,timeout:240000,signal});break}
    catch(e){if(attempt>=2||!/HTTP Error 50[234]|timed out|ECONNRESET/i.test(e.message))throw e;await new Promise(r=>setTimeout(r,1500*(attempt+1)))}
   }
-  const report=path.join(root,destinationFor(job));if(!fs.existsSync(report))throw new Error('GitHub fetch did not produce its report');return {text:fs.readFileSync(report,'utf8'),ownsDestination:true};
+  const report=path.join(root,destinationFor(job));if(!fs.existsSync(report))throw new Error('A consulta ao GitHub não gerou o relatório.');return {text:fs.readFileSync(report,'utf8'),ownsDestination:true};
  }
  if(job.skill==='metrics-pull'){
   const results=[];
   // Sequential source writes prevent lost last-pull.json updates and CSV races.
   for(const script of ['pull_claude_usage.py','pull_youtube.py','pull_instagram.py','pull_tiktok.py']){
-   try{await runCommand(pythonCommand(),[path.join(base,'runner/scripts/metrics-pull',script)],{cwd:root,env,timeout:120000,signal});results.push(`- ${script}: completed (see source status below).`)}catch(e){if(signal?.aborted)throw e;results.push(`- ${script}: error — ${e.message}`)}
+   try{await runCommand(pythonCommand(),[path.join(base,'runner/scripts/metrics-pull',script)],{cwd:root,env,timeout:120000,signal});results.push(`- ${script}: concluído. O estado da fonte aparece abaixo.`)}catch(e){if(signal?.aborted)throw e;results.push(`- ${script}: erro — ${e.message}`)}
   }
   const snapshot=path.join(root,'system/metrics/last-pull.json');
-  return {text:`# Metrics refresh\n\n${results.join('\n')}\n\nSource statuses:\n\n\`\`\`json\n${fs.existsSync(snapshot)?fs.readFileSync(snapshot,'utf8'):'{}'}\n\`\`\`\n\nClaude usage remains labeled Claude. Codex account usage is not inferred from that ledger.`};
+  return {text:`# Atualização de métricas\n\n${results.join('\n')}\n\nEstado das fontes\n\n\`\`\`json\n${fs.existsSync(snapshot)?fs.readFileSync(snapshot,'utf8'):'{}'}\n\`\`\`\n\nO uso da conta Claude aparece como Claude. Consulte a fonte do Codex para os dados dessa conta.`};
  }
- throw new Error('Unknown deterministic workflow');
+ throw new Error('Fluxo de execução direta desconhecido.');
 }

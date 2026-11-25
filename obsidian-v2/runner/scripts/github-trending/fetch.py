@@ -202,19 +202,19 @@ def fmt_repo(rank: int, repo: dict) -> str:
     full = repo.get("full_name") or f"{owner}/{name}"
     url = repo.get("html_url", f"https://github.com/{full}")
     stars = repo.get("stargazers_count", 0)
-    language = repo.get("language") or "N/A"
+    language = repo.get("language") or "—"
     created_iso = (repo.get("created_at") or "")[:10]
     topics = repo.get("topics") or []
     desc = repo.get("description") or ""
     ai_tag = " **[AI/DEV]**" if is_ai_dev(repo) else ""
-    topics_str = ", ".join(topics[:5]) if topics else "none"
+    topics_str = ", ".join(topics[:5]) if topics else "nenhum"
 
     return (
         f"### {rank}. [{full}]({url}){ai_tag}\n"
-        f"- **Stars:** {stars:,} | **Language:** {language}\n"
-        f"- **Created:** {created_iso}\n"
-        f"- **Topics:** {topics_str}\n"
-        f"- **Description:** {desc}\n"
+        f"- **Estrelas:** {stars:,} | **Linguagem:** {language}\n"
+        f"- **Criado em:** {created_iso}\n"
+        f"- **Tópicos:** {topics_str}\n"
+        f"- **Descrição:** {desc}\n"
     )
 
 
@@ -226,22 +226,22 @@ def fmt_velocity_repo(rank: int, repo: dict, growth_suffix: str) -> str:
     full = repo.get("full_name") or ""
     url = repo.get("html_url", f"https://github.com/{full}")
     stars = repo.get("stargazers_count", 0)
-    language = repo.get("language") or "N/A"
+    language = repo.get("language") or "—"
     created_iso = (repo.get("created_at") or "")[:10]
     topics = repo.get("topics") or []
     desc = repo.get("description") or ""
     ai_tag = " **[AI/DEV]**" if is_ai_dev(repo) else ""
-    topics_str = ", ".join(topics[:5]) if topics else "none"
+    topics_str = ", ".join(topics[:5]) if topics else "nenhum"
     growth = repo.get("_growth_stars", 0)
-    created_note = f" (created {created_iso})" if created_iso else ""
+    created_note = f" (criado em {created_iso})" if created_iso else ""
 
     return (
         f"### {rank}. [{full}]({url}){ai_tag}\n"
-        f"- **Growth:** +{growth:,} stars {growth_suffix}{created_note}\n"
-        f"- **Stars:** {stars:,} | **Language:** {language}\n"
-        f"- **Created:** {created_iso or 'unknown'}\n"
-        f"- **Topics:** {topics_str}\n"
-        f"- **Description:** {desc}\n"
+        f"- **Crescimento:** +{growth:,} estrelas {growth_suffix}{created_note}\n"
+        f"- **Estrelas:** {stars:,} | **Linguagem:** {language}\n"
+        f"- **Criado em:** {created_iso or 'sem data'}\n"
+        f"- **Tópicos:** {topics_str}\n"
+        f"- **Descrição:** {desc}\n"
     )
 
 
@@ -253,7 +253,7 @@ def render(
     now_ct: datetime,
 ) -> str:
     date_str = now_ct.strftime("%Y-%m-%d")
-    weekday = now_ct.strftime("%A")
+    weekday = ("segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo")[now_ct.weekday()]
     time_str = now_ct.strftime("%H:%M")
 
     weekly_blocks = "\n".join(fmt_repo(i + 1, r) for i, r in enumerate(weekly[:TOP_WEEK]))
@@ -264,10 +264,10 @@ def render(
                 fmt_velocity_repo(i + 1, r, suffix)
                 for i, r in enumerate(items[:TOP_VELOCITY])
             )
-        return "_Trending feed unavailable this run._\n"
+        return "_A lista de tendências ficou indisponível nesta execução._\n"
 
-    velocity_day_blocks = velocity_section(velocity_day, "today")
-    velocity_month_blocks = velocity_section(velocity_month, "this month")
+    velocity_day_blocks = velocity_section(velocity_day, "hoje")
+    velocity_month_blocks = velocity_section(velocity_month, "neste mês")
 
     ai_count = sum(1 for r in weekly[:TOP_WEEK] if is_ai_dev(r))
     top_ai = next((r for r in weekly[:TOP_WEEK] if is_ai_dev(r)), None)
@@ -275,42 +275,42 @@ def render(
         top_full = top_ai.get("full_name", "")
         top_url = top_ai.get("html_url", "")
         top_stars = f"{top_ai.get('stargazers_count', 0):,}"
-        top_desc = top_ai.get("description") or "(no description)"
+        top_desc = top_ai.get("description") or "(sem descrição)"
         radar_block = (
-            f"- **AI/Dev-relevant repos today:** {ai_count} out of {TOP_WEEK}\n"
-            f"- **Top AI pick:** [{top_full}]({top_url}) - {top_stars} stars\n"
-            f"- **Why it matters:** {top_desc}\n"
+            f"- **Repositórios de IA e desenvolvimento:** {ai_count} de {TOP_WEEK}\n"
+            f"- **Destaque de IA:** [{top_full}]({top_url}) - {top_stars} estrelas\n"
+            f"- **Por que vale conferir:** {top_desc}\n"
         )
     else:
         radar_block = (
-            f"- **AI/Dev-relevant repos today:** {ai_count} out of {TOP_WEEK}\n"
-            f"- **Top AI pick:** (none flagged)\n"
-            f"- **Why it matters:** —\n"
+            f"- **Repositórios de IA e desenvolvimento:** {ai_count} de {TOP_WEEK}\n"
+            f"- **Destaque de IA:** nenhum identificado\n"
+            f"- **Por que vale conferir:** —\n"
         )
 
     return (
-        f"# GitHub Trending - {date_str} ({weekday})\n\n"
-        f"## Top {TOP_WEEK} Trending This Week\n"
-        f"_Repos created in the last 7 days, ranked by stars_\n\n"
+        f"# Repositórios em alta no GitHub - {date_str} ({weekday})\n\n"
+        f"## {TOP_WEEK} repositórios em alta na semana\n"
+        f"_Repositórios criados nos últimos sete dias, ordenados por estrelas_\n\n"
         f"{weekly_blocks}\n"
         f"---\n\n"
-        f"## Top {TOP_MONTH} Trending This Month\n"
-        f"_Repos created in the last 30 days, ranked by stars_\n\n"
+        f"## {TOP_MONTH} repositórios em alta no mês\n"
+        f"_Repositórios criados nos últimos 30 dias, ordenados por estrelas_\n\n"
         f"{monthly_blocks}\n"
         f"---\n\n"
-        f"## Top {TOP_VELOCITY} Fastest Growing (24h)\n"
-        f"_AI/dev repos from GitHub's daily trending, ranked by stars gained today "
-        f"— any age, catches same-day spikes before they build a monthly number_\n\n"
+        f"## {TOP_VELOCITY} em maior crescimento (24h)\n"
+        f"_Repositórios de IA e desenvolvimento de qualquer época, "
+        f"ordenados pelas estrelas ganhas hoje na lista diária do GitHub_\n\n"
         f"{velocity_day_blocks}\n"
         f"---\n\n"
-        f"## Top {TOP_VELOCITY} Fastest Growing (30d)\n"
-        f"_AI/dev repos from GitHub's monthly trending, ranked by stars gained this "
-        f"month — any age, catches older sleepers that suddenly take off_\n\n"
+        f"## {TOP_VELOCITY} em maior crescimento (30d)\n"
+        f"_Repositórios de IA e desenvolvimento de qualquer época, "
+        f"ordenados pelas estrelas ganhas no mês na lista mensal do GitHub_\n\n"
         f"{velocity_month_blocks}\n"
         f"---\n\n"
-        f"## Content Radar\n"
+        f"## Radar de conteúdo\n"
         f"{radar_block}\n"
-        f"_Generated automatically at {time_str} on {date_str}_\n"
+        f"_Gerado automaticamente em {date_str} às {time_str}_\n"
     )
 
 
@@ -336,9 +336,9 @@ def main() -> int:
     # First-line summary for runner log + Activity Feed row
     ai_count = sum(1 for r in weekly[:TOP_WEEK] if is_ai_dev(r))
     print(
-        f"Wrote {out_path.relative_to(vault)} — {len(weekly)} weekly / "
-        f"{len(monthly)} monthly · {ai_count} AI-flagged · "
-        f"{len(velocity_day)} fastest-24h / {len(velocity_month)} fastest-30d"
+        f"Relatório salvo em {out_path.relative_to(vault)}. {len(weekly)} na semana e "
+        f"{len(monthly)} no mês, com {ai_count} de IA e desenvolvimento. "
+        f"Em maior crescimento: {len(velocity_day)} em 24h e {len(velocity_month)} em 30d."
     )
     return 0
 

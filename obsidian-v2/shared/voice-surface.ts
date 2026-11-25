@@ -45,11 +45,11 @@ export class VoiceSurface {
   this.recoverStaleStream();
   if(this.stream?.readyState===2)this.scheduleReconnect();this.reconnectIfDue();
   const ready=()=>!!this.stream&&this.stream.readyState!==0&&this.stream.readyState!==2;
-  if(this.disposed)throw new Error('Voice was interrupted.');if(ready())return;
+  if(this.disposed)throw new Error('A voz foi interrompida.');if(ready())return;
   await new Promise<void>((resolve,reject)=>{
    const stream=this.stream;let settled=false;
-   const finish=()=>{if(settled||!this.disposed&&!ready())return;settled=true;clearTimeout(timer);this.connectionWaiters.delete(finish);this.disposed?reject(new Error('Voice was interrupted.')):resolve()};
-   const timer=setTimeout(()=>{if(settled)return;settled=true;this.connectionWaiters.delete(finish);this.retireStream(stream);reject(new Error('Voice connection is reconnecting. Try again.'))},COORDINATION_TIMEOUT_MS);
+   const finish=()=>{if(settled||!this.disposed&&!ready())return;settled=true;clearTimeout(timer);this.connectionWaiters.delete(finish);this.disposed?reject(new Error('A voz foi interrompida.')):resolve()};
+   const timer=setTimeout(()=>{if(settled)return;settled=true;this.connectionWaiters.delete(finish);this.retireStream(stream);reject(new Error('A conexão de voz está se restabelecendo. Tente de novo.'))},COORDINATION_TIMEOUT_MS);
    this.connectionWaiters.add(finish);finish();
   });
  }
@@ -64,13 +64,13 @@ export class VoiceSurface {
    stream.onmessage=e=>{if(!current()||stream.readyState===2)return;try{const data=JSON.parse(e.data);this.lastStreamEventAt=Date.now();if(data.type==='heartbeat')return;if(data.type==='pending')void this.tick();else this.event(data)}catch{}};
   }catch{this.scheduleReconnect();this.event({type:'disconnected'})}
  }
- private async request(path:string,body:any){const controller=new AbortController(),stream=this.stream;let settled=false,timer:ReturnType<typeof setTimeout>|undefined;try{const r=await Promise.race([this.transport(path,{method:'POST',body:JSON.stringify(body),signal:controller.signal}),new Promise<never>((_resolve,reject)=>{timer=setTimeout(()=>{if(settled)return;settled=true;controller.abort();this.retireStream(stream);reject(new Error('Voice coordination timed out'))},COORDINATION_TIMEOUT_MS)})]);if(r.status!==200)throw new Error(r.json?.error||'Voice coordination unavailable');return r.json}finally{settled=true;clearTimeout(timer)}}
+ private async request(path:string,body:any){const controller=new AbortController(),stream=this.stream;let settled=false,timer:ReturnType<typeof setTimeout>|undefined;try{const r=await Promise.race([this.transport(path,{method:'POST',body:JSON.stringify(body),signal:controller.signal}),new Promise<never>((_resolve,reject)=>{timer=setTimeout(()=>{if(settled)return;settled=true;controller.abort();this.retireStream(stream);reject(new Error('O serviço de voz demorou demais para responder.'))},COORDINATION_TIMEOUT_MS)})]);if(r.status!==200)throw new Error(r.json?.error||'O serviço de coordenação de voz está indisponível.');return r.json}finally{settled=true;clearTimeout(timer)}}
  async focus(){
   const mode=this.mode(),trace=this.timingTrace()?.requestId;
   await this.connectionReady();
   // Waiting for a connection may outlive a cancelled turn. It must not take
   // ownership later or initiate any request on behalf of that old turn.
-  if(this.disposed||this.mode()!==mode||this.timingTrace()?.requestId!==trace)throw new Error('Voice was interrupted.');
+  if(this.disposed||this.mode()!==mode||this.timingTrace()?.requestId!==trace)throw new Error('A voz foi interrompida.');
   await this.request('/voice/surface',{id:this.id,kind:this.kind,version:this.info.version,visible:true,mode:'working',focus:true,timingTrace:this.timingTrace()});
  }
  async tick(){

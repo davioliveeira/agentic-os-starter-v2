@@ -300,7 +300,7 @@ server.on('request',async(req,res)=>{
   if(url.pathname==='/voice/cancel'&&req.method==='POST'){const b=JSON.parse((await body(req)).toString());if(!uuid(b.id))throw new Error('Invalid request ID');writeJson(root,`${ROOT}/voice-cancelled/${b.id}.json`,{ts:Date.now()});active.get(b.id)?.abort();return json({ok:true})}
   if(url.pathname==='/voice/transcript'){
    const since=readJson(root,`${ROOT}/voice-clear.json`,{ts:0}).ts;
-   const records=list('voice-results').filter(r=>r.ts>since&&voiceReceiptTransport(r)==='local').sort((a,b)=>a.ts-b.ts).slice(-30);if(req.method==='GET')return json({path:'system/voice/transcript',content:records.map(r=>`**You (${r.provider}):** ${r.transcript}\n\n**Agent (${r.model||'direct command'}):** ${r.reply}`).join('\n\n---\n\n')||'No voice requests yet.'});
+   const records=list('voice-results').filter(r=>r.ts>since&&voiceReceiptTransport(r)==='local').sort((a,b)=>a.ts-b.ts).slice(-30);if(req.method==='GET')return json({path:'system/voice/transcript',content:records.map(r=>`**Você (${r.provider}):** ${r.transcript}\n\n**Agente (${r.model||'comando direto'}):** ${r.reply}`).join('\n\n---\n\n')||'Ainda não há pedidos por voz.'});
    // Transcript records double as durable duplicate protection; clear the display without deleting receipts.
    if(req.method==='DELETE'){writeJson(root,`${ROOT}/voice-clear.json`,{ts:Date.now()});return json({ok:true})}
   }

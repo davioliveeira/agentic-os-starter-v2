@@ -22,7 +22,9 @@ export default function ReportOverlay({
   /** optional header action (e.g. the transcript's reset button) */
   action?: { label: string; onClick: () => void };
 }) {
-  const title = report.path.split("/").pop()?.replace(/\.md$/, "") ?? report.path;
+  const title = report.path === "system/voice/transcript"
+    ? "Transcrição de voz"
+    : report.path.split("/").pop()?.replace(/\.md$/, "") ?? report.path;
   // synthetic docs (e.g. the voice transcript) aren't vault notes — no deep link
   const isVaultNote = false; // Preview does not deep-link into the installed Obsidian vault.
   const obsidianHref = `obsidian://open?vault=${encodeURIComponent(OBSIDIAN_VAULT)}&file=${encodeURIComponent(report.path.replace(/\.md$/, ""))}`;

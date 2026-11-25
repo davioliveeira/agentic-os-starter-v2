@@ -12,6 +12,6 @@ export async function serverBridge(endpoint: string, body?: unknown, timeoutMs =
   let response = await send();
   if (response.status === 401 && needsBridgeToken(method)) { await response.body?.cancel(); response = await send(); }
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error || 'V2 bridge unavailable');
+  if (!response.ok) throw new Error(result.error || 'Ponte V2 indisponível');
   return result;
 }

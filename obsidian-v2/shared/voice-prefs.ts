@@ -25,8 +25,8 @@ export const voiceGroups = (voices: VoiceChoice[]) => [...new Set(voices.map(voi
 export interface VoicePrefsSnapshot {prefs: VoicePrefs; voices: VoiceChoice[]; fallback: string | null; ready: boolean}
 
 export const VOICE_RATES = [0.9, 1, 1.1, 1.2, 1.3];
-export const rateLabel = (rate: number) => rate === 1 ? 'Normal' : rate < 1 ? `Slower (${rate}×)` : `Faster (${rate}×)`;
-export const VOICE_SAMPLE = 'This is how I sound now.';
+export const rateLabel = (rate: number) => rate === 1 ? 'Normal' : rate < 1 ? `Mais devagar (${rate.toLocaleString('pt-BR')}×)` : `Mais rápido (${rate.toLocaleString('pt-BR')}×)`;
+export const VOICE_SAMPLE = 'Olá! Esta é uma amostra de como a minha voz ficou.';
 
 const prefsOf = (json: any): VoicePrefs | null => {
   if (!json || typeof json.spokenReplies !== 'boolean') return null;
@@ -51,7 +51,7 @@ export function createVoicePrefsStore(transport: VoiceTransport, {intervalMs = 5
       if (!current.voices.length) {
         const answer = (await transport('/voice/voices')).json;
         if (Array.isArray(answer?.voices)) {
-          next = {...next, voices: answer.voices.filter((voice: any) => typeof voice?.id === 'string' && typeof voice?.label === 'string').map((voice: any) => ({id: voice.id, label: voice.label, group: typeof voice.group === 'string' ? voice.group : 'Voices', name: typeof voice.name === 'string' ? voice.name : voice.label})), fallback: typeof answer.fallback === 'string' ? answer.fallback : null};
+          next = {...next, voices: answer.voices.filter((voice: any) => typeof voice?.id === 'string' && typeof voice?.label === 'string').map((voice: any) => ({id: voice.id, label: voice.label, group: typeof voice.group === 'string' ? voice.group : 'Vozes', name: typeof voice.name === 'string' ? voice.name : voice.label})), fallback: typeof answer.fallback === 'string' ? answer.fallback : null};
         }
       }
       const same = current.ready && current.voices === next.voices && current.fallback === next.fallback &&
@@ -68,7 +68,7 @@ export function createVoicePrefsStore(transport: VoiceTransport, {intervalMs = 5
     async save(changes: Partial<VoicePrefs>): Promise<VoicePrefs> {
       const answer = await transport('/voice/prefs', {method: 'POST', body: JSON.stringify(changes)});
       const prefs = answer.status === 200 ? prefsOf(answer.json) : null;
-      if (!prefs) throw new Error(typeof answer.json?.error === 'string' ? answer.json.error : 'The voice setting could not be saved.');
+      if (!prefs) throw new Error(typeof answer.json?.error === 'string' ? answer.json.error : 'Não foi possível salvar a configuração de voz.');
       store.publish({...store.getSnapshot(), prefs, ready: true});
       return prefs;
     },

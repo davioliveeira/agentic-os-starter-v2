@@ -14,9 +14,9 @@ function parseDirective(value: unknown, today: string): Directive {
   if (!input || !Number.isInteger(input.index) || input.index! < 0 || input.index! > 2 ||
       typeof input.done !== 'boolean' || typeof input.text !== 'string' ||
       !input.text.trim() || input.text.length > 10000 || typeof input.date !== 'string') {
-    throw new DirectiveError('Invalid directive');
+    throw new DirectiveError('Prioridade inválida');
   }
-  if (input.date !== today) throw new DirectiveError("Only today's priorities can be changed. Refresh the dashboard and try again.", 409);
+  if (input.date !== today) throw new DirectiveError("Só é possível alterar as prioridades de hoje. Atualize o painel e tente novamente.", 409);
   return input as Directive;
 }
 
@@ -31,20 +31,20 @@ function updatePriority(before: string, directive: Directive): string {
     const item = lines[i].match(/^(\d+\.\s+)\[( |x)\](\s+)(.*)/);
     if (!item || ++seen !== directive.index) continue;
     if (item[4].trim() !== directive.text.trim()) {
-      throw new DirectiveError('This priority changed since it was displayed. Refresh and try again; newer edits were preserved.', 409);
+      throw new DirectiveError('A prioridade mudou desde que apareceu no painel. As edições recentes foram preservadas. Atualize o painel e tente novamente.', 409);
     }
     const checkbox = item[1].length + 1;
     lines[i] = lines[i].slice(0, checkbox) + (directive.done ? 'x' : ' ') + lines[i].slice(checkbox + 1);
     return lines.join('\n');
   }
-  throw new DirectiveError('Daily priority was not found. Refresh the dashboard and try again.', 404);
+  throw new DirectiveError('A prioridade não foi encontrada na nota de hoje. Atualize o painel e tente novamente.', 404);
 }
 
 export function createDailyPost({ requestBridge = bridge, invalidate = invalidateVaultSnapshot, now = () => new Date() }: {
   requestBridge?: Bridge; invalidate?: (root: string) => void; now?: () => Date;
 } = {}) {
   return async function POST(request: Request): Promise<Response> {
-    if (!sameOrigin(request)) return Response.json({ error: 'Origin not allowed' }, { status: 403 });
+    if (!sameOrigin(request)) return Response.json({ error: 'Origem da solicitação não autorizada' }, { status: 403 });
     let root: string | undefined;
     try {
       const today = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE }).format(now());
@@ -59,8 +59,8 @@ export function createDailyPost({ requestBridge = bridge, invalidate = invalidat
       invalidate(root!);
       return Response.json({ ok: true });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Directive update failed';
-      const conflict = /changed since|newer edits were preserved/i.test(message);
+      const message = error instanceof Error ? error.message : 'Não foi possível atualizar a prioridade';
+      const conflict = /changed since|newer edits were preserved|edições recentes foram preservadas/i.test(message);
       // A conflict means cached dashboard data is also stale. Refresh without retrying the write.
       if (root && conflict) invalidate(root);
       const status = error instanceof DirectiveError ? error.status : error instanceof SyntaxError ? 400 : conflict ? 409 : 502;

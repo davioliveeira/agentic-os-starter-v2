@@ -91,12 +91,12 @@ test('a verified Terminal attaches silently; a newer untested one attaches with 
 });
 test('configuration and bridge must both name the actual vault before any attachment can start',async()=>{
  const f=fixture();f.app.vault.adapter.read=async()=>JSON.stringify({...config,vault:'C:\\another vault'});assert.equal(await f.adapter.open(codex,f.create),null);assert.equal(f.snapshots(),0);
- f.app.vault.adapter.read=async()=>JSON.stringify(config);f.snapshot.vault='C:\\another vault';assert.equal(await f.adapter.open(codex,f.create),null);assert.equal(f.created.length,0);assert.match(f.notices.at(-1),/different vault/);
+ f.app.vault.adapter.read=async()=>JSON.stringify(config);f.snapshot.vault='C:\\another vault';assert.equal(await f.adapter.open(codex,f.create),null);assert.equal(f.created.length,0);assert.match(f.notices.at(-1),/outro cofre/);
 });
 test('an older bridge preserves an existing legacy pane and reports incompatibility without creating new fallback UI',async()=>{
  const f=fixture(),old=f.create(),prior={type:'aos-v2-work',state:{taskId:codex,title:'Existing conversation'}};old.state=structuredClone(prior);delete f.snapshot.attachmentProtocol;
  assert.equal(await f.adapter.open(codex,()=>assert.fail('Old bridge must not create an attachment'),old),null);
- assert.deepEqual(old.state,prior);assert.equal(old.sets,0);assert.equal(old.detached,false);assert.match(f.notices[0],/bridge needs.*attachment update/);
+ assert.deepEqual(old.state,prior);assert.equal(old.sets,0);assert.equal(old.detached,false);assert.match(f.notices[0],/ponte V2 precisa da atualização/);
  f.snapshot.attachmentProtocol=2;assert.equal(await f.adapter.open(codex,f.create),null);assert.equal(f.created.length,1);
 });
 test('invalid runtime paths and task metadata fail closed; shell profiles are never mistaken for attachments',()=>{

@@ -38,9 +38,9 @@ const AgentWorkDrawer = dynamic(() => import('./AgentWorkDrawer'), {ssr:false});
 // ---------------------------------------------------------------------------
 
 function fmt(n: number): string {
-  if (Math.abs(n) >= 1_000_000) return (n / 1_000_000).toFixed(2) + "M";
-  if (Math.abs(n) >= 10_000) return Math.round(n / 1000) + "K";
-  if (Math.abs(n) >= 1_000) return (n / 1000).toFixed(1) + "K";
+  if (Math.abs(n) >= 1_000_000) return (n / 1_000_000).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " mi";
+  if (Math.abs(n) >= 10_000) return Math.round(n / 1000).toLocaleString("pt-BR") + " mil";
+  if (Math.abs(n) >= 1_000) return (n / 1000).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " mil";
   return String(Math.round(n));
 }
 
@@ -75,7 +75,7 @@ function fmtAge(ts: string | null): { label: string; stale: boolean } {
   if (Number.isNaN(ms)) return { label: "—", stale: true };
   const stale = ms > 13 * 3600 * 1000;
   const m = Math.floor(ms / 60000);
-  if (m < 1) return { label: "now", stale };
+  if (m < 1) return { label: "agora", stale };
   if (m < 60) return { label: `${m}m`, stale };
   const h = Math.floor(m / 60);
   if (h < 48) return { label: `${h}h`, stale };
@@ -186,10 +186,10 @@ function nowHHMMSS(): string {
 // Summaries pass through scrubRunSummary so prompt-contract violations
 // ("(headless)", SAVED-path tails) never reach the speakers.
 function runAnnouncement(skill: string, status: string, summary: string, label?: string | null): string {
-  const name = label ? `${label} ask` : skill.replace(/-/g, " ");
+  const name = label ?? SKILLS[skill]?.label ?? skill.replace(/-/g, " ");
   if (status !== "ok") {
     const why = summary ? humanizeFailure(summary) : "";
-    return `${name} hit a snag${why ? ` — ${why.slice(0, 120)}` : "."}`;
+    return `Falha ao executar ${name}${why ? ` — ${why.slice(0, 120)}` : "."}`;
   }
   const clean = scrubRunSummary(summary);
   // voice-ask runs put the spoken answer in line 1 of output (= summary) —
@@ -198,8 +198,8 @@ function runAnnouncement(skill: string, status: string, summary: string, label?:
     return clean.slice(0, 220);
   }
   // "plan today is done. Done." — a summary that only says done adds nothing
-  const redundant = /^(done|complete|completed|finished|all done|ok)[.!]?$/i.test(clean);
-  return `${name} foi concluído.${clean && !redundant ? ` ${clean.slice(0, 160)}` : ""}`;
+  const redundant = /^(done|complete|completed|finished|all done|concluíd[oa]|finalizad[oa]|ok)[.!]?$/i.test(clean);
+  return `Execução concluída: ${name}.${clean && !redundant ? ` ${clean.slice(0, 160)}` : ""}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -247,7 +247,7 @@ const Vitals = memo(function Vitals({ state, hot, provider }: { state: VaultStat
               <CountUp value={m.value} />
             </span>
             <span className={`delta ${deltaCls}`}>
-              {dw === null ? "—" : dw === 0 ? "steady /wk" : `${dw > 0 ? "▲" : "▼"} ${fmt(Math.abs(dw))} /wk`}
+              {dw === null ? "—" : dw === 0 ? "sem variação" : `${dw > 0 ? "▲" : "▼"} ${fmt(Math.abs(dw))} /sem.`}
             </span>
             <div className="spark-row">
               <Sparkline animated points={m.history.map((h) => h.value)} />
@@ -337,9 +337,9 @@ function CommandDeck({
       {state && state.queue.length > 0 && (
         <div className="queue-list">
           {state.queue.slice(0, 3).map((q) => (
-            <span key={q.id}>▸ {q.label ?? q.skill}</span>
+            <span key={q.id}>▸ {q.label ?? SKILLS[q.skill]?.label ?? q.skill}</span>
           ))}
-          {state.queue.length > 3 && <span className="dim">+{state.queue.length - 3} more</span>}
+          {state.queue.length > 3 && <span className="dim">+{state.queue.length - 3} na fila</span>}
         </div>
       )}
       <div className="deck deck-compact">
@@ -352,7 +352,7 @@ function CommandDeck({
             title={skillUnavailable(d,provider,preferences.data.installedProviders)||d.description}
           >
             <span className="deck-dot" />
-            <span className="deck-label">{cooldown[d.id] ? d.kind==='installed'?'OPENING…':'QUEUED' : d.label}{skillUnavailable(d,provider,preferences.data.installedProviders)&&<small className="deck-skill-reason">{skillUnavailable(d,provider,preferences.data.installedProviders)}</small>}</span>
+            <span className="deck-label">{cooldown[d.id] ? d.kind==='installed'?'ABRINDO…':'NA FILA' : d.label}{skillUnavailable(d,provider,preferences.data.installedProviders)&&<small className="deck-skill-reason">{skillUnavailable(d,provider,preferences.data.installedProviders)}</small>}</span>
             <span className="deck-arrow">→</span>
           </button>
         ))}
@@ -363,7 +363,7 @@ function CommandDeck({
       {browsing&&<SkillBrowser onClose={()=>setBrowsing(false)} onSelect={skill=>void fire(skill)} available={!!state} catalog={catalog} provider={provider} installedProviders={preferences.data.installedProviders}/>}
       {customizing&&<DashboardCustomizer data={preferences.data} provider={provider} onClose={()=>setCustomizing(false)}/>}
       {argument && <form className="voice-message" onSubmit={e=>{e.preventDefault();const a=argument;if(argumentText.trim()){setArgument(null);void fire(a.skill,{[a.key]:argumentText.trim()})}}}>
-        <label>{argument.installed?`O que a skill ${argument.label} deve fazer?`:argument.label}<input autoFocus aria-label={argument.label+" "+argument.key} value={argumentText} maxLength={4000} placeholder={argument.installed?'Descreva a tarefa…':argument.key==='url'?'https://…':'Informe um tema…'} onChange={e=>setArgumentText(e.target.value)}/></label>
+        <label>{argument.installed?`O que a skill ${argument.label} deve fazer?`:argument.label}<input autoFocus aria-label={`${argument.label} · ${argument.installed?'solicitação':argument.key==='url'?'link':argument.key==='prompt'?'pergunta':'tema'}`} value={argumentText} maxLength={4000} placeholder={argument.installed?'Descreva a tarefa…':argument.key==='url'?'https://…':argument.key==='prompt'?'Digite sua pergunta…':'Informe um tema…'} onChange={e=>setArgumentText(e.target.value)}/></label>
         <button type="submit" disabled={!argumentText.trim()}>{argument.installed?'Abrir no terminal':'Executar skill'}</button><button type="button" onClick={()=>setArgument(null)}>Cancelar</button>
       </form>}
       {queueError && <p className="voice-message" role="alert">{queueError}</p>}
@@ -437,7 +437,7 @@ const AudioIO = memo(function AudioIO({ mode, voiceMode, call, message, provider
         ))}
       </div>
       <div className="audio-meta">
-        <button disabled={choosing||!!call.occupied||useLive&&!!call.unavailable} onClick={() => void voice.toggle()}>{useLive?liveToggleLabel(call):voiceMode === "listening" ? "Send recording" : voiceMode === "working" ? "Cancel request" : voiceMode === "speaking" ? "Interrupt & talk" : "Clique para falar"}</button>
+        <button disabled={choosing||!!call.occupied||useLive&&!!call.unavailable} onClick={() => void voice.toggle()}>{useLive?liveToggleLabel(call):voiceMode === "listening" ? "Enviar gravação" : voiceMode === "working" ? "Cancelar voz" : voiceMode === "speaking" ? "Interromper e falar" : "Clique para falar"}</button>
         <span>{useLive?'GPT-Live':'Whisper / Kokoro · voz local'}</span>
       </div>
       <LiveCallBar live={call}/>
@@ -469,12 +469,12 @@ const Priorities = memo(function Priorities({
       className={`block boot-stagger ${!d || d.isToday ? "" : "note-stale"} ${hot ? "voice-hot" : ""}`}
       style={{ animationDelay: "0.18s" }}
     >
-      <SectionTitle title="Prioridades" tick="TOP 3" />
+      <SectionTitle title="Prioridades" tick="3 PRINCIPAIS" />
       {d ? (
         <>
           {!d.isToday && (
             <div className={`stale-banner ${veryStale ? "err" : ""}`}>
-              ⚠ note is {ageDays}d de atraso — execute /today
+              ⚠ Nota de {ageDays} {ageDays === 1 ? "dia" : "dias"} atrás. Execute /today.
             </div>
           )}
           {d.top3.map((p, i) => (
@@ -489,7 +489,7 @@ const Priorities = memo(function Priorities({
               <span>{p.text}</span>
             </div>
           ))}
-          <div className="prio-date">{d.isToday ? "today" : `carried · ${d.date}`}</div>
+          <div className="prio-date">{d.isToday ? "hoje" : `nota anterior · ${d.date}`}</div>
         </>
       ) : (
         <div className="prio dim">nenhuma nota diária encontrada</div>
@@ -646,7 +646,7 @@ const Objective = memo(function Objective({ state, hot }: { state: VaultState; h
             ritmo <b>{fmtFull(perDay)}/dia</b>
           </span>
           <span>
-            live <b>{Math.round(ageH!)}h</b>
+            publicado há <b>{Math.round(ageH!)}h</b>
           </span>
           <span>
             destaque <b>{Math.max(LIVE_DEPLOY_H - Math.round(ageH!), 0)}h restantes</b>
@@ -689,7 +689,7 @@ const Objective = memo(function Objective({ state, hot }: { state: VaultState; h
               nesse ritmo <b>{eta}</b>
             </>
           ) : (
-            <b>{pct.toFixed(1)}%</b>
+            <b>{pct.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</b>
           )}
         </span>
       </div>
@@ -739,11 +739,11 @@ function TopBar({
         </div>
         <div className="clock-date" suppressHydrationWarning>
           {now
-            ? `${["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][now.getDay()]} · ${
-                ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"][
+            ? `${["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"][now.getDay()]} · ${now.getDate()} ${
+                ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"][
                   now.getMonth()
                 ]
-              } ${now.getDate()}`
+              }`
             : ""}
         </div>
       </div>
@@ -893,11 +893,11 @@ export default function HUD() {
         if (!res.ok) {
           const result = await res.json();
           if (res.status === 409) await refresh();
-          throw new Error(result.error || "Directive update failed");
+          throw new Error(result.error || "Não foi possível atualizar a prioridade.");
         }
         await refresh();
       } catch (error) {
-        pushLine("err", error instanceof Error ? error.message : "Directive update failed");
+        pushLine("err", error instanceof Error ? error.message : "Não foi possível atualizar a prioridade.");
       }
     },
     [state?.daily, refresh, pushLine]
@@ -907,10 +907,10 @@ export default function HUD() {
   useEffect(() => {
     if (!window.location.search.includes("demo=callouts")) return;
     const seeds: [string, string][] = [
-      ["inbox/reports/morning/demo-morning.md", "morning report"],
-      ["inbox/voice/demo-voice-ask.md", "voice ask"],
-      ["inbox/reports/trend-scan/demo-scan.md", "trend scan"],
-      ["inbox/reports/inbox-briefs/demo-inbox.md", "inbox brief"],
+      ["inbox/reports/morning/demo-morning.md", "Boletim da manhã"],
+      ["inbox/voice/demo-voice-ask.md", "Pergunta por voz"],
+      ["inbox/reports/trend-scan/demo-scan.md", "Tendências de IA"],
+      ["inbox/reports/inbox-briefs/demo-inbox.md", "Resumo da caixa de entrada"],
     ];
     const timers = seeds.map(([p, l], i) => setTimeout(() => addCallout(p, l), 800 + i * 1400));
     return () => timers.forEach(clearTimeout);
@@ -923,7 +923,7 @@ export default function HUD() {
     const show = (key: string, phase: string, label = "") => setCallouts((cur) => liveActivityCallout(cur, { key, phase, label }, () => ++calloutSeq.current));
     const steps: [number, string, string, string?][] = [
       [800, "demo-1", "handoff"], [3000, "demo-1", "starting", "Iniciar resumo da caixa de entrada"], [6500, "demo-1", "started", "Iniciar resumo da caixa de entrada"],
-      [9000, "demo-2", "handoff"], [11500, "demo-2", "answered", "the morning brief"],
+      [9000, "demo-2", "handoff"], [11500, "demo-2", "answered", "o boletim da manhã"],
     ];
     const timers = steps.map(([at, key, phase, label]) => setTimeout(() => show(key, phase, label), at));
     return () => timers.forEach(clearTimeout);
@@ -946,8 +946,8 @@ export default function HUD() {
       slot,
     });
     const timers = [
-      setTimeout(() => setCallouts((c) => [...c, seed("ai trend scan", 10, 0)]), 800),
-      setTimeout(() => setCallouts((c) => [...c, seed("inbox brief", null, 1)]), 2600),
+      setTimeout(() => setCallouts((c) => [...c, seed("Tendências de IA", 10, 0)]), 800),
+      setTimeout(() => setCallouts((c) => [...c, seed("Resumo da caixa de entrada", null, 1)]), 2600),
       setTimeout(
         () =>
           setCallouts((cur) =>
