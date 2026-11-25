@@ -3,6 +3,10 @@ import {useEffect,useState} from 'react';
 import {activityElapsed,activityMessage,createTaskActivity,TASK_ACTIVITY_TTL,type TaskActivity} from '../../obsidian-v2/shared/task-activity';
 import {openWork,type WorkTask} from '@/lib/work';
 
+const activityLabels = {
+  working: 'Em execução', 'needs input': 'Aguardando resposta', done: 'Concluída', failed: 'Falhou',
+};
+
 export function TaskActivityBar({tasks,ready,viewing}:{tasks:WorkTask[];ready:boolean;viewing:string|null}){
   const [tracker]=useState(createTaskActivity);
   const [entries,setEntries]=useState<TaskActivity[]>([]);
@@ -44,7 +48,7 @@ export function TaskActivityBar({tasks,ready,viewing}:{tasks:WorkTask[];ready:bo
         const {task,state,key,since}=entry,elapsed=activityElapsed(entry,now);
         const finishing=state==='done'||state==='failed';
         return <button key={key} className="agent-task-chip" data-state={state} data-unread={state==='needs input'&&viewed[task.id]!==key}
-          data-expiring={finishing&&now-since>=TASK_ACTIVITY_TTL-1000} title={task.title} aria-label={task.title+' · '+state+' · '+elapsed} onClick={()=>view(entry)}>
+          data-expiring={finishing&&now-since>=TASK_ACTIVITY_TTL-1000} title={task.title} aria-label={task.title+' · '+activityLabels[state]+' · '+elapsed} onClick={()=>view(entry)}>
           <span aria-hidden="true" className="agent-task-dot"/><span>{task.title}</span><time>{elapsed}</time>
         </button>;
       })}

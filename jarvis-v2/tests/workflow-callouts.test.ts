@@ -42,12 +42,12 @@ test('a Live hand-off is one card that updates in place, clears when dropped, an
   let cards=liveActivityCallout(running,{key:'del_1',phase:'handoff',label:''},next,1000);
   assert.equal(cards.length,2);
   const card=()=>cards.find(item=>item.target==='live:del_1');
-  assert.deepEqual({label:card()?.label,phase:card()?.phase,note:card()?.note,kind:card()?.kind,startedAt:card()?.startedAt},{label:'Handing off',phase:'working',note:'V2 is working it out',kind:'task',startedAt:1000});
+  assert.deepEqual({label:card()?.label,phase:card()?.phase,note:card()?.note,kind:card()?.kind,startedAt:card()?.startedAt},{label:'Encaminhando',phase:'working',note:'V2 está processando',kind:'task',startedAt:1000});
   const slot=card()?.slot,id=card()?.id;
   cards=liveActivityCallout(cards,{key:'del_1',phase:'starting',label:'Start Inbox Brief'},next);
-  assert.deepEqual({label:card()?.label,phase:card()?.phase,note:card()?.note,slot:card()?.slot,id:card()?.id},{label:'Inbox Brief',phase:'working',note:'starting',slot,id});
+  assert.deepEqual({label:card()?.label,phase:card()?.phase,note:card()?.note,slot:card()?.slot,id:card()?.id},{label:'Inbox Brief',phase:'working',note:'iniciando',slot,id});
   cards=liveActivityCallout(cards,{key:'del_1',phase:'started',label:'Start Inbox Brief'},next);
-  assert.deepEqual({phase:card()?.phase,note:card()?.note},{phase:'done',note:'started'});
+  assert.deepEqual({phase:card()?.phase,note:card()?.note},{phase:'done',note:'iniciado'});
   cards=liveActivityCallout(cards,{key:'del_2',phase:'answered',label:'the morning brief'},next);
   assert.equal(cards.find(item=>item.target==='live:del_2')?.label,'Morning brief');
   cards=liveActivityCallout(cards,{key:'del_2',phase:'dropped',label:''},next);
@@ -56,7 +56,7 @@ test('a Live hand-off is one card that updates in place, clears when dropped, an
   assert.equal(liveActivityCallout(cards,{key:'del_9',phase:'unknown',label:''},next),cards);
   // The run's own card is untouched by all of it, and reconciling runs leaves the Live card alone.
   assert.equal(cards.find(item=>item.target==='run:intel-run')?.phase,'queued');
-  assert.equal(reconcileWorkflowCallouts(cards,[run('intel-run','running')],{},next).find(item=>item.target==='live:del_1')?.note,'started');
+  assert.equal(reconcileWorkflowCallouts(cards,[run('intel-run','running')],{},next).find(item=>item.target==='live:del_1')?.note,'iniciado');
 });
 
 // Chase, 2026-11-23: a task started on a call showed "started" and cleared after six seconds while the task kept working.
@@ -71,10 +71,10 @@ const startedCard=(taskIds=['task-1'],now=1000)=>{
 
 test('a card for work a call started stays up while the conversation works and completes when it finishes',()=>{
   let {cards}=startedCard();
-  assert.deepEqual({phase:cards[0].phase,note:cards[0].note,taskId:cards[0].taskId,startedAt:cards[0].startedAt},{phase:'working',note:'working',taskId:'task-1',startedAt:1000});
+  assert.deepEqual({phase:cards[0].phase,note:cards[0].note,taskId:cards[0].taskId,startedAt:cards[0].startedAt},{phase:'working',note:'em execução',taskId:'task-1',startedAt:1000});
   // Still working a minute later: the same card, same slot, never cleared.
   const working=reconcileTaskCallouts(cards,[convo('working')],true,60000);
-  assert.deepEqual({id:working[0].id,slot:working[0].slot,phase:working[0].phase,note:working[0].note},{id:cards[0].id,slot:cards[0].slot,phase:'working',note:'working'});
+  assert.deepEqual({id:working[0].id,slot:working[0].slot,phase:working[0].phase,note:working[0].note},{id:cards[0].id,slot:cards[0].slot,phase:'working',note:'em execução'});
   assert.strictEqual(reconcileTaskCallouts(working,[convo('working')],true,61000),working,'an unchanged poll changes nothing');
   const done=reconcileTaskCallouts(working,[convo('ready',{turns:[{id:'t1',ts:90000,text:'Done.'}]})],true,91000);
   assert.deepEqual({phase:done[0].phase,note:done[0].note},{phase:'done',note:undefined});
@@ -84,9 +84,9 @@ test('a card for work a call started stays up while the conversation works and c
 test('the card says when the conversation needs you, and shows a failure with its reason',()=>{
   const {cards}=startedCard();
   const asking=reconcileTaskCallouts(cards,[convo('needs input')],true,5000);
-  assert.deepEqual({phase:asking[0].phase,note:asking[0].note,attention:asking[0].attention},{phase:'working',note:'needs you',attention:true});
+  assert.deepEqual({phase:asking[0].phase,note:asking[0].note,attention:asking[0].attention},{phase:'working',note:'aguardando sua resposta',attention:true});
   const resumed=reconcileTaskCallouts(asking,[convo('working')],true,9000);
-  assert.deepEqual({note:resumed[0].note,attention:resumed[0].attention},{note:'working',attention:false});
+  assert.deepEqual({note:resumed[0].note,attention:resumed[0].attention},{note:'em execução',attention:false});
   const failed=reconcileTaskCallouts(resumed,[convo('error',{error:'Claude sign-in expired.'})],true,12000);
   assert.deepEqual({phase:failed[0].phase,detail:failed[0].detail},{phase:'failed',detail:'Claude sign-in expired.'});
 });
@@ -103,7 +103,7 @@ test('a task list that is a moment old does not finish a card that was only just
   assert.equal(reconcileTaskCallouts(cards,[earlier],true,3500+TASK_CARD_SETTLE_MS+1)[0].phase,'done');
   // A follow-up the bridge is holding keeps the card up between turns.
   const held=reconcileTaskCallouts(cards,[convo('ready',{queuedFollowups:1,turns:[{id:'t1',ts:4200,text:'First part.'}]})],true,4500);
-  assert.deepEqual({phase:held[0].phase,note:held[0].note},{phase:'working',note:'waiting its turn'});
+  assert.deepEqual({phase:held[0].phase,note:held[0].note},{phase:'working',note:'aguardando na fila'});
 });
 
 test('a stopped conversation, a background run with its own card, and a conversation that never appears all let the card go',()=>{
@@ -126,14 +126,14 @@ test('one card per conversation: a follow-up on the same conversation takes over
   cards=reconcileTaskCallouts(cards,[convo('working')],true,5000);
   cards=liveActivityCallout(cards,{key:'del_2',phase:'handoff',label:''},next,20000);
   cards=liveActivityCallout(cards,{key:'del_2',phase:'starting',label:'Add to “that task” when it is free'},next,21000);
-  assert.equal(cards.length,2);assert.equal(cards.find(card=>card.target==='live:del_2')?.label,'Follow-up');
+  assert.equal(cards.length,2);assert.equal(cards.find(card=>card.target==='live:del_2')?.label,'Continuação');
   cards=liveActivityCallout(cards,{key:'del_2',phase:'started',label:'Add to “that task” when it is free',taskIds:['task-1']},next,23500);
   assert.deepEqual(cards.map(card=>[card.target,card.taskId,card.phase]),[['live:del_2','task-1','working']]);
   // The conversation's title replaces "Follow-up" once the list is read.
   assert.equal(reconcileTaskCallouts(cards,[convo('working')],true,24000)[0].label,'Pager, make me a one-pager on black holes');
   // A hand-off that started nothing the page can follow keeps the old behavior: "started", then cleared.
   const plain=liveActivityCallout([],{key:'del_3',phase:'started',label:'Start Inbox Brief'},next);
-  assert.deepEqual({phase:plain[0].phase,note:plain[0].note,taskId:plain[0].taskId},{phase:'done',note:'started',taskId:undefined});
+  assert.deepEqual({phase:plain[0].phase,note:plain[0].note,taskId:plain[0].taskId},{phase:'done',note:'iniciado',taskId:undefined});
 });
 
 test('four working cards are never bumped by a finished one, and card names drop quotes and filler',()=>{

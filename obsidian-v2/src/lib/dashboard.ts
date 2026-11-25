@@ -50,8 +50,8 @@ async function request(path: string, data?: unknown): Promise<any> {
  const response = await v2VoiceTransport('/dashboard' + path, data === undefined ? {} : { method: 'POST', body: JSON.stringify(data) });
  if (response.status !== 200) {
   const fallback = response.status === 404
-   ? 'Dashboard customization needs an updated bridge. Run node aos.mjs update in your starter folder.'
-   : 'Dashboard settings are unavailable. Start the bridge and try again.';
+   ? 'A personalização requer uma versão mais recente da ponte. Execute node aos.mjs update na pasta do projeto.'
+   : 'As configurações do painel estão indisponíveis. Inicie a ponte e tente novamente.';
   throw new Error(response.status === 404 ? fallback : response.json?.error || fallback);
  }
  return response.json;
@@ -60,7 +60,7 @@ async function request(path: string, data?: unknown): Promise<any> {
 function snapshot(value: any): DashboardSnapshot {
  if (!value || typeof value.revision !== 'string' || !Array.isArray(value.catalog)
   || !(value.selected === null || (Array.isArray(value.selected) && value.selected.every((id: unknown) => typeof id === 'string')))) {
-  throw new Error('The bridge returned invalid dashboard settings. Update the starter and try again.');
+  throw new Error('A ponte devolveu configurações inválidas. Atualize o Agentic OS e tente novamente.');
  }
  return { ...value, error: typeof value.error === 'string' ? value.error : '', ready: true };
 }
@@ -103,19 +103,19 @@ export function dashboardSelection(value: DashboardSnapshot): string[] {
 export function dashboardButtons(value: DashboardSnapshot): DashboardSkill[] {
  return dashboardSelection(value).map(id => value.catalog.find(skill => skill.id === id) ?? {
   id, label: id, description: '', kind: 'installed', providers: [], available: false,
-  reason: 'This skill is no longer registered. Remove it in Customize dashboard.',
+  reason: 'Esta skill saiu do catálogo. Remova o atalho em Personalizar painel.',
  });
 }
 export function dashboardSkillReason(skill: DashboardSkill, provider: Provider, health?: Health | null, dashboardError = '', installedProviders?: Provider[]): string {
- if (!skill.available) return skill.reason || 'This skill is unavailable. Review it in Customize dashboard.';
- if (!skill.providers.includes(provider)) return `Use ${skill.providers.join(' or ')} to run this skill.`;
+ if (!skill.available) return skill.reason || 'Esta skill está indisponível. Revise o atalho em Personalizar painel.';
+ if (!skill.providers.includes(provider)) return `Use ${skill.providers.map(name => name === 'claude' ? 'Claude Code' : 'Codex').join(' ou ')} para executar esta skill.`;
  if (skill.kind === 'installed' && dashboardError) return dashboardError;
- if (!skill.direct && ((installedProviders && !installedProviders.includes(provider)) || (health && !health.providers[provider]?.installed))) return `${provider === 'claude' ? 'Claude Code' : 'Codex'} is not installed.`;
+ if (!skill.direct && ((installedProviders && !installedProviders.includes(provider)) || (health && !health.providers[provider]?.installed))) return `${provider === 'claude' ? 'Claude Code' : 'Codex'} não está instalado.`;
  return '';
 }
 export async function saveDashboard(app: App, revision: string, selected: string[] | null) {
  if (selected && (selected.length > MAX_DASHBOARD_SKILLS || new Set(selected).size !== selected.length)) {
-  throw new Error(`Choose up to ${MAX_DASHBOARD_SKILLS} different skills.`);
+  throw new Error(`Escolha até ${MAX_DASHBOARD_SKILLS} skills diferentes.`);
  }
  await assertTestVault(app);
  await assertVoiceVault(app);
@@ -147,7 +147,7 @@ export async function launchDashboardSkill(app: App, skill: DashboardSkill, inpu
  const selection = await readSelection(app);
  const reason = dashboardSkillReason(skill, selection.provider);
  if (reason) throw new Error(reason);
- if (!input.trim()) throw new Error('Describe what you want this skill to do.');
+ if (!input.trim()) throw new Error('Descreva o que a skill deve fazer.');
  // Native work needs Terminal to own the CLI. Fail before creating a pending
  // task; browser previews use their bridge-owned terminal and need no plugin.
  const native = !!(app.vault.adapter as typeof app.vault.adapter & { getBasePath?: () => string }).getBasePath;
@@ -155,13 +155,13 @@ export async function launchDashboardSkill(app: App, skill: DashboardSkill, inpu
  const { plugin: terminal, support } = terminalPluginStatus(app);
  if (native && (!terminal || support.status === 'missing' || support.status === 'unsupported')) {
   throw new Error(support.status === 'missing'
-   ? 'Enable the Terminal community plugin (by polyipseity) to run personal skills inside Obsidian, or use the same skill button in Jarvis at http://127.0.0.1:3217.'
+   ? 'Ative o plugin da comunidade Terminal, de polyipseity, para executar skills pessoais no Obsidian. O mesmo atalho está disponível no Jarvis em http://127.0.0.1:3217.'
    : support.message);
  }
  await workConversations.startSession();
  const task = await request('/launch', { id: crypto.randomUUID(), skill: skill.id, request: input.trim(), selection }) as WorkTask;
  if (!task || typeof task.id !== 'string' || !['claude', 'codex'].includes(task.provider) || !Array.isArray(task.turns)) {
-  throw new Error('The bridge did not return a workflow. Update the starter and try again.');
+  throw new Error('A ponte não retornou um fluxo. Atualize o Agentic OS e tente novamente.');
  }
  publishWorkTask(task);
  // A personal skill is an interactive conversation the user just started by clicking and typing a request;

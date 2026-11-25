@@ -1,2 +1,2 @@
-<!-- Claude Code reads AGENTS.md through this import; edit AGENTS.md. -->
+<!-- O Claude Code carrega as convenções do cofre por este import. Edite AGENTS.md. -->
 @AGENTS.md

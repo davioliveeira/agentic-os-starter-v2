@@ -5,68 +5,53 @@ status: frozen
 since: 2026-05-11
 ---
 
-# Daily Note Schema
+# Esquema da nota diária
 
-Frozen contract. Source of truth for:
-- `system/templates/daily.md` (Templater template)
-- the Agentic OS V2 plugin and Jarvis HUD parsers
-- `/today` skill (writer)
-- `/close-day` skill (writer)
-- `activity-log.js` hook (appender)
+Este formato é usado pelo modelo em `system/templates/daily.md`, pelos leitores do Jarvis e do plugin do Obsidian, por `/today`, por `/close-day` e pelo registro de atividade que usa `activity-log.js`. Mudanças incompatíveis exigem nova `schema_version` e atualização de todos os leitores e gravadores. Os leitores recusam versões desconhecidas.
 
-**Breaking changes bump `schema_version`.** Plugin/parsers MUST refuse unknown versions, not silently coerce. Bumping requires touching every consumer above.
+## Arquivo
 
----
+- Pasta: `daily-notes/`.
+- Nome: `YYYY-MM-DD.md`, com data ISO 8601.
+- Codificação: UTF-8. O leitor aceita LF e CRLF.
+- Uma nova execução de `/today` preserva a nota existente.
 
-## File Conventions
-
-- **Location:** `daily-notes/`
-- **Filename:** `YYYY-MM-DD.md` (ISO 8601, hyphen-separated)
-- **Encoding:** UTF-8, LF or CRLF (parser tolerant)
-- **Idempotency:** `/today` MUST NOT overwrite existing file. Re-run = no-op.
-
----
-
-## Frontmatter (YAML)
+## Frontmatter YAML
 
 ```yaml
 ---
-date: 2026-05-11               # required, ISO 8601 string, matches filename
-schema_version: 1              # required, int
-focus: ""                      # optional, single string, 0-200 chars
-top3:                          # optional, array length 0-3
+date: 2026-05-11
+schema_version: 1
+focus: ""
+top3:
   - ""
-top3_done: [false, false, false]   # parallel array to top3; same length
-effort: null                   # optional, int 1-10 (set by /close-day)
-focus_blocks: null             # optional, int (set by /close-day)
-posts_shipped:                 # optional, object (set by /close-day)
+  - ""
+  - ""
+top3_done: [false, false, false]
+effort: null
+focus_blocks: null
+posts_shipped:
   youtube: 0
   blog: 0
   linkedin: 0
   x: 0
   instagram: 0
   tiktok: 0
-videos_shipped_today: 0        # optional, int
+videos_shipped_today: 0
 ---
 ```
 
-### Rules
+`date` e `schema_version` são obrigatórios. A data deve corresponder ao nome do arquivo. `focus` aceita um texto de até 200 caracteres. `top3` e `top3_done` são listas correspondentes, de até três elementos. `effort` é um inteiro de 1 a 10. `focus_blocks` e contadores são inteiros. `null` representa o que ainda não foi preenchido. Zero representa uma contagem registrada. A skill `/close-day` atualiza o esforço, o foco e as publicações. O plugin consulta o frontmatter pelo cache de metadados do Obsidian.
 
-- `date` MUST match filename (parser asserts).
-- `schema_version` MUST be present. Unknown values → parser error, not coerce.
-- `top3` and `top3_done` are parallel arrays of equal length (≤3).
-- Nulls mean "not yet set." Zeros mean "set, value is zero."
-- Plugin reads frontmatter via Obsidian `MetadataCache.getFileCache().frontmatter`, not raw YAML parse.
+## Corpo em Markdown
 
----
-
-## Markdown Body (sections in exact order, exact headings)
+Mantenha os títulos abaixo exatamente escritos e na ordem indicada. O texto de cada seção pode ficar em português.
 
 ```
 # YYYY-MM-DD
 
 ## Current Focus
-<single paragraph>
+<um parágrafo>
 
 ## Top 3 Priorities
 1. [ ] ...
@@ -74,49 +59,38 @@ videos_shipped_today: 0        # optional, int
 3. [ ] ...
 
 ## Schedule
-- HH:MM — <event title>
+- HH:MM — <título do evento>
 
 ## Daily Drivers
-- [ ] Inbox triage
-- [ ] Deep work block
-- [ ] Daily review
+- [ ] Triar a caixa de entrada
+- [ ] Separar um bloco de foco
+- [ ] Revisar o dia
 
 ## Activity Log
-<appended by PostToolUse hook>
+<registro acrescentado pelo hook PostToolUse>
 
 ## Notes
-<freeform, plugin ignores>
+<texto livre>
 
 ## EOD Reflection
-<appended by /close-day>
+<reflexão registrada por /close-day>
 ```
 
-### Section rules
-
-| Section | Heading match | Writer | Reader |
-|---|---|---|---|
-| `# YYYY-MM-DD` | exact, h1 | template | display only |
-| `## Current Focus` | exact | user / `/today` | plugin `FocusCard.tsx` |
-| `## Top 3 Priorities` | exact | user / `/today` | plugin `Top3Priorities.tsx` |
-| `## Schedule` | exact | `/today` (gcal pull) | plugin `ScheduleList.tsx` |
-| `## Daily Drivers` | exact | template | plugin `DailyDriversChecklist.tsx` |
-| `## Activity Log` | exact | `activity-log.js` hook (append) | plugin (optional render) |
-| `## Notes` | exact | user | ignored |
-| `## EOD Reflection` | exact | `/close-day` (append) | display only |
-
-### Parser contract
-
-- Plugin parses by exact heading match. Whitespace inside sections preserved.
-- Unknown headings = ignored, not error (forward-compat for user-added sections).
-- Missing required heading (`## Top 3 Priorities`, `## Current Focus`, `## Daily Drivers`) → plugin renders empty placeholder card with "section missing" badge, does NOT crash.
-- Top 3 items: parse lines matching `/^\d+\. \[([ x])\] (.+)$/`. `[x]` → done, `[ ]` → pending. Position in list = index into `top3_done` array.
-- Daily Drivers: same regex, no positional index (just a flat checklist).
-- Schedule: parse lines matching `/^- (\d{2}:\d{2}) — (.+)$/`.
-
----
-
-## Version history
-
-| Version | Date | Change |
+| Seção | Quem escreve | Onde aparece |
 |---|---|---|
-| 1 | 2026-05-11 | Initial freeze. |
+| `# YYYY-MM-DD` | Modelo | Título |
+| `## Current Focus` | Pessoa ou planejamento | Cartão de foco |
+| `## Top 3 Priorities` | Pessoa ou planejamento | Cartão de prioridades |
+| `## Schedule` | Planejamento ou sincronização do calendário | Agenda |
+| `## Daily Drivers` | Modelo e pessoa | Lista de rotinas |
+| `## Activity Log` | Hook de atividade | Registro opcional |
+| `## Notes` | Pessoa | Nota |
+| `## EOD Reflection` | `/close-day` | Nota |
+
+O leitor preserva espaços do conteúdo e ignora seções que não conhece. Sem uma seção de foco, prioridades ou rotinas, o cartão correspondente pode aparecer vazio. Em prioridades, use linhas como `1. [ ] tarefa` ou `1. [x] tarefa`. A posição da linha corresponde ao índice de `top3_done`. As rotinas usam caixas sem numeração. Na agenda, separe horário e evento com travessão e use relógio de 24 horas.
+
+## Histórico
+
+| Versão | Data | Mudança |
+|---|---|---|
+| 1 | 2026-05-11 | Formato inicial. |

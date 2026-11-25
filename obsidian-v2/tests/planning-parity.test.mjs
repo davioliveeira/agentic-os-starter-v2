@@ -47,10 +47,10 @@ A concrete focus
 ## Schedule
 
 ## Daily Drivers
-- [ ] Skool post
-- [ ] YouTube recording
-- [ ] Inbox triage
-- [ ] Daily review
+- [ ] Publicar no Skool
+- [ ] Gravar para o YouTube
+- [ ] Triar a caixa de entrada
+- [ ] Revisar o dia
 - [ ] Review the documented cascade draft
 
 ## Activity Log
@@ -97,7 +97,7 @@ test('invalid frozen fields, duplicate YAML, section order and automatic complet
   text=>text.replace('top3_done: [false, false, false]','top3_done: [true, false, false]'),
   text=>text.replace('schema_version: 1','schema_version: 1\nschema_version: 1'),
   text=>text.replace('1. [ ] Prepare the recording','1. [ ] Different priority'),
-  text=>text.replace('- [ ] Daily review','- [x] Daily review'),
+  text=>text.replace('- [ ] Revisar o dia','- [x] Revisar o dia'),
   text=>text.replace('## Current Focus','## Missing Focus'),
   text=>text.replace('## Activity Log\n','## Activity Log\n- Invented completed work\n')
  ];

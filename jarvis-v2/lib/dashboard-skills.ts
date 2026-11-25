@@ -13,16 +13,16 @@ type Request=(path:string,body?:unknown,timeoutMs?:number)=>Promise<any>;
 
 export const initialDashboard:DashboardSnapshot={revision:'',configured:false,selected:null,catalog:Object.entries(SKILLS).filter(([id])=>id!=='voice-ask').map(([id,spec])=>({id,label:spec.label,description:builtinDescription(spec),kind:'builtin',arg:spec.arg,direct:spec.direct,providers:['claude','codex'],available:true}))};
 export function dashboardIds(data:DashboardSnapshot):string[]{return [...(data.selected??DEFAULT_HUD_SKILLS)]}
-export function dashboardEntries(data:DashboardSnapshot):DashboardSkill[]{return dashboardIds(data).map(id=>data.catalog.find(skill=>skill.id===id)??{id,label:id,description:'This saved skill is no longer in the catalog.',kind:'installed',providers:[],available:false,reason:'Skill unavailable. Remove it or register its current location in Customize dashboard.'})}
+export function dashboardEntries(data:DashboardSnapshot):DashboardSkill[]{return dashboardIds(data).map(id=>data.catalog.find(skill=>skill.id===id)??{id,label:id,description:'Esta skill salva saiu do catálogo.',kind:'installed',providers:[],available:false,reason:'Skill indisponível. Em Personalizar painel, remova o atalho ou registre o caminho atual.'})}
 export function skillUnavailable(skill:DashboardSkill,provider:DashboardProvider,installedProviders?:DashboardProvider[]):string{
-  if(!skill.available)return skill.reason||'This skill is unavailable.';
-  if(!skill.providers.includes(provider))return `Use ${skill.providers.map(p=>p==='claude'?'Claude Code':'Codex').join(' or ')} for this skill.`;
-  if(!skill.direct&&installedProviders&&!installedProviders.includes(provider))return `${provider==='claude'?'Claude Code':'Codex'} is not installed. Choose an installed coding tool or install this one.`;
+  if(!skill.available)return skill.reason||'Esta skill está indisponível.';
+  if(!skill.providers.includes(provider))return `Use ${skill.providers.map(p=>p==='claude'?'Claude Code':'Codex').join(' ou ')} para esta skill.`;
+  if(!skill.direct&&installedProviders&&!installedProviders.includes(provider))return `${provider==='claude'?'Claude Code':'Codex'} não está instalado. Escolha uma ferramenta disponível ou instale esta.`;
   return '';
 }
 export function toggleDashboardSkill(ids:string[],id:string):string[]{
   if(ids.includes(id))return ids.filter(value=>value!==id);
-  if(ids.length>=MAX_DASHBOARD_SKILLS)throw new Error(`Choose up to ${MAX_DASHBOARD_SKILLS} skills. Remove one before adding another.`);
+  if(ids.length>=MAX_DASHBOARD_SKILLS)throw new Error(`Escolha até ${MAX_DASHBOARD_SKILLS} skills. Remova uma para adicionar outra.`);
   return [...ids,id];
 }
 export function moveDashboardSkill(ids:string[],id:string,step:-1|1):string[]{
@@ -31,11 +31,11 @@ export function moveDashboardSkill(ids:string[],id:string,step:-1|1):string[]{
   return result;
 }
 export function dashboardDiscoveryNotice(result:DashboardDiscovery):string{
-  return [`${result.skills.length} installed skills found.`,result.skipped?`${result.skipped} unreadable, linked, or invalid locations skipped.`:'',result.truncated?'The search reached its limit; enter a full SKILL.md path for anything missing.':'',...(result.warnings??[]),'Choose only skills you recognize and trust.'].filter(Boolean).join(' ');
+  return [`${result.skills.length} skills instaladas encontradas.`,result.skipped?`${result.skipped} caminhos ilegíveis, vinculados ou inválidos foram ignorados.`:'',result.truncated?'A busca chegou ao limite. Para incluir outra skill, informe o caminho completo do SKILL.md.':'',...(result.warnings??[]),'Escolha apenas skills que você reconhece e em que confia.'].filter(Boolean).join(' ');
 }
 export function createDashboardSkillsStore(request:Request=bridge,isHidden=()=>typeof document!=='undefined'&&document.hidden){
   const store=createPollStore({initial:{data:initialDashboard,loaded:false,error:''} as DashboardState,intervalMs:5000,
-    load:async():Promise<DashboardState>=>{if(isHidden())return store.getSnapshot();try{return {data:await request('/dashboard'),loaded:true,error:''}}catch(error){return {...store.getSnapshot(),error:error instanceof Error?error.message:'Dashboard preferences unavailable'}}},
+    load:async():Promise<DashboardState>=>{if(isHidden())return store.getSnapshot();try{return {data:await request('/dashboard'),loaded:true,error:''}}catch(error){return {...store.getSnapshot(),error:error instanceof Error?error.message:'Preferências do painel indisponíveis'}}},
     onStart:(refresh:()=>void)=>{if(typeof document==='undefined')return()=>{};const wake=()=>{if(!document.hidden)refresh()};document.addEventListener('visibilitychange',wake);return()=>document.removeEventListener('visibilitychange',wake)},
   });
   const publish=(data:DashboardSnapshot)=>{store.publish({data,loaded:true,error:''});return data};
@@ -47,8 +47,8 @@ export function createDashboardSkillsStore(request:Request=bridge,isHidden=()=>t
 }
 export const dashboardSkillsStore=createDashboardSkillsStore();
 export async function launchInstalledSkill<T extends {provider:DashboardProvider;model:string}>(skill:DashboardSkill,requestText:string,selection:T,request:Request=bridge,installedProviders?:DashboardProvider[]){
-  if(skill.kind!=='installed')throw new Error('Choose an installed skill to open in a terminal.');
+  if(skill.kind!=='installed')throw new Error('Escolha uma skill instalada para abrir no terminal.');
   const reason=skillUnavailable(skill,selection.provider,installedProviders);if(reason)throw new Error(reason);
-  if(!requestText.trim())throw new Error('Describe what you want this skill to do.');
+  if(!requestText.trim())throw new Error('Descreva o que a skill deve fazer.');
   return request('/dashboard/launch',{id:crypto.randomUUID(),skill:skill.id,request:requestText.trim(),selection},15000);
 }

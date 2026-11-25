@@ -79,7 +79,7 @@ test('event disconnect cancels remote capture and ignores its late transcript af
  let stream;replace(t,'EventSource',class {constructor(url){stream=this;this.id=new URL(url).searchParams.get('client')}close(){}});
  const requests=[],voice=new VoiceSession(async(path,options)=>{requests.push(path);return {status:200,json:null}},async()=>({provider:'codex',model:'astra'}),'native',{heartbeat:()=>()=>{}});let message='';voice.onMessage=text=>message=text;
  voice.connect();await flush();stream.onmessage({data:JSON.stringify({type:'wake',client:stream.id})});assert.equal(voice.mode,'listening');
- stream.onerror();await flush();assert.equal(voice.mode,'idle');assert.match(message,/connection interrupted/);stream.onopen();
+ stream.onerror();await flush();assert.equal(voice.mode,'idle');assert.match(message,/conexão de voz foi interrompida/);stream.onopen();
  stream.onmessage({data:JSON.stringify({type:'transcript',client:stream.id,text:'A late request must not run'})});await flush();assert.equal(requests.includes('/voice/text'),false);assert.equal(voice.mode,'idle');
  await voice.destroy();
 });

@@ -11,7 +11,7 @@ for(const provider of ['codex','claude'])test(`${provider}: a stuck route times 
  t.after(()=>voice.destroy());voice.onMessage=text=>messages.push(text);voice.onReply=reply=>replies.push(reply);
  const pending=voice.sendText('Explain the saved result');await flush();assert.equal(voice.mode,'working');
  t.mock.timers.tick(120000);await flush();assert.equal(voice.mode,'error');assert.equal(signal.aborted,true);
- assert.match(messages.at(-1),/timed out/i);assert.equal(calls.filter(call=>call.path==='/voice/cancel').length,1);
+ assert.match(messages.at(-1),/excedeu o tempo limite/i);assert.equal(calls.filter(call=>call.path==='/voice/cancel').length,1);
  await pending;finish({status:200,json:{reply:'Late answer'}});await flush();assert.equal(replies.length,0);
 });
 

@@ -50,7 +50,7 @@ videos_shipped_today: 0
 
 Depois de `# YYYY-MM-DD`, mantenha os títulos exatos: `## Current Focus`, `## Top 3 Priorities`, `## Schedule`, `## Daily Drivers`, `## Activity Log`, `## Notes`, `## EOD Reflection`. As três linhas numeradas `1. [ ] texto` devem corresponder ao frontmatter. O plano deixa todas as novas prioridades desmarcadas. Ordene eventos em America/Chicago no formato de 24 horas `- HH:MM — Título`. Use `- (all-day) — Título` para dia inteiro. Mantenha Schedule mesmo vazio, contadores existentes, e Activity Log e EOD Reflection vazios em notas novas.
 
-Use as rotinas do perfil. Quando aplicáveis, os padrões incluem publicar no Skool, gravar para o YouTube, triar a caixa de entrada e revisar o dia. Adicione rotinas desmarcadas só com evidência: resposta a patrocinador em `drafts/awaiting/`, revisão ou publicação de rascunho existente ou envio/agendamento de vídeo já gravado. Referencie a nota de origem quando útil. Em Notes, conecte reflexões, bloqueios e atrasos em um parágrafo.
+Rotinas para uma nota nova: {{DAILY_DRIVERS}}. Adicione rotinas desmarcadas só com evidência: resposta a patrocinador em `drafts/awaiting/`, revisão ou publicação de rascunho existente ou envio/agendamento de vídeo já gravado. Referencie a nota de origem quando útil. Em Notes, conecte reflexões, bloqueios e atrasos em um parágrafo.
 
 Em nota existente, a ponte atualiza apenas Schedule e posições vazias em Top 3. Preserve o restante. Entregue rotinas novas propostas e `### Plan Today refresh HH:MM` em Notes do artefato para revisão. A ponte preserva o conteúdo validado de notas novas.
 

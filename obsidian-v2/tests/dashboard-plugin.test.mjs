@@ -77,8 +77,8 @@ test('a stale save fails without replacing the known snapshot or silently resubm
 
 test('selection validation rejects duplicate or excessive buttons before any write', async () => {
  const f = fixture();
- await assert.rejects(dashboard.saveDashboard({}, 'one', [stock.id, stock.id]), /different skills/);
- await assert.rejects(dashboard.saveDashboard({}, 'one', Array.from({ length: 11 }, (_, i) => String(i))), /up to 10/);
+ await assert.rejects(dashboard.saveDashboard({}, 'one', [stock.id, stock.id]), /skills diferentes/);
+ await assert.rejects(dashboard.saveDashboard({}, 'one', Array.from({ length: 11 }, (_, i) => String(i))), /até 10/);
  assert.equal(f.calls.length, 0);
 });
 
@@ -87,11 +87,11 @@ test('missing and incompatible installed skills remain visible with specific rea
  const value = state({ selected: ['missing', installed.id] });
  const buttons = dashboard.dashboardButtons(value);
  assert.equal(buttons[0].id, 'missing');
- assert.match(dashboard.dashboardSkillReason(buttons[0], 'codex'), /no longer registered/);
- assert.match(dashboard.dashboardSkillReason(installed, 'claude'), /Use codex/);
+ assert.match(dashboard.dashboardSkillReason(buttons[0], 'codex'), /saiu do catálogo/);
+ assert.match(dashboard.dashboardSkillReason(installed, 'claude'), /Use Codex/);
  assert.equal(dashboard.dashboardSkillReason({ ...installed, available: false, reason: 'SKILL.md changed; register it again.' }, 'codex'), 'SKILL.md changed; register it again.');
  assert.equal(dashboard.dashboardSkillReason(installed, 'codex', null, 'Bridge offline'), 'Bridge offline');
- assert.equal(dashboard.dashboardSkillReason(installed, 'codex', null, '', ['claude']), 'Codex is not installed.');
+ assert.equal(dashboard.dashboardSkillReason(installed, 'codex', null, '', ['claude']), 'Codex não está instalado.');
 });
 
 test('stock skills retain the background queue path and preserve argument values', async () => {
@@ -122,9 +122,9 @@ test('installed skills bind one provider selection, establish the native session
 
 test('custom launch rejects empty requests and provider mismatches before creating work', async () => {
  const f = fixture();
- await assert.rejects(dashboard.launchDashboardSkill({}, installed, ' '), /Describe what/);
+ await assert.rejects(dashboard.launchDashboardSkill({}, installed, ' '), /Descreva o que/);
  f.selection = { provider: 'claude', model: 'sonnet' };
- await assert.rejects(dashboard.launchDashboardSkill({}, installed, 'Write a proposal'), /Use codex/);
+ await assert.rejects(dashboard.launchDashboardSkill({}, installed, 'Write a proposal'), /Use Codex/);
  assert.equal(f.calls.length, 0);
  assert.equal(f.opened.length, 0);
 });
@@ -142,9 +142,9 @@ test('missing or unsupported native Terminal prevents session writes and pending
  const f = fixture();
  const withoutManifest = { ...nativeApp(null), plugins: { plugins: { terminal: {} } } };
  const expected = [
-  [nativeApp(null), /Enable the Terminal community plugin \(by polyipseity\).*Jarvis at http:\/\/127\.0\.0\.1:3217/],
-  [withoutManifest, /Enable the Terminal community plugin/],
-  [nativeApp(''), /Enable the Terminal community plugin/],
+  [nativeApp(null), /Ative o plugin da comunidade Terminal, de polyipseity.*Jarvis em http:\/\/127\.0\.0\.1:3217/],
+  [withoutManifest, /Ative o plugin da comunidade Terminal/],
+  [nativeApp(''), /Ative o plugin da comunidade Terminal/],
   [nativeApp('0.0.0'), /too old.*Jarvis at http:\/\/127\.0\.0\.1:3217/],
   [nativeApp('3.28.0-beta.1'), /Pre-release/],
   [nativeApp('4.0.0'), /has not been verified.*Jarvis at http:\/\/127\.0\.0\.1:3217/],

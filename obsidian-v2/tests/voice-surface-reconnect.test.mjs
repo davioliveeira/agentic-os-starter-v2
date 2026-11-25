@@ -99,7 +99,7 @@ test('EventSource constructor failures recover with the same bounded scheduling'
 test('recovery does not replay a cancelled voice capture or accept its late transcript',async t=>{
  const f=fixture(t),voice=new VoiceSession(f.transport,async()=>({provider:'codex',model:'astra'}),'native',f.info);t.after(()=>voice.destroy());let message='';voice.onMessage=text=>message=text;
  voice.connect();await flush();const first=f.streams[0],client=new URL(first.url).searchParams.get('client');first.open();first.message({type:'wake',client});assert.equal(voice.mode,'listening');
- first.fail();await flush();assert.equal(voice.mode,'idle');assert.match(message,/connection interrupted/);
+ first.fail();await flush();assert.equal(voice.mode,'idle');assert.match(message,/conexão de voz foi interrompida/);
  await f.advance(1000);const next=f.streams[1];next.open();next.message({type:'transcript',client,text:'A late request must not run'});await flush();
  assert.equal(voice.mode,'idle');assert.equal(f.requests.some(request=>request.path==='/voice/text'),false);
  assert.deepEqual([...new Set(f.requests.map(request=>request.path))],['/voice/surface']);

@@ -23,10 +23,10 @@ export function activityState(task:ActivityTask):ActivityState|null {
  return task.turns?.length||task.workflowStatus==='ok'?'done':null;
 }
 export function activityMessage({task,state}:TaskActivity){
- const suffix={working:' started','needs input':' needs your OK',done:' is done',failed:" didn’t finish"};
+ const suffix={working:' começou','needs input':' precisa da sua resposta',done:' terminou',failed:' falhou'};
  const result=state==='failed'?task.error||task.summary||task.turns?.at(-1)?.text:state==='done'?task.summary||task.turns?.at(-1)?.text:'';
  const detail=result?.trim().replace(/^BLOCKED:\s*/i,'').split(/\r?\n/).find(line=>line.trim()&&line.trim()!=='---')?.replace(/^#+\s*/,'').slice(0,140);
- return (task.title||'Task')+suffix[state]+'.'+(detail?' '+detail:'');
+ return (task.title||'Tarefa')+suffix[state]+'.'+(detail?' '+detail:'');
 }
 export function activityElapsed({task,state,since}:TaskActivity,now:number){
  const seconds=Math.max(0,Math.floor(((state==='done'||state==='failed'?since:now)-(task.created??since))/1000));

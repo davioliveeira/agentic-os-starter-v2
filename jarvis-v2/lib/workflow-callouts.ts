@@ -64,23 +64,23 @@ export function liveActivityCallout(cards:WorkflowCallout[],item:{key:string;pha
   // words are the name. A follow-up names no words ("Continue “that task”"), so it is a follow-up until the task's title is known.
   const name=(text:string,fallback:string)=>{
     const quoted=text.match(/“([^”]+)”/)?.[1];
-    if(quoted)return /^that task$/i.test(quoted)?'Follow-up':taskCardLabel(quoted,fallback);
+    if(quoted)return /^that task$/i.test(quoted)?'Continuação':taskCardLabel(quoted,fallback);
     const short=text.replace(/^(?:start|the)\s+/i,'').trim()||fallback;return short.charAt(0).toUpperCase()+short.slice(1);
   };
   if(item.phase==='started'&&item.taskIds?.length){
     // The hand-off started real work: the card now follows that conversation (reconcileTaskCallouts) instead of clearing.
     // One card per conversation: an earlier card for the same one gives way to this request's card.
-    const taskId=item.taskIds[0],bound={label:name(item.label,'Task'),phase:'working' as const,note:'working',detail:item.label,taskId,boundAt:now,sawWorking:false,attention:false};
+    const taskId=item.taskIds[0],bound={label:name(item.label,'Tarefa'),phase:'working' as const,note:'em execução',detail:item.label,taskId,boundAt:now,sawWorking:false,attention:false};
     const kept=cards.filter(card=>card===existing||card.taskId!==taskId);
     if(existing)return kept.map(card=>card===existing?{...card,...bound}:card);
     const taken=new Set(kept.map(card=>card.slot)),open=[0,1,2,3].find(slot=>!taken.has(slot));
     const yields=open===undefined?(kept.find(card=>!isPendingCallout(card))??kept[0]):null;
     return [...kept.filter(card=>card!==yields),{id:nextId(),kind:'task',target,slot:open??yields!.slot,startedAt:now,...bound}];
   }
-  const view=item.phase==='handoff'?{label:'Handing off',phase:'working' as const,note:'V2 is working it out',detail:'Live handed this to V2'}:
-    item.phase==='starting'?{label:name(item.label,'Task'),phase:'working' as const,note:'starting',detail:item.label}:
-    item.phase==='answered'?{label:name(item.label,'Saved notes'),phase:'done' as const,note:'answered from this',detail:`V2 answered from ${item.label||'saved notes'}`}:
-    item.phase==='started'?{label:name(item.label,'Task'),phase:'done' as const,note:'started',detail:item.label}:null;
+  const view=item.phase==='handoff'?{label:'Encaminhando',phase:'working' as const,note:'V2 está processando',detail:'A chamada encaminhou o pedido ao V2'}:
+    item.phase==='starting'?{label:name(item.label,'Tarefa'),phase:'working' as const,note:'iniciando',detail:item.label}:
+    item.phase==='answered'?{label:name(item.label,'Notas salvas'),phase:'done' as const,note:'resposta com base nas notas',detail:`O V2 consultou ${item.label||'as notas salvas'}`}:
+    item.phase==='started'?{label:name(item.label,'Tarefa'),phase:'done' as const,note:'iniciado',detail:item.label}:null;
   if(!view)return cards;
   if(existing)return cards.map(card=>card===existing?{...card,...view}:card);
   const used=new Set(cards.map(card=>card.slot)),free=[0,1,2,3].find(slot=>!used.has(slot));
@@ -128,11 +128,11 @@ export function reconcileTaskCallouts(cards:WorkflowCallout[],tasks:CardTask[],l
     const task=tasks.find(item=>item.id===card.taskId),age=now-(card.boundAt??now);
     if(!task)return loaded&&age>TASK_CARD_MISSING_MS?drop():[card];
     const label=taskCardLabel(task.title,card.label),state=activityState(task);
-    if(state==='working')return set({label,phase:'working',note:task.state==='stopping'?'stopping':'working',sawWorking:true,attention:false});
-    if(state==='needs input')return set({label,phase:'working',note:'needs you',sawWorking:true,attention:true});
+    if(state==='working')return set({label,phase:'working',note:task.state==='stopping'?'encerrando':'em execução',sawWorking:true,attention:false});
+    if(state==='needs input')return set({label,phase:'working',note:'aguardando sua resposta',sawWorking:true,attention:true});
     const finishedTurn=(task.turns?.at(-1)?.ts??0)>=(card.boundAt??Infinity);
     if(!card.sawWorking&&!finishedTurn&&age<=TASK_CARD_SETTLE_MS)return set({label});
-    if(task.queuedFollowups)return set({label,phase:'working',note:'waiting its turn',attention:false});
+    if(task.queuedFollowups)return set({label,phase:'working',note:'aguardando na fila',attention:false});
     if(state==='failed')return set({label,phase:'failed',note:undefined,detail:task.error||card.detail,attention:false});
     // Stopped by hand before it answered: nothing finished, so nothing to announce.
     if(['stopped','closed'].includes(task.state)&&!finishedTurn||state===null)return drop();

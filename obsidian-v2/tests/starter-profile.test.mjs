@@ -15,16 +15,16 @@ function vaultWith(profile){
  if(profile!==undefined){fs.mkdirSync(path.join(root,'system/v2'),{recursive:true});fs.writeFileSync(path.join(root,'system/v2/profile.json'),typeof profile==='string'?profile:JSON.stringify(profile))}
  return root;
 }
-const OWNER_NOTE='## Daily Drivers\n- [ ] Skool post\n- [ ] YouTube recording\n- [ ] Inbox triage\n- [ ] Daily review\n\n## Activity Log';
+const OWNER_NOTE='## Daily Drivers\n- [ ] Publicar no Skool\n- [ ] Gravar para o YouTube\n- [ ] Triar a caixa de entrada\n- [ ] Revisar o dia\n\n## Activity Log';
 
-test('a vault without a profile plans exactly as before',()=>{
+test('a vault without a profile uses the Brazilian Portuguese defaults',()=>{
  for(const root of [vaultWith(),vaultWith('not json'),vaultWith({dailyDrivers:[]}),vaultWith({dailyDrivers:['ok','two\nlines']}),vaultWith({dailyDrivers:['a','a']}),
   vaultWith({dailyDrivers:['[x] done']}),vaultWith({dailyDrivers:Array.from({length:9},(_,index)=>'driver '+index)}),vaultWith({dailyDrivers:'Inbox triage'})])
   assert.equal(dailyDrivers(root),DEFAULT_DRIVERS);
  assert.ok(mergeDaily(null,'2026-01-05','- 09:00 — Planning').includes(OWNER_NOTE));
  assert.ok(mergeDaily(null,'2026-01-05','- 09:00 — Planning',[],dailyDrivers(vaultWith())).includes(OWNER_NOTE));
  const prompt=workflowPrompt(vaultWith(),{skill:'plan-today',id:crypto.randomUUID(),args:{}},'');
- assert.ok(prompt.includes('Default new-note drivers are Skool post, YouTube recording, Inbox triage and Daily review.'));
+ assert.ok(prompt.includes('Rotinas para uma nota nova: Publicar no Skool, Gravar para o YouTube, Triar a caixa de entrada, Revisar o dia.'));
 });
 
 test('a vault with its own Daily Drivers gets them in the new note and in both planning rubrics',()=>{
@@ -34,11 +34,11 @@ test('a vault with its own Daily Drivers gets them in the new note and in both p
  assert.ok(note.includes('## Daily Drivers\n- [ ] Inbox triage\n- [ ] Deep work block\n- [ ] Daily review\n\n## Activity Log'));
  assert.equal(note.includes('Skool'),false);
  const today=workflowPrompt(root,{skill:'plan-today',id:crypto.randomUUID(),args:{}},'');
- assert.ok(today.includes('Default new-note drivers are Inbox triage, Deep work block and Daily review.'));
+ assert.ok(today.includes('Rotinas para uma nota nova: Inbox triage, Deep work block, Daily review.'));
  const tomorrow=workflowPrompt(root,{skill:'plan-tomorrow',id:crypto.randomUUID(),args:{}},'');
- assert.ok(tomorrow.includes('Driver defaults: Inbox triage, Deep work block, Daily review;'));
- for(const prompt of [today,tomorrow])assert.equal(/Skool post|YouTube recording/.test(prompt),false);
- assert.equal(rubricWithDrivers('Default new-note drivers are Skool post, YouTube recording, Inbox triage and Daily review.',['Only one']),'Default new-note drivers are Only one.');
+ assert.ok(tomorrow.includes('Rotinas para uma nota nova: Inbox triage, Deep work block, Daily review.'));
+ for(const prompt of [today,tomorrow])assert.equal(/Publicar no Skool|Gravar para o YouTube/.test(prompt),false);
+ assert.equal(rubricWithDrivers('Rotinas para uma nota nova: {{DAILY_DRIVERS}}.',['Only one']),'Rotinas para uma nota nova: Only one.');
 });
 
 test('an existing note keeps whatever drivers it already has',()=>{
@@ -49,7 +49,7 @@ test('an existing note keeps whatever drivers it already has',()=>{
 
 test('planning prompts name this computer\'s time zone, and python resolves per platform',()=>{
  const prompt=workflowPrompt(vaultWith(),{skill:'plan-today',id:crypto.randomUUID(),args:{}},'');
- assert.ok(prompt.includes(`Use ${TIME_ZONE} to determine today.`));
+ assert.ok(prompt.includes(`Use ${TIME_ZONE} para determinar a data.`));
  if(TIME_ZONE!=='America/Chicago')assert.equal(prompt.includes('America/Chicago'),false);
  assert.equal(TIME_ZONE,new Intl.DateTimeFormat().resolvedOptions().timeZone);
  assert.equal(pythonCommand({},'win32'),'python');assert.equal(pythonCommand({},'darwin'),'python3');assert.equal(pythonCommand({},'linux'),'python3');
