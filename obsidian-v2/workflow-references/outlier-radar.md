@@ -12,4 +12,12 @@ Vídeos com menos de 48 horas podem ser sinalizados cedo se atingirem 10× a vel
 
 ## Entrega
 
-Gere um relatório datado com título e link, canal, inscritos, publicação, idade, duração, visualizações, multiplicador acumulado, velocidade inicial opcional, tamanho da amostra e método de descoberta. Diferencie destaques, sinais iniciais e itens já vistos. Explique o que o tema sugere e separe hipótese de causa comprovada. Informe consultas usadas, limites de cota, acesso ausente, idade dos dados e confiança. Use “nenhum destaque novo” somente quando a busca tiver sido concluída. A ponte grava o relatório completo.
+Gere um relatório datado com título e link, canal, inscritos, publicação, idade, duração, visualizações, multiplicador acumulado, velocidade inicial opcional, tamanho da amostra e método de descoberta. Para que o cartão do Obsidian reconheça cada destaque, use uma linha neste formato:
+
+```markdown
+- **[Título do vídeo](URL)** — **12,3×** | 55,9 mil visualizações em 2,4 dias | [Canal](URL) (53,8 mil inscritos) | via busca "consulta"
+```
+
+Use `via lista monitorada (nome)` para vídeos descobertos na lista configurada. Quando houver velocidade inicial, acrescente `(vel. 31,5×)` depois do multiplicador acumulado. Inclua data de publicação, duração e tamanho da amostra em uma sublista.
+
+Diferencie destaques, sinais iniciais e itens já vistos. Explique o que o tema sugere e separe hipótese de causa comprovada. Informe consultas usadas, limites de cota, acesso ausente, idade dos dados e confiança. Use “nenhum destaque novo” somente quando a busca tiver sido concluída. A ponte grava o relatório completo.

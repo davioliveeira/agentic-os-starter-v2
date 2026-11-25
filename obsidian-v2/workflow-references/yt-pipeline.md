@@ -23,4 +23,4 @@ Compare ideias, exemplos e métodos. Identifique padrões, consenso, divergênci
 
 ## Entrega
 
-Use **Selected videos** com tabela e motivo da seleção, **Key takeaways**, **Agreement and disagreement**, **Practical implications**, **Content gaps/opportunities** e **Source status**. Escreva o conteúdo em português brasileiro. Inclua a análise completa. O link de um notebook existente pode acompanhar as evidências.
+Use **Vídeos selecionados** com tabela e motivo da seleção, **Principais conclusões**, **Consensos e divergências**, **Implicações práticas**, **Lacunas e oportunidades de conteúdo** e **Situação das fontes**. Escreva o conteúdo em português brasileiro. Inclua a análise completa. O link de um notebook existente pode acompanhar as evidências.

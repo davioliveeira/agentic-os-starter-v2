@@ -24,7 +24,7 @@ const FOLDERS = [
 
 // heat tier for the multiplier badge — the number IS the story
 function multTier(mult: string): "hot" | "warm" | "" {
-	const n = mult.startsWith(">") ? 999 : parseFloat(mult);
+	const n = mult.startsWith(">") ? 999 : parseFloat(mult.replace(/^[~≈]/, "").replace(",", "."));
 	if (!Number.isFinite(n)) return "";
 	if (n >= 50) return "hot";
 	if (n >= 10) return "warm";

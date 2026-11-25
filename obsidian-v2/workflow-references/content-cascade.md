@@ -13,7 +13,7 @@ Preserve nomes de produtos, modelos, ferramentas e versões como falados. Verifi
 - Abra com um H1. O corpo fica em texto, sem imagens ou citações em bloco. Use rótulos em negrito para etapas e conceitos em listas. Indique a linguagem em blocos de código.
 - Use 1.500 a 2.500 palavras quando houver conteúdo para isso. Reorganize o material para leitura e desenvolva os trechos comprimidos.
 - Responda à pergunta principal nos primeiros 40 a 60 termos, depois introduza a história com base na fonte. Use perguntas naturais em H2, parágrafos de duas a quatro frases, passos práticos e duas ou mais definições úteis em negrito.
-- Inclua um exemplo de Problema → Ação → Resultado. Busque um dado real a cada 150 a 200 palavras quando houver evidência. Anote `[STAT NEEDED: tema]` em Review notes se faltar um número.
+- Inclua um exemplo de Problema → Ação → Resultado. Busque um dado real a cada 150 a 200 palavras quando houver evidência. Se faltar um número, registre `[DADO NECESSÁRIO: tema]` em **Notas para revisão**.
 - Termine com três a cinco perguntas frequentes em H3 e respostas curtas. Use `cta` de `system/v2/profile.json` se disponível, adaptando só o tema. Sem configuração, conclua sem oferta de comunidade.
 - Entregue título e metatítulo com menos de 60 caracteres quando possível, metadescrição de 150 a 160, palavra-chave principal, três a cinco secundárias, slug em minúsculas com hífens e menos de 60 caracteres, resumo de uma ou duas frases, três a sete tags, temas para links internos, tipo de esquema, data e URL da miniatura verificadas quando disponíveis.
 
@@ -36,9 +36,9 @@ O link do vídeo completo está nos comentários.
 
 Mantenha a URL fora do corpo. Use o separador exato seguido do primeiro comentário:
 
-=== FIRST COMMENT ===
+=== PRIMEIRO COMENTÁRIO ===
 Vídeo completo: <URL verificada>
 
 ## Entrega
 
-Inclua fontes e cobertura, **Blog metadata**, **Blog draft**, **X post**, **X reply**, **LinkedIn post**, **First comment** e **Review notes**. Traga os rascunhos completos em português brasileiro.
+Inclua **Fontes e cobertura**, **Metadados do blog**, **Rascunho do blog**, **Publicação no X**, **Resposta no X**, **Publicação no LinkedIn**, **Primeiro comentário** e **Notas para revisão**. Traga os rascunhos completos em português brasileiro.

@@ -17,8 +17,8 @@ interface Props {
 const verdictLabels: Record<Verdict, string> = {
 	Hit: "Destaque",
 	Steady: "Estável",
-	Climbing: "Em alta",
-	Miss: "Abaixo do esperado",
+	Climbing: "Em crescimento",
+	Miss: "Abaixo da referência",
 	Unknown: "Sem classificação",
 };
 
@@ -49,7 +49,7 @@ function firstSentence(body: string): string {
 	for (const line of body.split("\n")) {
 		const trimmed = line.trim();
 		if (trimmed.length === 0) continue;
-		// Skip standalone bold-only lines (e.g. "**Why it worked:**" on its own)
+		// Skip standalone field labels.
 		if (/^\*\*[^*]+\*\*\s*[:—-]?\s*$/.test(trimmed)) continue;
 		// Strip leading bold-prefix + colon + any leading markdown
 		const cleaned = reviewPlainText(trimmed
@@ -279,7 +279,7 @@ export function YtWeekReviewCard({ app }: Props) {
 					{review.underperformer ? (
 						<div className="aos-v2-cc-yt-review-outlier aos-v2-cc-yt-review-outlier--bottom">
 							<span className="aos-v2-cc-yt-review-outlier-label">
-								▼ MENOR DESEMPENHO
+								▼ DESEMPENHO ABAIXO DO ESPERADO
 							</span>
 							<span className="aos-v2-cc-yt-review-outlier-title">
 								{review.underperformer.title}

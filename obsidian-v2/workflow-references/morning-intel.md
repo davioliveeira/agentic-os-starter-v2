@@ -24,42 +24,42 @@ Mantenha as seguintes consultas para cobrir lacunas, ajustando tema e data:
 
 Use consultas equivalentes no domínio antigo quando útil. Verifique as prévias antes de tratá-las como fatos. Use smol.ai como fonte indireta de discussões de Reddit e Discord e indique possível atraso de um a dois dias. Só declare cobertura direta quando tiver usado um conector autorizado. Evite insistir em fontes bloqueadas.
 
-No Gmail, deduplique por conversa e use a data da mensagem mais recente. Classifique por prévia quando suficiente. Leia o fio inteiro para mensagens operacionais, transações, contatos relevantes ou decisões dependentes de contexto. Mantenha `needs-reply`, `opportunity`, `newsletter-worth-reading`, `FYI` e `ignore`, com uma frase sobre a relevância. Comece por cota, cobrança e falhas do site. Conte os ignorados. Evite links de rastreamento e preserve rótulos, rascunhos e mensagens.
+No Gmail, deduplique por conversa e use a data da mensagem mais recente. Classifique por prévia quando suficiente. Leia o fio inteiro para mensagens operacionais, transações, contatos relevantes ou decisões dependentes de contexto. Use as categorias **Precisam de resposta**, **Oportunidades**, **Newsletters que valem a leitura**, **Informativos** e **Mensagens ignoradas**, com uma frase sobre a relevância. Comece por cota, cobrança e falhas do site. Conte os ignorados. Evite links de rastreamento e preserve rótulos, rascunhos e mensagens.
 
 ## Estrutura do resultado
 
-Use os títulos preservados pelo leitor e escreva o conteúdo em português brasileiro:
+Use os títulos abaixo e escreva o relatório em português brasileiro.
 
-# Morning Intel - YYYY-MM-DD (Weekday)
+# Boletim de IA — YYYY-MM-DD (dia da semana)
 
-## TL;DR
+## Resumo
 Três a seis pontos em ordem de relevância. Inclua itens operacionais urgentes quando existirem.
 
-## Top Story
+## Notícia principal
 Um ou dois parágrafos com fontes diretas e um dado útil verificado, se disponível.
 
-## AI News (last 24h)
-Agrupe Anthropic/Claude, OpenAI/Codex e demais provedores. Vincule afirmações e mudanças de versão relevantes.
+## Notícias de IA (últimas 24h)
+Use as subseções `### Anthropic e Claude`, `### OpenAI e Codex` e `### Outras notícias de IA`. Vincule afirmações e mudanças de versão relevantes.
 
-## Hacker News Pulse
-Notícias, pontos e comentários observados e relevância.
+## Radar do Hacker News
+Use a tabela `Notícia | Pontos | Comentários | Relevância`, com os contadores observados e o link de cada notícia.
 
-## YouTube Radar
-Tabela de título vinculado, canal, inscritos, visualizações e razão nomeada. Discuta ganchos recorrentes e lacunas do público com evidência.
+## Radar do YouTube
+Use a tabela `Vídeo | Canal | Inscritos | Visualizações | Motivo`, com links e a razão visualizações/inscritos identificada. Discuta ganchos recorrentes e lacunas do público com evidência.
 
-### Small-Channel Outliers (last 24h)
-Tabela de título, canal, inscritos, idade, visualizações, multiplicador acumulado e método de descoberta. Identifique velocidade inicial separadamente e diferencie busca sem resultados de fonte indisponível ou antiga.
+### Destaques de canais pequenos (últimas 24h)
+Use a tabela `Vídeo | Canal (inscritos) | Visualizações e idade | Multiplicador | Origem`. Inclua o link no título e formatos como `Nome (2.300)` e `12.000 / 6h`. Identifique velocidade inicial separadamente e diferencie busca sem resultados de fonte indisponível ou antiga.
 
-## GitHub Radar
+## Radar do GitHub
 Repositórios vinculados novos ou em crescimento em 7 ou 30 dias. Explique em uma frase a consequência de cada um para quem desenvolve com IA.
 
-## Inbox (last 24h)
-Operações, oportunidades e pendências de resposta, informativos e contagem de ruído.
+## Caixa de entrada (últimas 24h)
+Identifique **Urgentes**, **Precisam de resposta**, **Propostas de patrocínio**, demais oportunidades, informativos e a contagem de mensagens ignoradas quando houver.
 
-## So What - Content Plan
-Classifique de três a cinco pautas para YouTube com título provisório, gancho de duas frases, evidências, prazo e valor duradouro. Inclua de duas a três ideias para LinkedIn e uma ou duas para vídeo curto ou carrossel. Relacione às linhas editoriais Agentic OS, skills do Codex, qualidade de conteúdo e construção prática de agentes. Marque temas corroborados nos dois radares do YouTube. Priorize resultados de língua inglesa e destaque sinais internacionais comprovados.
+## Plano de conteúdo
+Use as subseções `### YouTube`, `### LinkedIn` e `### Vídeos curtos e carrosséis`. Classifique de três a cinco pautas para YouTube com título provisório, gancho de duas frases, evidências, prazo e valor duradouro. Inclua de duas a três ideias para LinkedIn e uma ou duas para vídeo curto ou carrossel. Relacione às linhas editoriais Agentic OS, skills do Codex, qualidade de conteúdo e construção prática de agentes. Marque temas corroborados nos dois radares do YouTube. Priorize resultados de língua inglesa e destaque sinais internacionais comprovados.
 
-No LinkedIn, mantenha a estrutura “Steal my X for Y”, com recurso existente e resultado concreto. Se faltar um recurso, indique a lacuna e proponha a pauta sem prometer download.
+No LinkedIn, mantenha a estrutura “Use meu X para conseguir Y”, com recurso existente e resultado concreto. Se faltar um recurso, indique a lacuna e proponha a pauta sem prometer download.
 
-## Source Status
-Tabela `Source / Status / Freshness or failure`, incluindo Gmail e X. Preserve achados parciais, informe indisponibilidades e termine com a hora observada em America/Chicago. Entregue o relatório completo para a ponte gravar.
+## Situação das fontes
+Tabela `Fonte | Situação | Data da consulta ou falha`, incluindo Gmail e X. Preserve achados parciais, informe indisponibilidades e termine com a hora observada em America/Chicago. Entregue o relatório completo para a ponte gravar.

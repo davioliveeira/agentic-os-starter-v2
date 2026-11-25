@@ -3,6 +3,7 @@ import path from 'node:path';
 import {load as parseYaml,JSON_SCHEMA} from 'js-yaml';
 import {ROOT,SKILLS,validateIntent} from '../shared/contract.mjs';
 import {DAILY_HEADINGS,dailySections} from '../shared/daily-note.mjs';
+import {localizeReportHeadings} from '../shared/report-headings.mjs';
 import {vaultPath,writeJson,atomicRename} from './core.mjs';
 import {workflowPrompt,destinationFor,dailySkills,mergeDaily} from './workflows.mjs';
 import {DEFAULT_DRIVERS,dailyDrivers} from './profile.mjs';
@@ -78,7 +79,7 @@ export function saveWorkflowResult(root,record,text,{ownsDestination=false,summa
    .replace(/^<markdown>[^\S\r\n]*(?:\r?\n|$)/i,'').replace(/(?:^|\r?\n)[^\S\r\n]*<\/markdown>$/i,'').trim();
   const lines=content.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
   if(!lines.length||lines.every(line=>/^(?:(?:SAVED|PLANNED)\b[^\r\n]*|(?:done|complete|completed)[.!]?)$/i.test(line)))throw new Error('Worker returned a completion receipt instead of the deliverable. Original destination preserved; response saved for review.');
-  let output=text,dailyResult=null;
+  let output=localizeReportHeadings(job.skill,text),dailyResult=null;
   if(dailySkills.has(job.skill)){
    const sections=dailySections(content),scheduleSection=sections.find(section=>section.key==='schedule');
    const prioritySection=sections.find(section=>section.key==='priorities');

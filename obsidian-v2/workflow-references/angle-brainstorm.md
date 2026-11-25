@@ -36,23 +36,23 @@ Escolha um desejo dominante por abordagem: `mastery` (domínio), `FOMO` (medo de
 
 ## Formato
 
-Use as etiquetas abaixo para a passagem ao próximo fluxo. Escreva as propostas e justificativas em português brasileiro, em ordem de força.
+Use os rótulos abaixo para passar a proposta ao próximo fluxo. Escreva as propostas e justificativas em português brasileiro, em ordem de força.
 
 ```markdown
-# Angles for: [tema em uma linha]
+# Abordagens para [tema em uma linha]
 
-_Seed type: [URL, manchete, item da varredura ou frase]. [Resumo da fonte quando houver URL.]_
+_Tipo de entrada — [URL, manchete, item da varredura ou frase]. [Resumo da fonte quando houver URL.]_
 
 ## 1. [Título provisório de 5 a 10 palavras]
 
-- **Bucket:** [identificador da abordagem]
-- **Desire:** [identificador do desejo dominante]
-- **Why this lands:** [em uma frase, por que alguém desse público assistiria]
-- **Premise:** [duas ou três frases com o que será mostrado, o ganho de quem assiste e o desfecho]
+- **Categoria** — [identificador da abordagem]
+- **Desejo dominante** — [identificador do desejo dominante]
+- **Por que funciona** — [em uma frase, por que alguém desse público assistiria]
+- **Premissa** — [duas ou três frases com o que será mostrado, o ganho de quem assiste e o desfecho]
 
 [Repita um bloco por proposta.]
 
-## Recommended pick
+## Abordagem recomendada
 
 **[Número e título da primeira proposta que você gravaria.]** [Motivo em uma frase.]
 ```

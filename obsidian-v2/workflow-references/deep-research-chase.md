@@ -12,14 +12,14 @@ Priorize padrões entre fontes, divergências, lacunas, alegações sem evidênc
 
 ## Estrutura da entrega
 
-Frontmatter: `date`, `topic`, `skill: deep-research-chase`, `tags: [research]`.
+Inclua os campos `date`, `topic`, `skill: deep-research-chase` e `tags: [research]` no cabeçalho YAML.
 
-- **Key Takeaways** — cerca de cinco conclusões acionáveis.
-- **YouTube Landscape** — tabela `Video | Creator | Views | Date`, criadores principais, método, evidências, lacunas e link do notebook existente se usado.
-- **Web / Articles** — títulos com links, resumos e temas comuns.
-- **X / Twitter Pulse** — opinião predominante, vozes relevantes, dúvidas e destaques parafraseados com links.
-- **GitHub Activity** — projetos com links, atividade observada, issues e PRs relevantes e discussões da comunidade. Diferencie os sinais observados de suposições baseadas em estrelas.
-- **Content Opportunities** — perguntas e abordagens concretas que as fontes pouco exploraram.
-- **Source Status** — disponibilidade, datas, limites e contradições.
+- **Principais conclusões** — cerca de cinco conclusões com aplicação prática.
+- **Panorama no YouTube** — tabela `Vídeo | Criador | Visualizações | Data`, criadores principais, método, evidências, lacunas e link do notebook existente se usado.
+- **Web e artigos** — títulos com links, resumos e temas comuns.
+- **Repercussão no X (Twitter)** — opinião predominante, vozes relevantes, dúvidas e destaques parafraseados com links.
+- **Atividade no GitHub** — projetos com links, atividade observada, issues e PRs relevantes e discussões da comunidade. Diferencie os sinais observados de suposições baseadas em estrelas.
+- **Oportunidades de conteúdo** — perguntas e abordagens concretas que as fontes pouco exploraram.
+- **Situação das fontes** — disponibilidade, datas, limites e contradições.
 
 Escreva uma síntese curta para orientar a pré-produção. Cite minimamente e confirme o conteúdo antes de tirar conclusões a partir de títulos.

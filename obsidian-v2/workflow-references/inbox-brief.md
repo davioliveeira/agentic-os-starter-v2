@@ -11,17 +11,17 @@ Aplique a configuração explícita ou `system/workflow-config/inbox-brief.json`
 ## Uma categoria por conversa, da mais recente à mais antiga
 
 1. **Leads** primeiro. Siga as assinaturas de formulários, inclusive os prefixos `New Agency Inquiry` e `New Mentorship Application`, e as restrições de remetente. Identifique o lead no corpo.
-2. **Urgent** para assinaturas, prazos, avisos de segurança, mudanças de link de afiliado ou ações explícitas de agenda. Informe ação e data.
-3. **Warm threads** para parceiros ou fios já respondidos que aguardam decisão.
-4. **Sponsor pitches** para primeiro contato com marca identificada e pedido explícito de parceria paga, vídeo patrocinado ou integração. Exclua testes grátis, ofertas vagas, newsletters, coaching e disparos em massa. Fios já respondidos entram em **Warm threads**.
-5. **Meetings** para avisos e acompanhamentos de reuniões.
-6. **Noise** para o restante. Informe a contagem.
+2. **Urgentes** para assinaturas, prazos, avisos de segurança, mudanças de link de afiliado ou ações explícitas de agenda. Informe ação e data.
+3. **Conversas que precisam de resposta** para parceiros ou fios já respondidos que aguardam decisão.
+4. **Novas propostas de patrocínio** para primeiro contato com marca identificada e pedido explícito de parceria paga, vídeo patrocinado ou integração. Exclua testes grátis, ofertas vagas, newsletters, coaching e disparos em massa. Fios já respondidos entram em **Conversas que precisam de resposta**.
+5. **Reuniões** para avisos e acompanhamentos de reuniões.
+6. **Mensagens ignoradas** para o restante. Informe a contagem.
 
 Quando houver dúvida, escolha a categoria menos exigente e explique ambiguidades importantes.
 
 ## Qualificar os leads
 
-Extraia nome, e-mail e respostas. Para agência: Website, Services, Timeline, Budget e Challenge. Para mentoria: Situation, Timeline e Biggest Challenge. Faça até duas verificações públicas de leitura por lead usando nome e domínio ou nome e empresa informada para e-mail gratuito. Use `(no web check)` quando faltar acesso.
+Extraia nome, e-mail e respostas. Para agência, registre site, serviços, prazo, orçamento e desafio. Para mentoria, registre situação, prazo e maior desafio. Use os nomes originais das perguntas para localizar as respostas do formulário. Faça até duas verificações públicas de leitura por lead usando nome e domínio ou nome e empresa informada para e-mail gratuito. Use `(sem verificação na web)` quando faltar acesso.
 
 - Agência: faixa de 5 mil a 15 mil ou maior favorece avançar. Abaixo de 5 mil, confirme empresa ou domínio e desafio concreto. Pedidos vagos ou de uso pessoal tendem a `PASS`.
 - Mentoria: papel ou empresa verificável, desafio específico e prontidão favorecem `PURSUE`. Spam, sinais de falta de orçamento e respostas genéricas tendem a `PASS`.
@@ -29,7 +29,7 @@ Extraia nome, e-mail e respostas. Para agência: Website, Services, Timeline, Bu
 
 ## Entrega
 
-Use `date`, `skill: inbox-brief` e `tags: [inbox, brief]`. Preserve a abertura `Inbox brief: N messages in the last Xh, Y unread.` e as seções Leads, Urgent, Warm threads pressing for reply, New sponsor pitches, Meetings e Noise count para a leitura do painel. Numere leads e propostas separadamente. Para cada lead, inclua fonte, dado confirmado ou resposta-chave, classificação e razão. Em patrocínios, inclua marca, plataforma e orçamento informado. Guarde os identificadores necessários para revisão posterior.
+Use `date`, `skill: inbox-brief` e `tags: [inbox, brief]`. Abra com `Resumo da caixa de entrada — N mensagens nas últimas Xh, Y não lidas.` Use as seções **Leads**, **Urgentes**, **Conversas que precisam de resposta**, **Novas propostas de patrocínio**, **Reuniões** e **Mensagens ignoradas**. Numere leads e propostas separadamente. Para cada lead, inclua fonte, dado confirmado ou resposta-chave, classificação e razão. Em patrocínios, inclua marca, plataforma e orçamento informado. Guarde os identificadores necessários para revisão posterior.
 
 Termine com ações propostas e totais de leads e propostas que merecem resposta. Um pedido posterior de rascunhos deve especificar os itens. Resolva destinatário, modelo aprovado e links de agendamento ou mídia. Para leads, o destinatário vem do corpo do formulário. Para patrocinadores, use o identificador da mensagem mais recente. O pedido de rascunhos autoriza apenas prepará-los.
 

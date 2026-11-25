@@ -13,23 +13,23 @@ Converta a duração em segundos. A classificação editorial do painel usa até
 - `baseline_views` e `baseline_likes`: medianas dos dez últimos longos.
 - `baseline_engagement`: mediana de (curtidas + comentários) / visualizações por vídeo, excluindo denominadores zero.
 - `views_pct_of_baseline`: visualizações do vídeo / `baseline_views` × 100. Indique indisponível se a referência for nula ou zero.
-- **Climbing:** menos de 24 horas. Tem prioridade.
-- **Hit:** pelo menos 150% da referência.
-- **Steady:** de 60% até menos de 150%.
-- **Miss:** abaixo de 60% após 24 horas.
+- **Em crescimento.** menos de 24 horas. Tem prioridade.
+- **Destaque.** pelo menos 150% da referência.
+- **Estável.** de 60% até menos de 150%.
+- **Abaixo da referência.** abaixo de 60% após 24 horas.
 
-O destaque é o longo com mais visualizações no período. Sugira duas ou três formas de reaproveitar. Só marque pior desempenho para um Miss que já amadureceu. Sugira perguntas de diagnóstico e uma ação. Trate hipóteses de título, miniatura, tema e horário como hipóteses. CTR e retenção exigem dados próprios.
+O destaque é o longo com mais visualizações no período. Sugira duas ou três formas de reaproveitar. Só marque pior desempenho para um vídeo abaixo da referência após 24 horas. Sugira perguntas de diagnóstico e uma ação. Trate hipóteses de título, miniatura, tema e horário como hipóteses. CTR e retenção exigem dados próprios.
 
 ## Entrega
 
-Frontmatter: `date`, `window`, `channel`, `skill: yt-week-review`, `tags: [review, youtube, weekly]`.
+Use o título `# Análise semanal do YouTube` e o frontmatter com `date`, `window`, `channel`, `skill: yt-week-review` e `tags: [review, youtube, weekly]`. Os títulos abaixo são seções de nível 2.
 
-- **TL;DR** com três ou quatro pontos.
-- **Uploads this week** com tabela `Video | Views | vs Baseline | Likes | Comments | Verdict`. Informe medianas e tamanho da referência.
-- **Top performer — título** com uma frase de menos de 140 caracteres sob `Why it worked (best guess)`, seguida de Repackaging plays.
-- **Underperformer — título**, quando aplicável, com `Likely culprit` em uma frase de menos de 140 caracteres e ação Move: retry/reframe/stop, com motivo.
-- **Channel-wide signal** distingue visualizações acumuladas dos vídeos da semana de visualizações do canal no período. Só compare semanas, inscritos ou frequência com bases equivalentes. Respeite o arredondamento público.
-- **Short-form snapshot** em uma linha com quantidade, visualizações e avaliação.
-- **Recommended next 7 days** com três ações.
+- **Resumo** com três ou quatro pontos.
+- **Publicações da semana** com tabela `Vídeo | Visualizações | % da referência | Curtidas | Comentários | Avaliação`. Use as quatro classificações acima. Informe as medianas e o tamanho da amostra em **Linha de base**.
+- **Melhor desempenho — título** com uma hipótese de menos de 140 caracteres sob `Por que funcionou`, seguida de `Formas de reaproveitar`.
+- **Desempenho abaixo do esperado — título**, quando aplicável, com `Causa provável` em uma frase de menos de 140 caracteres e `Próxima ação` (tentar de novo, mudar o enfoque ou parar), com motivo.
+- **Sinais do canal** distingue visualizações acumuladas dos vídeos da semana de visualizações do canal no período. Só compare semanas, inscritos ou frequência com bases equivalentes. Respeite o arredondamento público.
+- **Resumo dos vídeos curtos** em uma linha com quantidade, visualizações e avaliação.
+- **Recomendações para os próximos 7 dias** com três ações.
 
 Use evidência autorizada para CTR, tempo assistido ou retenção. A análise é de leitura.

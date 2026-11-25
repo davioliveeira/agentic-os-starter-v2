@@ -66,6 +66,60 @@ test('reads aligned upload tables, linked titles and decimal baseline medians', 
   assert.equal(result.window, '2026-09-08 through 2026-09-14 (America/Chicago)');
 });
 
+test('preserves English metrics when only the weekly headings have been localized', () => {
+  const raw = fixture.replace('## Uploads this week', '## Publicações da semana')
+    .replace('**Baseline medians', '## Linha de base\n**Baseline medians');
+  const result = parseReview(path, raw);
+  assert.equal(result.uploads[0].views, 23351);
+  assert.equal(result.uploads[0].vsBaselinePct, 35.4);
+  assert.equal(result.baselineViews, 65899.5);
+});
+
+test('reads Portuguese weekly review headings, statuses and localized metrics', () => {
+  const result = parseReview(path, `## Resumo
+- **Quatro publicações:** resultados variados.
+
+## Publicações da semana
+| Vídeo | Visualizações | % da referência | Curtidas | Comentários | Avaliação |
+|---|---:|---:|---:|---:|---|
+| Um vídeo \\| novo | 23.351 | 35,4% | 165 | 7 | Em crescimento (<24 h) |
+| Um vídeo em alta | 99.866 | 151,5% | 899 | 82 | Destaque |
+| Um vídeo recente | 25.737 | 39,1% | 327 | 20 | Abaixo da referência |
+| Um vídeo estável | 57.073 | 86,6% | 671 | 12 | Estável |
+
+## Linha de base
+**Medianas dos 10 vídeos longos:** 65.899,5 visualizações; 638 curtidas.
+
+## Melhor desempenho — [Um vídeo em alta](https://example.com/video)
+**Por que funcionou:** Uma promessa clara.
+**Formas de reaproveitar:** Faça uma demonstração.
+
+## Desempenho abaixo do esperado — Um vídeo recente
+**Causa provável:** O título era muito amplo.
+**Próxima ação:** Teste outro título.
+
+## Sinais do canal
+Os exemplos práticos receberam mais atenção.
+
+## Resumo dos vídeos curtos
+| Vídeo | Visualizações |
+|---|---|
+| Um vídeo curto | 450 |
+
+## Recomendações para os próximos 7 dias
+1. **Terça:** Mostre o resultado primeiro.
+`);
+  assert.deepEqual(result.tldr, ['Quatro publicações: resultados variados.']);
+  assert.deepEqual(result.uploads.map(row => row.verdict), ['Climbing', 'Hit', 'Miss', 'Steady']);
+  assert.deepEqual(result.uploads[0], { title: 'Um vídeo | novo', views: 23351, vsBaselinePct: 35.4, likes: 165, comments: 7, verdict: 'Climbing' });
+  assert.equal(result.baselineViews, 65899.5);
+  assert.equal(result.baselineLikes, 638);
+  assert.equal(result.topPerformer.title, 'Um vídeo em alta');
+  assert.equal(result.underperformer.title, 'Um vídeo recente');
+  assert.deepEqual(result.channelSignal, ['Os exemplos práticos receberam mais atenção.']);
+  assert.deepEqual(result.recommendations, ['Terça: Mostre o resultado primeiro.']);
+});
+
 test('reads paragraph signals and numbered recommendations with continuations', () => {
   const result = parseReview(path, fixture);
   assert.equal(result.channelSignal.length, 3);

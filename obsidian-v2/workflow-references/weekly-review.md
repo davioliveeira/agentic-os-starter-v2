@@ -10,21 +10,21 @@ Mostre média e tendência de esforço sobre valores registrados, total e média
 
 ## Evidências do canal
 
-Use `youtube_review_data` de `agentic_vault`. O leitor usa a conexão existente e informa a janela exata. Siga a referência `yt-week-review`: publicações da semana, referência dos dez últimos vídeos longos, corte de 180 segundos, medianas e categorias Hit, Steady, Miss e Climbing. Se falhar, mantenha a revisão pessoal e diga a causa da falta de dados no canal. Gmail e Google Agenda são dispensáveis.
+Use `youtube_review_data` de `agentic_vault`. O leitor usa a conexão existente e informa a janela exata. Siga a referência `yt-week-review` para as publicações da semana, a referência dos dez últimos vídeos longos, o corte de 180 segundos, as medianas e as categorias **Destaque**, **Estável**, **Abaixo da referência** e **Em crescimento**. Se falhar, mantenha a revisão pessoal e diga a causa da falta de dados no canal. Gmail e Google Agenda são dispensáveis.
 
 Informe o que os vídeos analisados acumularam. Use janelas comparáveis para afirmar variação de inscrições ou visualizações do canal. Descreva diagnósticos de título e miniatura como hipóteses e use evidência própria para CTR e retenção.
 
-Mantenha **Subs gained**, **Avg time between uploads** e **Pacing note**. Calcule novos inscritos apenas com períodos comparáveis. Para espaçamento, use datas verificadas e informe o número de intervalos e os formatos incluídos. Marque indisponível quando faltarem dados ou houver menos de duas publicações. Faça uma observação de frequência baseada nesses números.
+Inclua **Novos inscritos**, **Intervalo médio entre publicações** e **Observação sobre a frequência de publicação**. Calcule novos inscritos apenas com períodos comparáveis. Para espaçamento, use datas verificadas e informe o número de intervalos e os formatos incluídos. Marque indisponível quando faltarem dados ou houver menos de duas publicações. Faça uma observação de frequência baseada nesses números.
 
 ## Entrega
 
-Frontmatter: `date`, `window`, `skill: weekly-review`, `tags: [review, weekly]`.
+Inclua os campos `date`, `window`, `skill: weekly-review` e `tags: [review, weekly]` no cabeçalho YAML.
 
-1. **TL;DR:** três a cinco conclusões em ordem de importância.
-2. **Numbers:** `Metric / Value / Note`, com esforço, foco, publicações, vídeos, prioridades, rotinas e cobertura.
-3. **Effort Trend:** uma linha por dia, com faltas explícitas.
-4. **Themes:** de dois a quatro padrões com evidências.
-5. **What shipped** e **What stalled:** entregas e pendências.
-6. **Channel — YouTube:** tabela `Video / Views / vs Baseline / Likes / Comments / Verdict`, referência, destaques, pior desempenho quando claro, sinal geral e resumo de vídeos curtos.
-7. **Recommendations for next week:** três a cinco ações. Inclua duas ou três formas de reaproveitar o melhor trabalho e uma proposta concreta para um resultado abaixo do esperado que já tenha amadurecido.
-8. **Raw data:** dados compactos por dia e vídeo, datas de fonte e lacunas.
+1. **Resumo** — três a cinco conclusões em ordem de importância.
+2. **Números** — tabela `Métrica | Valor | Observação`, com esforço, foco, publicações, vídeos, prioridades, rotinas e cobertura.
+3. **Tendência de esforço** — uma linha por dia, com faltas explícitas.
+4. **Temas** — de dois a quatro padrões com evidências.
+5. **Entregas** e **Pendências** — o que foi concluído e o que ficou parado.
+6. **Canal — YouTube** — tabela `Vídeo | Visualizações | Comparação com a referência | Curtidas | Comentários | Avaliação`, referência, destaques, pior desempenho quando claro, sinal geral e resumo de vídeos curtos.
+7. **Recomendações para a próxima semana** — três a cinco ações. Inclua duas ou três formas de reaproveitar o melhor trabalho e uma proposta concreta para um resultado abaixo do esperado que já tenha amadurecido.
+8. **Dados brutos** — dados compactos por dia e vídeo, datas de fonte e lacunas.

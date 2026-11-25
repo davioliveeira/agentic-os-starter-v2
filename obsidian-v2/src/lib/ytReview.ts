@@ -69,11 +69,19 @@ export function reviewPlainText(value: string): string {
 		.replace(/\\([\\`*_{}\[\]()#+.!|>-])/g, "$1").replace(/\s+/g, " ").trim();
 }
 
-function parseLooseNumber(value: string): number | null {
-	const clean = reviewPlainText(value).replace(/[,\s]/g, "").replace(/^[~≈]/, "").replace(/%$/, "");
-	const match = /^(\d+(?:\.\d+)?|\.\d+)([kmb])?$/i.exec(clean);
+function parseLooseNumber(value: string, portuguese = false, integer = false): number | null {
+	let clean = reviewPlainText(value).replace(/\s/g, "").replace(/^[~≈]/, "").replace(/%$/, "");
+	if (portuguese && /^\d{1,3}(?:\.\d{3})+(?:,\d+)?(?:[kmb]|mil)?$/i.test(clean)) {
+		clean = clean.replace(/\./g, "").replace(",", ".");
+	} else if (portuguese && /^\d+,\d+(?:[kmb]|mil)?$/i.test(clean) &&
+		!(integer && /^\d{1,3},\d{3}$/.test(clean))) {
+		clean = clean.replace(",", ".");
+	} else {
+		clean = clean.replace(/,/g, "");
+	}
+	const match = /^(\d+(?:\.\d+)?|\.\d+)([kmb]|mil)?$/i.exec(clean);
 	if (!match) return null;
-	const scale: Record<string, number> = { k: 1e3, m: 1e6, b: 1e9 };
+	const scale: Record<string, number> = { k: 1e3, mil: 1e3, m: 1e6, b: 1e9 };
 	const n = Number(match[1]) * (scale[match[2]?.toLowerCase() || ""] || 1);
 	return Number.isFinite(n) ? n : null;
 }
@@ -111,22 +119,51 @@ function tableCells(raw: string): string[] | null {
 	cells.push(cell.trim()); if (line.startsWith("|")) cells.shift(); if (line.endsWith("|")) cells.pop(); return cells;
 }
 
-function parseUploadTable(body: string): UploadRow[] {
-	const out: UploadRow[] = [], lines = body.split("\n");
+export function* reviewTables(body: string): Generator<{ labels: string[]; rows: string[][] }> {
+	const lines = body.split("\n");
 	for (let index = 1; index < lines.length; index++) {
 		const separator = tableCells(lines[index]!), header = tableCells(lines[index - 1]!);
 		if (!separator || !header || separator.length !== header.length || !separator.every(cell => /^:?-{3,}:?$/.test(cell))) continue;
-		const labels = header.map(cell => reviewPlainText(cell).toLowerCase().replace(/[^a-z]/g, ""));
-		const column = (...names: string[]) => labels.findIndex(label => names.includes(label));
-		const titleIndex = column("video", "title", "upload"), viewsIndex = column("views", "viewcount");
-		if (titleIndex < 0 || viewsIndex < 0) continue;
-		const baselineIndex = column("vsbaseline", "baseline", "ofbaseline", "baselineviews"), likesIndex = column("likes", "likecount"), commentsIndex = column("comments", "commentcount"), verdictIndex = column("verdict", "status");
+		const rows: string[][] = [];
 		while (index + 1 < lines.length) {
-			const cells = tableCells(lines[index + 1]!); if (!cells || cells.length !== header.length) break;
-			index++; const title = reviewPlainText(cells[titleIndex] || ""); if (!title) continue;
+			const cells = tableCells(lines[index + 1]!);
+			if (!cells || cells.length !== header.length) break;
+			rows.push(cells);
+			index++;
+		}
+		yield { labels: header.map(cell => reviewPlainText(cell).toLowerCase()), rows };
+	}
+}
+
+function parseUploadTable(body: string): UploadRow[] {
+	const out: UploadRow[] = [];
+	for (const { labels: headings, rows } of reviewTables(body)) {
+		const labels = headings.map(label => label.normalize("NFD").replace(/[^a-z]/g, ""));
+		const column = (...names: string[]) => labels.findIndex(label => names.includes(label));
+		const titleIndex = column("video", "title", "upload", "titulo"), viewsIndex = column("views", "viewcount", "visualizacoes");
+		if (titleIndex < 0 || viewsIndex < 0) continue;
+		const baselineIndex = column("vsbaseline", "baseline", "ofbaseline", "baselineviews", "dareferencia");
+		const likesIndex = column("likes", "likecount", "curtidas");
+		const commentsIndex = column("comments", "commentcount", "comentarios");
+		const verdictIndex = column("verdict", "status", "avaliacao");
+		const portuguese = labels[viewsIndex] === "visualizacoes";
+		for (const cells of rows) {
+			const title = reviewPlainText(cells[titleIndex] || "");
+			if (!title) continue;
 			const label = reviewPlainText(cells[verdictIndex] || "");
-			const verdict: Verdict = /\bclimbing\b/i.test(label) ? "Climbing" : /\bhit\b/i.test(label) ? "Hit" : /\bsteady\b/i.test(label) ? "Steady" : /\bmiss\b/i.test(label) ? "Miss" : "Unknown";
-			out.push({ title, views: parseLooseNumber(cells[viewsIndex] || ""), vsBaselinePct: parseLooseNumber(cells[baselineIndex] || ""), likes: parseLooseNumber(cells[likesIndex] || ""), comments: parseLooseNumber(cells[commentsIndex] || ""), verdict });
+			const verdict: Verdict = /\b(?:climbing|em crescimento)\b/i.test(label) ? "Climbing"
+				: /\b(?:hit|destaque)\b/i.test(label) ? "Hit"
+				: /\b(?:steady|estável)\b/i.test(label) ? "Steady"
+				: /\b(?:miss|abaixo da referência)\b/i.test(label) ? "Miss"
+				: "Unknown";
+			out.push({
+				title,
+				views: parseLooseNumber(cells[viewsIndex] || "", portuguese, true),
+				vsBaselinePct: parseLooseNumber(cells[baselineIndex] || "", portuguese),
+				likes: parseLooseNumber(cells[likesIndex] || "", portuguese, true),
+				comments: parseLooseNumber(cells[commentsIndex] || "", portuguese, true),
+				verdict,
+			});
 		}
 	}
 	return out;
@@ -164,38 +201,41 @@ export function parseReview(path: string, raw: string): YtReview {
 	}
 	sections.set(cur, buf.join("\n").trim());
 
-	const section = (name: string) => [...sections].find(([key]) => key.toLowerCase() === name.toLowerCase())?.[1] || "";
-	const tldr = extractItems(section("TL;DR"));
+	const section = (...names: string[]) =>
+		[...sections].find(([key]) => names.includes(key.toLowerCase()))?.[1] || "";
+	const tldr = extractItems(section("resumo", "tl;dr"));
 
-	const uploadsRaw = section("Uploads this week");
+	const uploadsRaw = section("publicações da semana", "uploads this week");
 	const uploads = parseUploadTable(uploadsRaw);
 
 	let baselineViews: number | null = null;
 	let baselineLikes: number | null = null;
-	const baselineBlocks = textBlocks(uploadsRaw).filter(block => /\bbaseline\b|\bmedian\b/i.test(block.text)).map(block => block.text);
-	for (const [heading, text] of sections) if (/\bbaseline\b/i.test(heading)) baselineBlocks.push(reviewPlainText(text));
-	const number = "(?:\\d[\\d,]*(?:\\.\\d+)?|\\.\\d+)[kmb]?";
+	const baselineLabel = /\bbaseline\b|\bmedian\b|\blinha de base\b|\breferência\b|\bmedianas?\b/i;
+	const baselineBlocks = textBlocks(uploadsRaw).filter(block => baselineLabel.test(block.text)).map(block => block.text);
+	for (const [heading, text] of sections) if (baselineLabel.test(heading)) baselineBlocks.push(reviewPlainText(text));
+	const number = "(?:\\d[\\d.,]*|\\.\\d+)(?:[kmb]|\\s+mil)?";
 	for (const block of baselineBlocks) {
-		const metric = (name: string) => {
+		const metric = (name: string, portuguese = false) => {
 			const suffix = new RegExp(`(${number})\\s+(?:median\\s+)?${name}\\b`, "i").exec(block);
 			const prefix = new RegExp(`\\b${name}(?:\\s+(?:median|baseline))?\\s*[:=]\\s*(${number})`, "i").exec(block);
-			return parseLooseNumber((prefix || suffix)?.[1] || "");
+			return parseLooseNumber(((prefix || suffix)?.[1] || "").replace(/[.,]$/, ""), portuguese);
 		};
-		baselineViews ??= metric("views"); baselineLikes ??= metric("likes");
+		baselineViews ??= metric("visualizações", true) ?? metric("views");
+		baselineLikes ??= metric("curtidas", true) ?? metric("likes");
 	}
 
 	let topPerformer: YtReview["topPerformer"] = null;
 	let underperformer: YtReview["underperformer"] = null;
 	for (const [key, val] of sections.entries()) {
-		if (/^Top performer\b/i.test(key)) {
-			const m = key.match(/Top performer\s*[—–:-]\s*(.+)/i);
+		if (/^(?:Top performer|Melhor desempenho)\b/i.test(key)) {
+			const m = key.match(/^(?:Top performer|Melhor desempenho)\s*[—–:-]\s*(.+)/i);
 			topPerformer = {
 				title: m ? m[1]!.trim() : key,
 				body: val,
 			};
 		}
-		if (/^Underperformer\b/i.test(key)) {
-			const m = key.match(/Underperformer\s*[—–:-]\s*(.+)/i);
+		if (/^(?:Underperformer|Desempenho abaixo do esperado)\b/i.test(key)) {
+			const m = key.match(/^(?:Underperformer|Desempenho abaixo do esperado)\s*[—–:-]\s*(.+)/i);
 			underperformer = {
 				title: m ? m[1]!.trim() : key,
 				body: val,
@@ -203,8 +243,8 @@ export function parseReview(path: string, raw: string): YtReview {
 		}
 	}
 
-	const channelSignal = extractItems(section("Channel-wide signal"), true);
-	const recommendations = extractItems(section("Recommended next 7 days"));
+	const channelSignal = extractItems(section("sinais do canal", "channel-wide signal"), true);
+	const recommendations = extractItems(section("recomendações para os próximos 7 dias", "recommended next 7 days"));
 
 	return {
 		path,

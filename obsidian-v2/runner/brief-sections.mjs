@@ -1,17 +1,19 @@
 // Saved Markdown is data. This parser never runs instructions, resolves links,
 // or reads any other document. Section boundaries protect adjacent private data.
+import {BRIEF_HEADING_PATTERNS as headings} from '../shared/report-headings.mjs';
+
 const definitions={
- inbox:{label:'Caixa de entrada',parent:/^inbox(?:\b|\s*\()/i},
- 'ai-claude':{label:'Notícias sobre Claude e Anthropic',parent:/^ai news\b/i,child:/^(?:anthropic|claude)\b/i},
- 'ai-codex':{label:'Notícias sobre Codex e OpenAI',parent:/^ai news\b/i,child:/^(?:openai|codex)\b/i},
- 'ai-other':{label:'Outras notícias de IA',parent:/^ai news\b/i,child:/^(?:everyone else|other(?:s| ai)?(?: news)?)\b/i},
- youtube:{label:'Radar do YouTube',parent:/^youtube radar\b/i,ownBody:true},
- outliers:{label:'Destaques de canais pequenos',parent:/^youtube radar\b/i,child:/^(?:small[- ]channel )?outliers\b/i},
- github:{label:'Radar do GitHub',parent:/^github (?:radar|trending)\b/i},
- 'content-youtube':{label:'Plano de conteúdo para o YouTube',parent:/^(?:so what\b.*content plan|content plan\b)/i,child:/^youtube\b/i},
- 'content-linkedin':{label:'Plano de conteúdo para o LinkedIn',parent:/^(?:so what\b.*content plan|content plan\b)/i,child:/^linkedin\b/i},
- 'content-shorts':{label:'Plano de conteúdo para vídeos curtos e carrosséis',parent:/^(?:so what\b.*content plan|content plan\b)/i,child:/^(?:shorts?|carousels?)\b/i},
- 'source-status':{label:'Situação das fontes',parent:/^source status\b/i},
+ inbox:{label:'Caixa de entrada',parent:headings.inbox},
+ 'ai-claude':{label:'Notícias sobre Claude e Anthropic',parent:headings.ai,child:/^(?:anthropic|claude)\b/i},
+ 'ai-codex':{label:'Notícias sobre Codex e OpenAI',parent:headings.ai,child:/^(?:openai|codex)\b/i},
+ 'ai-other':{label:'Outras notícias de IA',parent:headings.ai,child:/^(?:everyone else|other(?:s| ai)?(?: news)?|outras notícias de ia)\b/i},
+ youtube:{label:'Radar do YouTube',parent:headings.youtube,ownBody:true},
+ outliers:{label:'Destaques de canais pequenos',parent:headings.youtube,child:headings.outliers},
+ github:{label:'Radar do GitHub',parent:headings.github},
+ 'content-youtube':{label:'Plano de conteúdo para o YouTube',parent:headings.plan,child:/^youtube\b/i},
+ 'content-linkedin':{label:'Plano de conteúdo para o LinkedIn',parent:headings.plan,child:/^linkedin\b/i},
+ 'content-shorts':{label:'Plano de conteúdo para vídeos curtos e carrosséis',parent:headings.plan,child:/^(?:shorts?|carousels?|vídeos curtos|carrosséis)(?:\s|$)/i},
+ 'source-status':{label:'Situação das fontes',parent:headings.sources},
 };
 export const BRIEF_SECTION_IDS=Object.freeze(Object.keys(definitions));
 const MAX_ITEMS=24,MAX_ITEM=1000,MAX_TEXT=4500;
@@ -37,22 +39,28 @@ function nodesFor(raw){
  }
  return {lines,nodes};
 }
+const fold=text=>(text??'').toLowerCase().normalize('NFD').replace(/\p{M}/gu,'');
 function inboxCategory(label){
- const text=speak(label).toLowerCase().replace(/needsreply/g,'needs reply').replace(/[^a-z\s]/g,' ').replace(/\s+/g,' ').trim();
+ const text=fold(speak(label)).replace(/needsreply/g,'needs reply').replace(/[^a-z\s]/g,' ').replace(/\s+/g,' ').trim();
  if(/^(?:needs? (?:a )?repl(?:y|ies)|reply needed|reply required|replies needed|respond|response required|awaiting (?:my |your )?reply)(?: (?:items?|emails?|messages?|threads?))?$/.test(text))return 'reply';
  if(/^(?:sponsors?|sponsorships?)(?: (?:pitches|opportunities|items|emails|messages|threads|requests|leads))?$/.test(text))return 'sponsor';
  if(/^urgent(?: (?:items|emails|messages|threads|alerts|priority))?$/.test(text))return 'urgent';
  if(/^(?:summary|overview|fyi|informational|ignore(?: tier)?|other|routine)(?:\b|$)/.test(text))return 'summary';
+ if(/^(?:(?:mensagens?|conversas?|pendencias?) (?:que )?)?(?:precisam? de resposta|a responder|aguardam? resposta|resposta pendente)\b/.test(text))return 'reply';
+ if(/^(?:(?:novas? )?propostas? de )?patrocinios?\b/.test(text))return 'sponsor';
+ if(/^(?:(?:mensagens?|conversas?) )?urgentes?\b/.test(text))return 'urgent';
+ if(/^(?:resumo|visao geral|informativos?|ignorad[oa]s?|mensagens ignoradas|outr[oa]s?)\b/.test(text))return 'summary';
  return null;
 }
 function inboxItemCategories(text,category,label=''){
  const categories=new Set(category?[category]:[]);
- const negativeReply=/\b(?:no|not|never|without)\b[^.!?]{0,35}\b(?:reply|response|respond)\b|\b(?:reply|response)\b[^.!?]{0,15}\b(?:not needed|not required|unnecessary)\b|\b(?:thread|conversation|request)\s+(?:is\s+)?(?:already\s+)?closed\b/i.test(text);
- if(negativeReply)categories.delete('reply');else if(/\b(?:needs? (?:a )?reply|reply (?:needed|required)|worth (?:a )?reply|requires? (?:a )?response)\b/i.test(text))categories.add('reply');
- const negativeSponsor=/\b(?:no|not|never)\b[^.!?]{0,20}\b(?:sponsors?|sponsorships?)\b|\bignore\b[^.!?]{0,35}\b(?:sponsors?|sponsorships?|pitches)\b|\b(?:sponsor|sponsorship)\s+spam\b/i.test(text)||/^\W*ignore\b/i.test(label);
- if(negativeSponsor)categories.delete('sponsor');else if(/\b(?:sponsors?|sponsorships?)\b/i.test(text))categories.add('sponsor');
- const negativeUrgent=/\b(?:not|no|never)\b[^.!?]{0,20}\burgent\b|\burgent\s*[?:—–-]?\s*(?:no|not)\b/i.test(text);
- if(negativeUrgent)categories.delete('urgent');else if(/\burgent\b/i.test(text))categories.add('urgent');
+ const normalized=fold(text);
+ const negativeReply=/\b(?:no|not|never|without)\b[^.!?]{0,35}\b(?:reply|response|respond)\b|\b(?:reply|response)\b[^.!?]{0,15}\b(?:not needed|not required|unnecessary)\b|\b(?:thread|conversation|request)\s+(?:is\s+)?(?:already\s+)?closed\b/i.test(text)||/\b(?:nao|sem)\b[^.!?]{0,35}\b(?:resposta|responder)\b/.test(normalized);
+ if(negativeReply)categories.delete('reply');else if(/\b(?:needs? (?:a )?reply|reply (?:needed|required)|worth (?:a )?reply|requires? (?:a )?response)\b/i.test(text)||/\b(?:precisa de|requer|aguarda) resposta\b/.test(normalized))categories.add('reply');
+ const negativeSponsor=/\b(?:no|not|never)\b[^.!?]{0,20}\b(?:sponsors?|sponsorships?)\b|\bignore\b[^.!?]{0,35}\b(?:sponsors?|sponsorships?|pitches)\b|\b(?:sponsor|sponsorship)\s+spam\b/i.test(text)||/^(?:\W*)(?:ignore|ignorad[oa]s?|mensagens ignoradas)\b/.test(fold(label))||/\b(?:nao|sem)\b[^.!?]{0,30}\bpatrocinios?\b/.test(normalized);
+ if(negativeSponsor)categories.delete('sponsor');else if(/\b(?:sponsors?|sponsorships?|patrocinios?)\b/.test(normalized))categories.add('sponsor');
+ const negativeUrgent=/\b(?:not|no|never)\b[^.!?]{0,20}\burgent\b|\burgent\s*[?:—–-]?\s*(?:no|not)\b/i.test(text)||/\b(?:nao|sem)\b[^.!?]{0,25}\b(?:urgentes?|urgencia)\b/.test(normalized);
+ if(negativeUrgent)categories.delete('urgent');else if(/\burgent(?:es?)?\b/.test(normalized))categories.add('urgent');
  return [...categories];
 }
 function parseItems(body,{inbox=false}={}){
@@ -72,7 +80,7 @@ function parseItems(body,{inbox=false}={}){
    if(cells.every(cell=>/^:?-{3,}:?$/.test(cell))){if(cells.length!==table.headers.length)malformed=true;table.separator=true;continue;}
    if(!table.separator||cells.length!==table.headers.length||cells.every(cell=>!cell)){malformed=true;continue;}
    const text=cells.map((cell,i)=>i?`${table.headers[i]}: ${cell}`:cell).join('; ');let itemCategory=category,itemLabel=categoryLabel;
-   if(inbox){const column=table.headers.findIndex(h=>/^(?:category|priority|triage|type)$/i.test(h));if(column>=0){itemLabel=cells[column];itemCategory=inboxCategory(itemLabel);}}
+   if(inbox){const column=table.headers.findIndex(h=>/^(?:category|priority|triage|type|categoria|prioridade|triagem|tipo)$/i.test(h));if(column>=0){itemLabel=cells[column];itemCategory=inboxCategory(itemLabel);}}
    const categories=inbox?inboxItemCategories(text,itemCategory,itemLabel):[];if(inbox)itemCategory=categories[0];
    if(text.length>MAX_ITEM)truncated=true;
    if(items.length<MAX_ITEMS)items.push({text:shorten(text,MAX_ITEM),...(itemCategory?{category:itemCategory}:{}),...(categories.length>1?{categories}:{}),...(itemLabel?{categoryLabel:itemLabel}:{})});else truncated=true;

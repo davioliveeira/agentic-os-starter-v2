@@ -18,4 +18,4 @@ Elimine URLs repetidas e títulos quase idênticos, com limiar de similaridade d
 
 ## Entrega
 
-Use `# AI Trend Scan`. Liste até 15 ideias com plataforma, título ou assunto com link, criador, engajamento medido, idade e sua precisão, velocidade calculável e motivo da relevância. Informe a cobertura e o estado das fontes. Entregue pautas brutas. Preserve a configuração existente.
+Use `# Tendências de IA para pautas de conteúdo`. Liste até 15 ideias com plataforma, título ou assunto com link, criador, engajamento medido, idade e sua precisão, velocidade calculável e motivo da relevância. Informe a cobertura e o estado das fontes. Entregue pautas brutas. Preserve a configuração existente.

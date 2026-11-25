@@ -1,5 +1,6 @@
 import type { App } from "obsidian";
-import { reviewPlainText } from "./ytReview";
+import { BRIEF_HEADINGS, BRIEF_HEADING_PATTERNS } from "../../shared/report-headings.mjs";
+import { reviewPlainText, reviewTables } from "./ytReview";
 
 export interface YtTrendingRow {
 	title: string;
@@ -59,6 +60,26 @@ export async function readLatestBrief(app: App): Promise<MorningBrief | null> {
 	return parseBrief(path, raw);
 }
 
+export function briefMarkdown(raw: string): string {
+	let fence = "";
+	return raw.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n")
+		.replace(/^---\n[\s\S]*?\n---(?:\n|$)/, "")
+		.split("\n")
+		.map(line => {
+			const delimiter = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+			const marker = delimiter?.[1];
+			if (fence) {
+				if (marker && marker[0] === fence[0] && marker.length >= fence.length && !delimiter?.[2]?.trim()) fence = "";
+				return "";
+			}
+			if (!marker) return line;
+			fence = marker;
+			return "";
+		})
+		.join("\n")
+		.replace(/<!--[\s\S]*?(?:-->|$)/g, "");
+}
+
 export function parseBrief(path: string, raw: string): MorningBrief {
 	raw = raw.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
 	// Date — try frontmatter, then **Date:** line, then filename prefix
@@ -69,7 +90,7 @@ export function parseBrief(path: string, raw: string): MorningBrief {
 		if (dm) date = dm[1]!.trim();
 	}
 	if (!date) {
-		const dm = raw.match(/\*\*Date:\*\*\s*(\S+)/);
+		const dm = raw.match(/\*\*(?:Date|Data):\*\*\s*(\S+)/);
 		if (dm) date = dm[1]!.trim();
 	}
 	if (!date) {
@@ -77,7 +98,7 @@ export function parseBrief(path: string, raw: string): MorningBrief {
 		if (fileM) date = fileM[1]!;
 	}
 
-	const body = fmMatch ? raw.slice(fmMatch[0].length) : raw;
+	const body = briefMarkdown(raw);
 
 	// two section views:
 	//   flat — every ##/### heading is its own bucket (routine nests
@@ -93,14 +114,14 @@ export function parseBrief(path: string, raw: string): MorningBrief {
 		let bufFlat: string[] = [];
 		let bufDeep: string[] = [];
 		for (const line of body.split("\n")) {
-			const m = line.match(/^(#{2,3})\s+(.+?)\s*$/);
+			const m = line.match(/^(#{1,3})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/);
 			if (m) {
 				flat.set(curFlat, bufFlat.join("\n").trim());
-				curFlat = m[2]!;
+				curFlat = m[1] === "#" ? "_pre" : m[2]!;
 				bufFlat = [];
-				if (m[1] === "##") {
+				if (m[1] !== "###") {
 					deep.set(curDeep, bufDeep.join("\n").trim());
-					curDeep = m[2]!;
+					curDeep = curFlat;
 					bufDeep = [];
 					continue;
 				}
@@ -112,43 +133,55 @@ export function parseBrief(path: string, raw: string): MorningBrief {
 		deep.set(curDeep, bufDeep.join("\n").trim());
 	}
 
-	const findIn = (map: Map<string, string>, needle: string): string => {
-		const lc = needle.toLowerCase();
+	const findIn = (map: Map<string, string>, needle: string | RegExp, exact = false): string | undefined => {
 		for (const [k, v] of map.entries()) {
-			if (k.toLowerCase().includes(lc)) return v;
+			if (needle instanceof RegExp ? needle.test(k)
+				: exact ? k.toLowerCase() === needle.toLowerCase()
+				: k.toLowerCase().includes(needle.toLowerCase())) return v;
 		}
-		return "";
+		return undefined;
 	};
-	const findSection = (needle: string): string =>
-		findIn(flat, needle) || findIn(deep, needle);
+	const findSection = (needle: string | RegExp, exact = false) =>
+		findIn(flat, needle, exact) || findIn(deep, needle, exact);
 
-	// intel headings first, legacy names as fallback
+	// A dedicated Portuguese headline section takes precedence over the summary.
 	const headlines = extractBullets(
-		findSection("TL;DR") || findSection("Headlines"),
+		findIn(flat, BRIEF_HEADINGS.headlines, true) ??
+		findIn(flat, BRIEF_HEADINGS.summary, true) ??
+		(findIn(flat, "TL;DR") || findIn(flat, "Headlines") || ""),
 	);
 
-	const oppsBody =
-		findIn(deep, "So What") || findIn(deep, "Content Opportunities") || findSection("Content Opportunities");
+	const oppsBody = findIn(deep, BRIEF_HEADING_PATTERNS.plan) || findIn(deep, "So What") ||
+		findIn(deep, BRIEF_HEADINGS.opportunities, true) || findSection(BRIEF_HEADINGS.opportunities, true) ||
+		findIn(deep, "Content Opportunities") || findSection("Content Opportunities") || "";
 	const contentOpportunities = extractOpportunities(oppsBody);
 
-	const ytBody = findSection("YouTube Radar") || findSection("YouTube");
-	const ytTrending = parseYtTable(ytBody);
+	const ytBody = findSection(BRIEF_HEADING_PATTERNS.youtube) ||
+		findSection(BRIEF_HEADINGS.youtubeTrending, true);
+	const ytTrending = parseYtTable(ytBody || findSection("YouTube") || "");
 
-	const xBody = findSection("X / Twitter") || findSection("X — ");
+	const xBody = findSection(BRIEF_HEADINGS.x, true) || findSection("X / Twitter") || findSection("X — ") || "";
 	const xVoices = extractXVoices(xBody);
 
 	const webCount =
-		countBullets(findSection("AI News")) ||
+		countBullets(findSection(BRIEF_HEADING_PATTERNS.ai) || findSection("AI News")) ||
+		countBullets(findSection(BRIEF_HEADINGS.web, true)) ||
 		countBullets(findSection("Web —")) ||
 		countBullets(findSection("Web "));
 	const xVoicesCount = xVoices.length || countBullets(xBody);
-	const hnCount = countBullets(findSection("Hacker News"));
+	const hnBody = findSection(BRIEF_HEADINGS.hn, true);
+	const hnTable = [...reviewTables(hnBody || "")].find(({ labels }) =>
+		labels.some(label => /^(?:notícia|story|title)$/.test(label)) &&
+		labels.some(label => /^(?:pontos|points|pts)$/.test(label)) &&
+		labels.some(label => /^(?:comentários|comments)$/.test(label)));
+	const hnCount = hnTable?.rows.length || countBullets(hnBody || findSection("Hacker News"));
 	const repoCount = countRepos(
-		findSection("GitHub Radar") || findSection("GitHub"),
+		findSection(BRIEF_HEADING_PATTERNS.github) ||
+		findSection(BRIEF_HEADINGS.githubActivity, true) || findSection("GitHub") || "",
 	);
 
 	// intel's Top Story lead — first non-empty paragraph, links stripped
-	const topStory = reviewPlainText(findSection("Top Story")
+	const topStory = reviewPlainText((findIn(flat, BRIEF_HEADING_PATTERNS.topStory) ?? findIn(flat, "Top Story") ?? "")
 		.split(/\n\s*\n/)[0]!)
 		.replace(/https?:\/\/\S+/g, "")
 		.replace(/\s+/g, " ")
@@ -172,28 +205,21 @@ export function parseBrief(path: string, raw: string): MorningBrief {
 
 function parseYtTable(body: string): YtTrendingRow[] {
 	const out: YtTrendingRow[] = [];
-	let sawSeparator = false;
-	for (const rawLine of body.split("\n")) {
-		const line = rawLine.trim();
-		if (!line.startsWith("|")) continue;
-		const cells = line
-			.split("|")
-			.slice(1, -1)
-			.map((s) => s.trim());
-		if (cells.length < 4) continue;
-		const head = cells[0]!.toLowerCase();
-		if (head === "video" || head === "title") continue;
-		if (cells.every((c) => /^-+$/.test(c))) {
-			sawSeparator = true;
-			continue;
+	for (const { labels, rows } of reviewTables(body)) {
+		const column = (...names: string[]) => labels.findIndex(label => names.includes(label));
+		const title = column("video", "title", "vídeo", "título");
+		const creator = column("creator", "channel", "canal", "criador");
+		const views = column("views", "visualizações");
+		const posted = column("posted", "published", "publicado", "publicação", "idade");
+		if (title < 0 || creator < 0 || views < 0) continue;
+		for (const cells of rows) {
+			out.push({
+				title: cells[title]!,
+				creator: cells[creator]!,
+				views: cells[views]!,
+				posted: cells[posted] ?? "",
+			});
 		}
-		if (!sawSeparator) continue;
-		out.push({
-			title: cells[0]!,
-			creator: cells[1]!,
-			views: cells[2]!,
-			posted: cells[3]!,
-		});
 	}
 	return out;
 }
@@ -205,14 +231,14 @@ function extractXVoices(body: string): string[] {
 	let inVoices = false;
 	for (const raw of lines) {
 		const line = raw.trim();
-		if (/^[-*]\s+\*\*Top voices:?\*\*/i.test(line)) {
+		if (/^[-*]\s+\*\*(?:Top voices|Vozes em destaque|Principais vozes):?\*\*/i.test(line)) {
 			inVoices = true;
 			continue;
 		}
 		if (inVoices) {
 			if (/^[-*]\s+\*\*[A-Z]/.test(line)) {
 				// next top-level bullet — stop
-				if (!line.startsWith("  ") && !line.startsWith("\t")) break;
+				if (!raw.startsWith("  ") && !raw.startsWith("\t")) break;
 			}
 			// nested bullet ("  - " or "    - ")
 			const nested = line.match(
@@ -236,12 +262,12 @@ function extractBullets(body: string): string[] {
 	return body
 		.split("\n")
 		.map((l) => l.trim())
-		.filter((l) => l.startsWith("-") || l.startsWith("*"))
+		.filter((l) => /^[-*]\s+/.test(l))
 		.map((l) => l.replace(/^[-*]\s+/, ""));
 }
 
-function countBullets(body: string): number {
-	return extractBullets(body).length;
+function countBullets(body: string | undefined): number {
+	return extractBullets(body || "").length;
 }
 
 function countRepos(body: string): number {

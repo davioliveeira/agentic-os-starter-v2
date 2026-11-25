@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
-import {briefLookupPlan,isBriefQuestion,localDate,readBriefReply} from '../runner/brief-voice.mjs';
+import {briefLookupPlan,getBriefCatalog,isBriefQuestion,localDate,readBriefReply,readBriefSectionReply,readHackerNewsReply} from '../runner/brief-voice.mjs';
 import {routeVoice} from '../runner/bridge-core.mjs';
 
 function fixture(t){
@@ -88,6 +88,32 @@ test('canonical intel wins over legacy brief and top-story fallback skips inbox 
  const result=readBriefReply(root,now);assert.match(result.reply,/public model launch/);assert.doesNotMatch(result.reply,/Private|Legacy/);
  write(date,'## Inbox\nOnly private email.');assert.match(readBriefReply(root,now).reply,/não destaca uma notícia principal/);
  write(date,'');assert.match(readBriefReply(root,now).reply,/não destaca uma notícia principal/);
+});
+test('Portuguese reports keep public headlines and inbox categories within their saved boundaries',t=>{
+ const {root,write}=fixture(t),now=new Date(2026,8,11),date=localDate(now);
+ const text=[
+  '## Resumo','- Fatura particular.','## Notícia principal','Saiu um modelo aberto.',
+  '', 'Detalhe público verificável.', '', '**Fontes:**', 'Identificador reservado.',
+  '## Manchetes', '- Manchete pública.', '', '```md', '## Notícia principal', '- Exemplo reservado.', '```',
+  '## Radar do Hacker News', '| Notícia | Pontos | Comentários |', '|---|---|---|', '| Método público | 1.250 | 35 |',
+  '## Caixa de entrada (últimas 24h)', '### Urgentes', '- Cobrança privada.', '- Aviso rotineiro, não é urgente.',
+  '### Conversas que precisam de resposta', '- Retorno de uma reunião.', '- Conversa encerrada, sem resposta necessária.',
+  '### Novas propostas de patrocínio','- Proposta de Marca Fictícia.',
+  '## Plano de conteúdo','### Vídeos curtos e carrosséis','1. Pauta de exemplo.',
+ ].join('\n');
+ write(date,text);
+ const catalog=getBriefCatalog(root,now);
+ assert.deepEqual(catalog.headlines,['Saiu um modelo aberto.','Manchete pública.']);
+ assert.doesNotMatch(JSON.stringify(catalog),/particular|reservad[oa]|privada|Marca Fictícia/);
+ assert.match(readBriefReply(root,now).reply,/Detalhe público verificável/);
+ assert.match(readHackerNewsReply(root,'points',now).reply,/Método público.*1250 pontos/);
+ for(const [category,expected,excluded] of [['urgent','Cobrança privada','Aviso rotineiro'],['reply','Retorno de uma reunião','Conversa encerrada'],['sponsor','Marca Fictícia','Cobrança privada']]){
+  const {reply}=readBriefSectionReply(root,{section:'inbox',category},now);
+  assert.ok(reply.includes(expected),reply);assert.ok(!reply.includes(excluded),reply);
+ }
+ assert.match(readBriefSectionReply(root,{section:'content-shorts'},now).reply,/Pauta de exemplo/);
+ write(date,'## Resumo\n- **Notícia principal: pauta pública.**\n\n## Notícia principal\n\n## Caixa de entrada\nDetalhes privados.');
+ assert.match(readBriefReply(root,now).reply,/não destaca uma notícia principal/);
 });
 test('cancelled news request neither reads nor saves a response',async t=>{
  const {root}=fixture(t),controller=new AbortController();controller.abort();

@@ -7,15 +7,15 @@ A pesquisa cobre YouTube, web, X e GitHub nas últimas 24 horas. A triagem segue
 Use frontmatter `date`, `skill: morning` e `tags: [morning, brief]`, depois:
 
 ```
-# Good morning
+# Boletim da manhã
 
-## AI & Coding Agent Trends
+## Tendências de IA e agentes de código
 <Relatório completo, fontes e lacunas>
 
-## Inbox Brief (last 24h)
+## Caixa de entrada (últimas 24h)
 <Triagem completa, com listas numeradas separadas para leads e patrocínios>
 
-## Proposed next actions
+## Próximas ações propostas
 <Totais de leads e propostas que merecem resposta, com referência aos IDs>
 ```
 

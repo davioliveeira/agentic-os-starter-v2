@@ -11,14 +11,14 @@ Pesquise em paralelo se a ferramenta permitir. Separe publicação, atualizaçã
 
 ## Entrega
 
-Frontmatter: `date`, `skill: morning-report`, `tags: [morning, research]`. Preserve os títulos estruturais abaixo e escreva o conteúdo em português brasileiro.
+Frontmatter: `date`, `skill: morning-report`, `tags: [morning, research]`. Use o título `# Relatório da manhã` e as seções de nível 2 abaixo. Escreva o relatório em português brasileiro.
 
-1. **Headlines:** até três notícias em uma frase cada.
-2. **YouTube — What's Trending:** tabela `Video / Creator / Views / Posted`, temas, oportunidades e as subseções **own-channel performance** e **Competitor moves**. Em desempenho próprio, use comparações verificáveis ou registre dados indisponíveis.
-3. **Web — News & Articles:** manchetes com links e anúncios originais.
-4. **X / Twitter — The Conversation:** opinião predominante, vozes, divergências e dúvidas.
-5. **GitHub — Builder Activity:** projetos e versões com links, além da atividade observada.
-6. **Content Opportunities:** três pautas específicas e seu motivo de oportunidade.
-7. **Source Status:** janelas consultadas e lacunas.
+1. **Manchetes.** até três notícias em uma frase cada.
+2. **Em alta no YouTube.** Use a tabela `Vídeo | Canal | Visualizações | Publicado`, seguida de temas, oportunidades e das subseções **Desempenho do próprio canal** e **Movimentos da concorrência**. Em desempenho próprio, use comparações verificáveis ou registre dados indisponíveis.
+3. **Notícias e artigos na web.** manchetes com links e anúncios originais.
+4. **Conversa no X e Twitter.** opinião predominante, vozes, divergências e dúvidas.
+5. **Atividade de desenvolvimento no GitHub.** projetos e versões com links, além da atividade observada.
+6. **Oportunidades de conteúdo.** três pautas específicas e seu motivo de oportunidade.
+7. **Situação das fontes.** janelas consultadas e lacunas.
 
 Prefira parágrafos curtos, listas e tabelas. Separe engajamento estimado de velocidade medida.

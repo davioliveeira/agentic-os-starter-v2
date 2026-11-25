@@ -1,5 +1,6 @@
 import { TIME_ZONE } from "../../obsidian-v2/shared/timezone.mjs";
 import { appendDailyDriver, dailyCheckboxes, dailySections } from "../../obsidian-v2/shared/daily-note.mjs";
+import { BRIEF_HEADING_PATTERNS } from "../../obsidian-v2/shared/report-headings.mjs";
 import {createResourceCache} from '../../obsidian-v2/shared/resource-cache.mjs';
 import fs from "fs";
 import path from "path";
@@ -574,18 +575,40 @@ export function readVaultMarkdown(rel: string): string | null {
 }
 
 // --- today's morning report headlines ---------------------------------------------
-// `## Headlines` bullets, markdown stripped — feeds the AI Wire panel and the
-// spoken briefing (lib/router.ts). rel = vault-relative path for the overlay.
+// Summary or headline bullets feed the Notícias de IA panel. rel is the
+// vault-relative path for the full report.
 export interface MorningReport {
   rel: string;
   heads: string[];
   /** first source URL per headline (parallel to heads; null = no link) */
   links: (string | null)[];
-  /** condensed "## Inbox" triage from the intel brief — the email heavy
-   *  lifting is already DONE there; surfacing it in the router snapshot is
-   *  what keeps "any important emails?" a 1-second tier-2 answer instead of
-   *  a 43-second background session re-reading Gmail */
+  /** Condensed inbox triage from the report. */
   inbox: string[];
+}
+
+function* morningReportSection(
+  lines: string[],
+  endLevel: number,
+  matches: (heading: string, level: number) => boolean,
+) {
+  let inSection = false;
+  for (const line of lines) {
+    const heading = /^(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/.exec(line);
+    if (heading && heading[1].length <= endLevel) {
+      if (inSection) return;
+      inSection = matches(heading[2], heading[1].length);
+    } else if (inSection) {
+      yield line;
+    }
+  }
+}
+
+function morningReportText(line: string): string {
+  return line
+    .replace(/(\*{1,3})([^*]+)\1/g, "$2")
+    .replace(/(?<![\p{L}\p{N}_])(_{1,3})([^_]+)\1(?![\p{L}\p{N}_])/gu, "$2")
+    .replace(/(`+)([^`]+)\1/g, "$2")
+    .trim();
 }
 
 export function readMorningReport(max = 4): MorningReport | null {
@@ -617,50 +640,43 @@ export function readMorningReport(max = 4): MorningReport | null {
     const pick = todays.filter((x) => /-intel/.test(x.file)).pop() ?? todays.pop();
     if (!pick) return null;
     const raw = fs.readFileSync(pick.abs, "utf-8");
+    let fence: string | undefined;
+    const lines = raw.replace(/^\uFEFF/, "").split(/\r?\n/).filter((line) => {
+      const delimiter = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+      if (fence) {
+        if (delimiter?.[1][0] === fence[0] && delimiter[1].length >= fence.length && !delimiter[2].trim()) fence = undefined;
+        return false;
+      }
+      fence = delimiter?.[1];
+      return !fence;
+    });
+
     const heads: string[] = [];
     const links: (string | null)[] = [];
-    let inHeads = false;
-    for (const line of raw.split(/\r?\n/)) {
-      // intel's ## TL;DR or legacy ##/### Headlines both count
-      if (/^#{2,3}\s/.test(line)) {
-        if (inHeads) break;
-        inHeads = /^##\s+TL;DR/i.test(line) || /^#{2,3}\s+Headlines/i.test(line);
-        continue;
+    const { summary, headlines, inbox: inboxHeading } = BRIEF_HEADING_PATTERNS;
+    for (const line of morningReportSection(lines, 3, (heading, level) =>
+      (level === 2 && summary.test(heading)) || (level >= 2 && headlines.test(heading)),
+    )) {
+      if (!/^[-*]\s+/.test(line)) continue;
+      const url = line.match(/https?:\/\/[^\s)\]"']+/)?.[0] ?? null;
+      const clean = morningReportText(line
+        .replace(/^[-*]\s+/, "")
+        .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+        .replace(/https?:\/\/[^\s)\]"']+/g, ""));
+      if (clean) {
+        heads.push(clean.slice(0, 160));
+        links.push(url);
       }
-      if (inHeads && /^[-*]\s+/.test(line)) {
-        // first http(s) URL on the bullet — markdown link or bare
-        const url = line.match(/https?:\/\/[^\s)\]"']+/)?.[0] ?? null;
-        const clean = line
-          .replace(/^[-*]\s+/, "")
-          .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1") // [text](url) → text
-          .replace(/https?:\/\/[^\s)\]"']+/g, "")
-          .replace(/[*_`]/g, "")
-          .trim();
-        if (clean) {
-          heads.push(clean.slice(0, 160));
-          links.push(url);
-        }
-        if (heads.length >= max) break;
-      }
+      if (heads.length >= max) break;
     }
-    // inbox triage digest — category headers, per-thread bullets, and the
-    // thread-count line, markdown stripped
+
     const inbox: string[] = [];
-    const mInbox = raw.match(/^## Inbox[^\n]*\r?\n([\s\S]*?)(?=^## |\Z)/m);
-    if (mInbox) {
-      for (const line of mInbox[1].split(/\r?\n/)) {
-        const t = line.trim();
-        if (!t) continue;
-        if (/^~/.test(t) || /^\*\*/.test(t) || /^[-*]\s+\*\*/.test(t)) {
-          const clean = t
-            .replace(/^[-*]\s+/, "")
-            .replace(/\*\*/g, "")
-            .replace(/[`_]/g, "")
-            .trim();
-          if (clean) inbox.push(clean.slice(0, 220));
-        }
-        if (inbox.length >= 12) break;
-      }
+    for (const line of morningReportSection(lines, 2, (heading, level) => level === 2 && inboxHeading.test(heading))) {
+      const entry = line.trim();
+      if (!/^(?:~|\*\*|[-*]\s+\*\*)/.test(entry)) continue;
+      const clean = morningReportText(entry.replace(/^[-*]\s+/, ""));
+      if (clean) inbox.push(clean.slice(0, 220));
+      if (inbox.length >= 12) break;
     }
     return { rel: pick.rel, heads, links, inbox };
   } catch {

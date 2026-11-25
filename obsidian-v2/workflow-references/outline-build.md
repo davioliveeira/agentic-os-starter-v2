@@ -27,56 +27,56 @@ Divida a duração em etapas e arredonde cada estimativa para múltiplos de 30 s
 
 ## Formato
 
-Mantenha os campos que `yt-hooks` e `yt-titles` recebem. Escreva o conteúdo em português brasileiro.
+Mantenha os campos que `yt-hooks` e `yt-titles` recebem. Esboce o gancho para finalização em `yt-hooks`. Escreva o conteúdo em português brasileiro.
 
 ```markdown
-# Outline: [título de trabalho de 5 a 10 palavras]
+# Estrutura do vídeo — [título de trabalho de 5 a 10 palavras]
 
-> _Angle bucket: [categoria]_
-> _Dominant desire: [desejo]_
-> _Target runtime: [duração]_
-> _Bucket override (if any): [mudança solicitada, se houver]_
+> _Categoria da abordagem — [categoria]_
+> _Desejo dominante — [desejo]_
+> _Duração prevista — [duração]_
+> _Alteração de categoria — [mudança solicitada, se houver]_
 
-## Hook seed (1-2 sentences — yt-hooks will finalize)
+## Ideia de gancho (1–2 frases)
 [Uma ou duas frases com promessa ou pergunta concreta.]
 
-**Open loop to close later:** [Pergunta que será respondida no desenvolvimento.]
+**Pergunta que o vídeo vai responder** — [Pergunta que será respondida no desenvolvimento.]
 
-## Stakes / why-watch (0:30-1:00)
+## Por que assistir (0:30–1:00)
 [De duas a quatro frases sobre o que quem assiste poderá fazer, entender ou decidir.]
 
-## Body
+## Desenvolvimento
 
-### Beat 1 — [ação deste bloco]
-- **Purpose:** [como o bloco prepara, mantém ou entrega a promessa]
-- **Runtime:** [intervalo aproximado]
-- **Content:**
+### Bloco 1 — [ação deste bloco]
+- **Função** — [como o bloco prepara, mantém ou entrega a promessa]
+- **Duração** — [intervalo aproximado]
+- **Conteúdo**
   - [ação concreta com exemplo, passo ou demonstração]
   - [segundo ponto concreto]
-- **Re-hook / open-loop:** [retomada ou fechamento, quando aplicável]
-- **B-roll / visual notes:** [o que aparece e que mudança de ritmo usar]
+- **Retomada de interesse ou resposta** — [retomada ou fechamento, quando aplicável]
+- **Imagens de apoio e notas visuais** — [o que aparece e que mudança de ritmo usar]
 
 [Repita para os demais blocos, com dois a quatro pontos concretos cada.]
 
-## Payoff / demonstration (1:00-2:00)
+## Entrega da promessa ou demonstração (1:00–2:00)
 [Mostre o artefato em funcionamento, a comparação ou a resolução da história.]
-- **What the viewer sees:** [visual específico]
-- **What the viewer feels:** [ganho ligado ao desejo dominante]
+- **O que aparece na tela** — [visual específico]
+- **O que o público sente** — [ganho ligado ao desejo dominante]
 
-## CTA (0:20-0:45)
+## Chamada para ação (0:20–0:45)
 [Próximo vídeo, pergunta concreta para comentários ou link de recurso existente.]
 
-## Runtime summary
-| Section | Runtime |
+## Tempo por etapa
+| Etapa | Duração |
 |---|---|
 | [etapa] | [estimativa] |
 | **Total** | **[soma]** |
 
-## Retention scaffolding (summary)
-- **Open loop opened in:** [trecho]
-- **Open loop closed in:** [bloco ou demonstração]
-- **Re-hooks placed at:** [blocos]
-- **Pattern interrupts at:** [tempos aproximados]
+## Recursos de retenção
+- **Onde a pergunta aparece** — [trecho]
+- **Onde a pergunta é respondida** — [bloco ou demonstração]
+- **Retomadas de interesse** — [blocos]
+- **Mudanças de ritmo** — [tempos aproximados]
 ```
 
 Entregue a estrutura com três a cinco blocos e passos concretos. Deixe o texto definitivo do script, da abertura e dos títulos para a etapa seguinte. Em uma comparação de configurações, por exemplo, mostre o arquivo ou a opção que muda e o efeito observado na mesma tarefa. Em uma notícia, mostre o efeito prático antes de dedicar tempo ao contexto.

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import {vaultPath} from './core.mjs';
 import {BRIEF_SECTION_IDS,parseBriefSections,validBriefSectionRequest,briefSectionAnswer} from './brief-sections.mjs';
+import {BRIEF_HEADING_PATTERNS as headings,reportHeadingLines,readReportSection} from '../shared/report-headings.mjs';
 
 const folders=['inbox/research/morning-intel','inbox/reports/morning'];
 export const localDate=(now=new Date())=>`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
@@ -27,12 +28,8 @@ function spoken(text){
   .replace(/\[([^\]]+)\]\([^)]*\)/g,'$1').replace(/https?:\/\/\S+/g,'')
   .replace(/[*_`#]/g,'').replace(/^[-\s]+/,'').replace(/\s+/g,' ').trim();
 }
-function section(raw,title){
- const match=new RegExp(`^#{2,3}\\s+${title}\\s*\\r?$([\\s\\S]*?)(?=^#{1,3}\\s|$(?![\\s\\S]))`,'im').exec(raw);
- return match?.[1]?.trim()||'';
-}
-export function parseHackerNews(raw){
- const body=section(raw,'(?:Hacker\\s+News|HN)(?:\\s+Pulse)?');
+export function parseHackerNews(raw,report=reportHeadingLines(raw)){
+ const body=readReportSection(report,headings.hn,{visibleOnly:true})?.trim();
  // Bound work, and never treat a truncated or partly malformed table as a
  // complete ranking. Markdown report contents remain data, not instructions.
  if(!body||body.length>32000)return [];
@@ -50,7 +47,7 @@ export function parseHackerNews(raw){
   if(cells.every(cell=>/^:?-{3,}:?$/.test(cell)))continue;
   started=true;
   if(cells.length!==columns.count||rows.length>=100)return [];
-  const number=cell=>/^(?:\d+|\d{1,3}(?:,\d{3})+)$/.test(cell)?Number(cell.replace(/,/g,'')):NaN;
+  const number=cell=>/^(?:\d+|\d{1,3}(?:,\d{3})+|\d{1,3}(?:\.\d{3})+)$/.test(cell)?Number(cell.replace(/[,.]/g,'')):NaN;
   const points=number(cells[columns.points]),comments=number(cells[columns.comments]),title=spoken(cells[columns.title]).slice(0,180);
   if(!Number.isSafeInteger(points)||!Number.isSafeInteger(comments)||!title)return [];
   const url=cells[columns.title].match(/https?:\/\/[^\s)<>]+/)?.[0]||null;
@@ -99,7 +96,7 @@ function storyText(text){
  const lines=[];
  for(const line of clean.split('\n')){
   const bare=line.replace(/[*_~`]/g,'').replace(/^[\s>]*(?:(?:[-+]|\d+[.)])\s+)?[\s>]*/,'');
-  if(/^(?:sources?|references?|citations?|links?|fontes?|referências?|citações?)(?:\s*\(\d+\))?(?:\s*[:：]|\s+[—–-]\s|\s*$)/i.test(bare)||/^\s{0,3}(?:(?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})$/.test(line)||/^\s{0,3}#{1,6}(?:\s|$)/.test(line)||/^\s*\|/.test(line))break;
+  if(/^(?:sources?|references?|citations?|links?|fontes?|referências?|citações?)(?:\s*\(\d+\))?(?:\s*[:：]|\s+[—–-]\s|\s*$)/i.test(bare)||/^\s{0,3}(?:(?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})$/.test(line)||/^\s{0,3}(?:#{1,6}(?:\s|$)|`{3,}|~{3,})/.test(line)||/^\s*\|/.test(line))break;
   if(/^\s{0,3}=+\s*$/.test(line)){while(lines.length&&!lines.at(-1).trim())lines.pop();lines.pop();break}
   lines.push(line);
  }
@@ -111,22 +108,24 @@ function shorten(text,limit){return text.length>limit?text.slice(0,limit-1).repl
 function publicFacts(raw){
  // The Top Story section is editorial news: a headline paragraph, then the story. Its paragraphs are public facts up to
  // a Sources line or a rule; everything after that, and every other section, stays out as before.
- const written=section(raw,'Top Story'),story=storyText(written).split(/\n\s*\n/),top=story[0]||'';
+ const report=reportHeadingLines(raw);
+ const written=readReportSection(report,headings.topStory),story=storyText(written??'').split(/\n\s*\n/),top=story[0]||'';
  const topStoryDetail=[];let detailBudget=3000;
  for(const paragraph of story.slice(1,9)){
   const text=shorten(spoken(paragraph),700);if(!text)continue;
   if(text.length>detailBudget)break;topStoryDetail.push(text);detailBudget-=text.length;
  }
- const fallback=section(raw,'(?:TL;DR|Headlines)').split('\n').find(line=>/^\s*(?:[-*]\s*)?(?:\*\*)?top story:/i.test(line));
+ const fallback=written===null?(readReportSection(report,/^(?:TL;DR|Headlines|Resumo|Manchetes)$/i,{visibleOnly:true})??'')
+  .split('\n').find(line=>/^\s*(?:[-*]\s*)?(?:\*\*)?(?:top story|notícia principal):/i.test(line)):'';
  // The TL;DR line is only a fallback for briefs WITHOUT a Top Story heading. A section that exists, even empty, or cleans to
  // nothing must not hand the answer to TL;DR, which can hold private items.
- const headline=shorten(spoken(top||(written||/^#{2,3}\s+Top Story\s*$/im.test(raw)?'':fallback)||''),650);
+ const headline=shorten(spoken(top||fallback||''),650);
  // Only the explicitly public Headlines section supplies additional items.
  // TL;DR and AI News often mix private inbox, embargo or handoff information.
- const explicit=section(raw,'Headlines').split('\n').filter(line=>/^\s*(?:[-*]|\d+[.)])\s+/.test(line)).map(line=>shorten(spoken(line.replace(/^\s*(?:[-*]|\d+[.)])\s+/,'')),240)).filter(Boolean);
+ const explicit=(readReportSection(report,headings.headlines,{visibleOnly:true})??'').split('\n').filter(line=>/^\s*(?:[-*]|\d+[.)])\s+/.test(line)).map(line=>shorten(spoken(line.replace(/^\s*(?:[-*]|\d+[.)])\s+/,'')),240)).filter(Boolean);
  const headlines=[...new Set([...(headline?[headline]:[]),...explicit])].slice(0,5);
- const hn=parseHackerNews(raw),ranked=[...hn].sort((a,b)=>b.points-a.points).slice(0,5),discussed=[...hn].sort((a,b)=>b.comments-a.comments).slice(0,5);
- const xHighlights=section(raw,'(?:(?:X|Twitter)(?: highlights| radar))').split('\n').filter(line=>/^\s*[-*]\s+/.test(line)).map(line=>shorten(spoken(line.replace(/^\s*[-*]\s+/,'')),160)).filter(Boolean).slice(0,3);
+ const hn=parseHackerNews(raw,report),ranked=[...hn].sort((a,b)=>b.points-a.points).slice(0,5),discussed=[...hn].sort((a,b)=>b.comments-a.comments).slice(0,5);
+ const xHighlights=(readReportSection(report,headings.xHighlights,{visibleOnly:true})??'').split('\n').filter(line=>/^\s*[-*]\s+/.test(line)).map(line=>shorten(spoken(line.replace(/^\s*[-*]\s+/,'')),160)).filter(Boolean).slice(0,3);
  return {headline,topStoryDetail,headlines,hackerNews:[...new Set([...ranked,...discussed])],hackerNewsCount:hn.length,xHighlights};
 }
 export function getBriefCatalog(root,now=new Date(),{includeSummary=false,includeSocial=false,sections=[]}={}){

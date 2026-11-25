@@ -187,7 +187,7 @@ export function MorningBriefCard({ app }: Props) {
 				    show that; the X column only renders for legacy briefs */}
 				{brief.topStory ? (
 					<div className="aos-v2-cc-morning-col aos-v2-cc-morning-col--x">
-						<div className="aos-v2-cc-morning-col-label">◆ DESTAQUE</div>
+						<div className="aos-v2-cc-morning-col-label">◆ NOTÍCIA PRINCIPAL</div>
 						<p className="aos-v2-cc-morning-topstory">{brief.topStory}</p>
 					</div>
 				) : (

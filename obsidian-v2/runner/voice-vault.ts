@@ -14,6 +14,7 @@ import { voiceContext } from "./voice-context.mjs";
 import { vaultPath } from "./core.mjs";
 import { dailyCheckboxEdit, replaceDaily } from "./note-edits.mjs";
 import { parseHackerNews } from "./brief-voice.mjs";
+import { BRIEF_HEADING_PATTERNS as reportHeadings, reportHeadingLines, readReportSection } from "../shared/report-headings.mjs";
 const vaultRoot = () => voiceContext().root;
 function writeDaily(file: string, before: string, after: string, describe: () => object) {
   const { root, editDaily } = voiceContext();
@@ -665,15 +666,10 @@ export function readMorningReport(max = 4): MorningReport | null {
     const raw = (safeRead(pick.abs) ?? "");
     const heads: string[] = [];
     const links: (string | null)[] = [];
-    let inHeads = false;
-    for (const line of raw.split(/\r?\n/)) {
-      // intel's ## TL;DR or legacy ##/### Headlines both count
-      if (/^#{2,3}\s/.test(line)) {
-        if (inHeads) break;
-        inHeads = /^##\s+TL;DR/i.test(line) || /^#{2,3}\s+Headlines/i.test(line);
-        continue;
-      }
-      if (inHeads && /^[-*]\s+/.test(line)) {
+    const report = reportHeadingLines(raw);
+    const headlineSection = readReportSection(report, /^(?:TL;DR|Headlines|Resumo|Manchetes)$/i, {visibleOnly:true}) ?? "";
+    for (const line of headlineSection.split(/\r?\n/)) {
+      if (/^[-*]\s+/.test(line)) {
         // first http(s) URL on the bullet — markdown link or bare
         const url = line.match(/https?:\/\/[^\s)\]"']+/)?.[0] ?? null;
         const clean = line
@@ -696,9 +692,9 @@ export function readMorningReport(max = 4): MorningReport | null {
     // inbox triage digest — category headers, per-thread bullets, and the
     // thread-count line, markdown stripped
     const inbox: string[] = [];
-    const mInbox = raw.match(/^## Inbox[^\n]*\r?\n([\s\S]*?)(?=^## |$(?![\s\S]))/m);
+    const mInbox = readReportSection(report, reportHeadings.inbox, {maxLevel:2,visibleOnly:true});
     if (mInbox) {
-      for (const line of mInbox[1].split(/\r?\n/)) {
+      for (const line of mInbox.split(/\r?\n/)) {
         const t = line.trim();
         if (!t) continue;
         if (/^~/.test(t) || /^\*\*/.test(t) || /^[-*]\s+\*\*/.test(t)) {
@@ -712,7 +708,7 @@ export function readMorningReport(max = 4): MorningReport | null {
         if (inbox.length >= 12) break;
       }
     }
-    const hackerNews = parseHackerNews(raw).sort((a, b) => b.points - a.points).slice(0, 5);
+    const hackerNews = parseHackerNews(raw, report).sort((a, b) => b.points - a.points).slice(0, 5);
     return { rel: pick.rel, heads, links, inbox, hackerNews };
   } catch {
     return null;

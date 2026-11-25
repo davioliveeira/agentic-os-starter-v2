@@ -7,6 +7,7 @@ import crypto from 'node:crypto';
 import {SKILLS,ROOT} from '../shared/contract.mjs';
 import {prepareWorkflow,saveWorkflowResult} from '../runner/terminal-workflows.mjs';
 import {workflowPrompt} from '../runner/workflows.mjs';
+import {processJob} from '../runner/core.mjs';
 
 function setup(t,skill,provider='codex'){
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'aos-workflow-contract-'));
@@ -60,12 +61,12 @@ test('the eight missing rubrics and their dependencies are available inline',t=>
  const expected={
   'plan-today':[/\+50/,/\+40/,/\+30/,/\+25/,/\+20/,/\+15/,/espaços vazios/],
   'plan-tomorrow':[/pendências de hoje/i,/amanhã/i,/Google Agenda/i],
-  'inbox-brief':[/Leads/,/Urgent/,/Warm/,/Sponsor/,/Meetings/,/Noise/,/PURSUE/],
+  'inbox-brief':[/Leads/,/Urgentes/,/Conversas que precisam de resposta/,/propostas de patrocínio/,/Reuniões/,/Mensagens ignoradas/,/PURSUE/],
   'deep-research-chase':[/YouTube/,/GitHub/,/BUNDLED RUBRIC: yt-pipeline/,/Analise transcrições disponíveis/],
-  'weekly-review':[/focus_blocks/,/nota ausente/,/BUNDLED RUBRIC: yt-week-review/,/Climbing/],
+  'weekly-review':[/focus_blocks/,/nota ausente/,/BUNDLED RUBRIC: yt-week-review/,/Em crescimento/],
   'yt-week-review':[/180/,/150/,/60/,/140/],
   'morning':[/BUNDLED RUBRIC: morning-report/,/BUNDLED RUBRIC: inbox-brief/,/Leads/],
-  'morning-report':[/24 horas/i,/GitHub/,/Content Opportunities/]
+  'morning-report':[/24 horas/i,/GitHub/,/Oportunidades de conteúdo/]
  };
  for(const [skill,patterns] of Object.entries(expected)){
   const {instructions}=setup(t,skill);
@@ -78,8 +79,8 @@ test('the eight missing rubrics and their dependencies are available inline',t=>
 
 test('research and draft references retain evidence and editorial requirements without remote mutation recipes',t=>{
  const cascade=setup(t,'content-cascade').instructions;
- assert.match(cascade,/1\.500 a 2\.500/);assert.match(cascade,/=== FIRST COMMENT ===/);
- assert.match(cascade,/STAT NEEDED/);assert.match(cascade,/transcrição real/);
+ assert.match(cascade,/1\.500 a 2\.500/);assert.match(cascade,/=== PRIMEIRO COMENTÁRIO ===/);
+ assert.match(cascade,/\[DADO NECESSÁRIO: tema\]/);assert.match(cascade,/transcrição real/);
  assert.doesNotMatch(cascade,/PATCH|social_content|post-leadshark|cascade-pending\.json/);
  const pipeline=setup(t,'yt-pipeline').instructions;
  assert.match(pipeline,/analise as transcrições locais/);
@@ -114,6 +115,21 @@ test('a complete report mentioning save receipts and a valid short observed resu
  }
 });
 
+test('the terminal and queued worker save Portuguese report headings while preserving data',async t=>{
+ const original=['# Good morning','## Headlines','- Dado público.','## Inbox Brief (last 24h)','### LEADS','```json','[]','```','<!--','## Headlines','-->','## Proposed next actions','1. Revisar.'].join('\r\n');
+ const expected=original.replace('# Good morning','# Boletim da manhã').replace('## Headlines','## Manchetes')
+  .replace('## Inbox Brief (last 24h)','## Caixa de entrada (últimas 24h)').replace('## Proposed next actions','## Próximas ações propostas');
+ const terminal=setup(t,'morning');
+ const run=saveWorkflowResult(terminal.root,terminal.record,original);
+ assert.equal(run.status,'ok',run.summary);
+ assert.equal(fs.readFileSync(path.join(terminal.root,run.deliverable_path),'utf8'),expected);
+ assert.equal(fs.readFileSync(path.join(terminal.root,run.artifact_path),'utf8'),original);
+ const queued=setup(t,'morning');
+ const next=await processJob(queued.root,queued.workflow.job,async()=>({text:original}));
+ assert.equal(next.status,'ok',next.summary);
+ assert.ok(fs.readFileSync(path.join(queued.root,next.deliverable_path),'utf8').includes(expected));
+});
+
 test('cleanup initial contract stops at a reviewable manifest and its result only writes that report',t=>{
  const {root,record,instructions}=setup(t,'vault-cleanup');
  const source=path.join(root,'inbox','old-draft.md');fs.mkdirSync(path.dirname(source),{recursive:true});fs.writeFileSync(source,'Original note and links.');
@@ -121,10 +137,10 @@ test('cleanup initial contract stops at a reviewable manifest and its result onl
  assert.match(instructions,/CLEANUP PREVIEW ONLY/);
  assert.match(instructions,/do not move, rename or delete any source file/);
  assert.match(instructions,/user can select moves in a follow-up/);
- assert.match(instructions,/Source \| Proposed destination \| Modified at \| Age \| Bytes/);
+ assert.match(instructions,/Origem \| Destino proposto \| Última modificação \| Idade \| Tamanho em bytes/);
  assert.match(instructions,/releia a origem e seus metadados/);
  assert.doesNotMatch(instructions,/Move only eligible files|Show a preview, then archive/);
- const report='# Vault Cleanup Preview\n\n| ID | Source | Proposed destination |\n| --- | --- | --- |\n| 1 | inbox/old-draft.md | inbox/archive/old-draft.md |\n\nNo source files were moved or deleted. Select IDs to proceed.';
+ const report='# Proposta de limpeza do cofre\n\n| ID | Origem | Destino proposto |\n| --- | --- | --- |\n| 1 | inbox/old-draft.md | inbox/archive/old-draft.md |\n\nA inspeção preservou os arquivos de origem. Selecione os IDs para prosseguir.';
  const result=saveWorkflowResult(root,record,report);
  assert.equal(result.status,'ok');assert.equal(fs.readFileSync(source,'utf8'),'Original note and links.');
  assert.equal(fs.statSync(source).mtimeMs,metadata.mtimeMs);assert.equal(fs.existsSync(path.join(root,'inbox/archive/old-draft.md')),false);
@@ -138,7 +154,7 @@ test('restored shared rubrics retain sources, labels, handoff data and user sele
   const trend=setup(t,'ai-trend-scan',provider).instructions;
   for(const term of ['AI Explained','Matthew Berman','David Ondrej','Yannic Kilcher','Wes Roth','@AnthropicAI','@alexalbert__','@simonw','@karpathy','@swyx','tolerância de 12 horas'])assert.ok(trend.includes(term),term);
   const intel=setup(t,'morning-intel',provider).instructions;
-  for(const term of ['bcherny OR _catwu OR alexalbert__','sama OR gdb OR OpenAIDevs OR Codex_Changelog','newsletter-worth-reading','Evite links de rastreamento','fonte indireta de discussões de Reddit e Discord','Steal my X for Y'])assert.ok(intel.includes(term),term);
+  for(const term of ['bcherny OR _catwu OR alexalbert__','sama OR gdb OR OpenAIDevs OR Codex_Changelog','Newsletters que valem a leitura','Evite links de rastreamento','fonte indireta de discussões de Reddit e Discord','Use meu X para conseguir Y'])assert.ok(intel.includes(term),term);
   const morning=setup(t,'morning',provider).instructions;
   const sponsor=JSON.parse(morning.match(/### SPONSOR_PITCHES\s+```json\s+([\s\S]*?)```/)[1])[0];
   const prospect=JSON.parse(morning.match(/### LEADS\s+```json\s+([\s\S]*?)```/)[1])[0];
@@ -146,7 +162,7 @@ test('restored shared rubrics retain sources, labels, handoff data and user sele
   assert.deepEqual(Object.keys(prospect),['number','source','name','firstName','email','formAnswers','verdict','rationale','researchNote']);
   for(const term of ['pursue all','pursue 1,3','draft except 3,7','pass','skip','sem efeito remoto','Envio exige autorização própria'])assert.ok(morning.includes(term),term);
   const cleanup=setup(t,'vault-cleanup',provider).instructions;
-  for(const term of ['nome de arquivo único','links com caminho','Temp Files to Delete','content/temp/','A proposta inicial apenas lista','releia a origem'])assert.ok(cleanup.includes(term),term);
+  for(const term of ['nome de arquivo único','links com caminho','Arquivos temporários candidatos à exclusão','content/temp/','A proposta inicial apenas lista','releia a origem'])assert.ok(cleanup.includes(term),term);
   const research=setup(t,'deep-research-chase',provider).instructions;
   for(const term of ['Consenso','Boas práticas','Como fazer','discussões da comunidade'])assert.ok(research.includes(term),term);
  }

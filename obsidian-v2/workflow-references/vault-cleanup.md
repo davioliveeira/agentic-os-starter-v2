@@ -14,10 +14,10 @@ Agrupe notas `.md` com arquivos `.excalidraw`, `.png` e outros anexos associados
 
 ## Temporários para revisão separada
 
-Em `content/temp/`, procure artefatos reais de produção, como JSON intermediário, legendas VTT e transcrições brutas. Use **Temp Files to Delete** com ID, caminho exato, tipo, modificação, tamanho e motivo. Mova casos incertos para **Review needed** no relatório. O limite de idade do arquivamento não é autorização de exclusão. A proposta inicial apenas lista os temporários. Uma ação posterior exige selecionar IDs de `content/temp/` explicitamente e verificar de novo caminho, conteúdo e metadados. Uma seleção para arquivar autoriza apenas mover os itens selecionados.
+Em `content/temp/`, procure artefatos reais de produção, como JSON intermediário, legendas VTT e transcrições brutas. Use **Arquivos temporários candidatos à exclusão** com ID, caminho exato, tipo, modificação, tamanho e motivo. Liste casos incertos em **Revisão necessária**. O limite de idade do arquivamento não é autorização de exclusão. A proposta inicial apenas lista os temporários. Uma ação posterior exige selecionar IDs de `content/temp/` explicitamente e verificar de novo caminho, conteúdo e metadados. Uma seleção para arquivar autoriza apenas mover os itens selecionados.
 
 ## Entrega
 
-Use `# Vault Cleanup Preview`. Informe quando a inspeção ocorreu, limites, quantidade de candidatos e a tabela `ID | Source | Proposed destination | Modified at | Age | Bytes | Reason | Links/assets`. Use caminhos relativos ao cofre e metadados exatos. Para itens ambíguos, um hash pode ajudar na revalidação. Inclua **Skipped files and reasons** e **Review needed**. Registre que a inspeção preservou as origens.
+Use `# Proposta de limpeza do cofre`. Informe quando a inspeção ocorreu, limites, quantidade de candidatos e a tabela `ID | Origem | Destino proposto | Última modificação | Idade | Tamanho em bytes | Motivo | Links e anexos`. Use caminhos relativos ao cofre e metadados exatos. Para itens ambíguos, um hash pode ajudar na revalidação. Inclua **Arquivos ignorados e motivos** e **Revisão necessária**. Registre que a inspeção preservou as origens.
 
 Encerre após entregar a proposta. Uma solicitação posterior pode selecionar IDs para mover. Antes de aplicar, releia a origem e seus metadados, resolva ambos os caminhos novamente, confira links e confirme que o destino está livre. Se algo mudar ou continuar ambíguo, apresente a proposta revisada. Preserve qualquer destino existente. Exclua somente temporários selecionados explicitamente e revalidados.

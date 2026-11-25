@@ -1,4 +1,6 @@
 import type { App, TFile } from "obsidian";
+import { BRIEF_HEADINGS, BRIEF_HEADING_PATTERNS } from "../../shared/report-headings.mjs";
+import { briefMarkdown } from "./morningBrief";
 
 export type TrendingSection =
 	| "week"
@@ -158,11 +160,8 @@ async function intelOutliers(
  *  | [title](url) | [channel](…) (2.7k subs) | 68.2k in 6.6d | 64.9x | via |  */
 export function parseIntelOutlierTable(md: string): OutlierItem[] {
 	const out: OutlierItem[] = [];
-	const start = md.search(/^#{2,3}\s+Small-Channel Outliers/m);
-	if (start < 0) return out;
-	const rest = md.slice(start);
-	const endIdx = rest.slice(1).search(/^#{2,3}\s+/m);
-	const section = endIdx > 0 ? rest.slice(0, endIdx + 1) : rest;
+	const section = reportSection(briefMarkdown(md), (_, heading) => BRIEF_HEADING_PATTERNS.outliers.test(heading));
+	if (!section) return out;
 	for (const rawLine of section.split("\n")) {
 		const line = rawLine.trim();
 		if (!line.startsWith("|")) continue;
@@ -178,7 +177,7 @@ export function parseIntelOutlierTable(md: string): OutlierItem[] {
 		const chm = ch.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
 		// column order per the skill template: views/age then multiplier —
 		// but tolerate the swap (the model writing the brief sometimes flips)
-		const looksMult = (s: string) => /^[>~]?\d+(\.\d+)?x$/i.test(s);
+		const looksMult = (s: string) => /^[>~≈]?\d+([.,]\d+)?[x×]$/i.test(s);
 		const mult = looksMult(cells[3]!)
 			? cells[3]!
 			: looksMult(cells[2]!)
@@ -299,21 +298,14 @@ export function parseTrendingRepos(md: string): TrendingRepo[] {
 
 export function parseHeadlines(md: string): HeadlineItem[] {
 	const out: HeadlineItem[] = [];
-	// morning-intel's ## TL;DR is the preferred source; ## / ### Headlines
-	// covers the legacy morning-report and /morning routine formats
-	const sectionRes = [/^##\s+TL;DR\s*$/m, /^#{2,3}\s+Headlines\s*$/m];
-	let start = -1;
-	for (const re of sectionRes) {
-		start = md.search(re);
-		if (start >= 0) break;
-	}
-	if (start < 0) return out;
-	const rest = md.slice(start);
-	const endIdx = rest.slice(1).search(/^#{2,3}\s+/m);
-	const section = endIdx > 0 ? rest.slice(0, endIdx + 1) : rest;
+	const markdown = briefMarkdown(md);
+	const section = reportSection(markdown, (_, heading) => heading.toLowerCase() === BRIEF_HEADINGS.headlines.toLowerCase()) ??
+		reportSection(markdown, (level, heading) => level === 2 && BRIEF_HEADING_PATTERNS.summary.test(heading)) ??
+		reportSection(markdown, (_, heading) => /^Headlines$/i.test(heading));
+	if (!section) return out;
 	// bolded "- **head** — body" bullets first; plain bullets as fallback
 	// (intel TL;DR bullets aren't always bolded)
-	const boldRe = /^-\s+\*\*([^*]+)\*\*\s*[—-]?\s*(.*)$/gm;
+	const boldRe = /^-[ \t]+\*\*([^*\n]+)\*\*[ \t]*[—-]?[ \t]*(.*)$/gm;
 	let m: RegExpExecArray | null;
 	while ((m = boldRe.exec(section)) !== null) {
 		const bold = (m[1] ?? "").trim();
@@ -321,7 +313,7 @@ export function parseHeadlines(md: string): HeadlineItem[] {
 		if (bold) out.push({ bold, body });
 	}
 	if (out.length > 0) return out;
-	const plainRe = /^-\s+(.+)$/gm;
+	const plainRe = /^-[ \t]+(.+)$/gm;
 	while ((m = plainRe.exec(section)) !== null) {
 		const text = (m[1] ?? "")
 			.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
@@ -330,4 +322,12 @@ export function parseHeadlines(md: string): HeadlineItem[] {
 		if (text) out.push({ bold: text, body: "" });
 	}
 	return out;
+}
+
+function reportSection(md: string, matches: (level: number, heading: string) => boolean): string | undefined {
+	const headings = [...md.matchAll(/^(#{1,3})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/gm)];
+	const start = headings.findIndex(h => h[1]!.length > 1 && matches(h[1]!.length, h[2]!));
+	if (start < 0) return undefined;
+	const heading = headings[start]!;
+	return md.slice(heading.index + heading[0].length, headings[start + 1]?.index);
 }

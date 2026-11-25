@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import {MARKER,ROOT,SKILLS,validateIntent} from '../shared/contract.mjs';
+import {localizeReportHeadings} from '../shared/report-headings.mjs';
 import {workflowPrompt,destinationFor,dailySkills,calendarFor,mergeDaily,directWorkflow} from './workflows.mjs';
 import {dailyDrivers} from './profile.mjs';
 import {SPOKEN_REPLY_STYLE} from './spoken-answer.mjs';
@@ -69,7 +70,8 @@ export async function processJob(root,job,execute,{calendar=calendarFor,direct=d
   const file=vaultPath(root,destination);fs.mkdirSync(path.dirname(file),{recursive:true});
   const audit=`${ROOT}/artifacts/${job.id}.md`,auditFile=vaultPath(root,audit);fs.mkdirSync(path.dirname(auditFile),{recursive:true});
   const metadata=`provider: ${job.provider}\nmodel: ${SKILLS[job.skill].direct?'none':job.model}\nrun_id: ${job.id}\n`;
-  const text=dailyText??(/^---\r?\n[a-zA-Z_][\w-]*:/.test(result.text.trim())?result.text.trim().replace(/^---\r?\n/,'---\n'+metadata):`---\n${metadata}---\n\n${result.text.trim()}\n`);
+  const localized=localizeReportHeadings(job.skill,result.text);
+  const text=dailyText??(/^---\r?\n[a-zA-Z_][\w-]*:/.test(localized.trim())?localized.trim().replace(/^---\r?\n/,'---\n'+metadata):`---\n${metadata}---\n\n${localized.trim()}\n`);
   fs.writeFileSync(auditFile,text,{flag:'wx'});
   if(dailyText!==null){
    const current=fs.existsSync(file)?fs.readFileSync(file,'utf8'):null;
@@ -77,7 +79,7 @@ export async function processJob(root,job,execute,{calendar=calendarFor,direct=d
    if(dailyBefore!==null){const backup=vaultPath(root,`${ROOT}/backups/${job.id}.md`);fs.mkdirSync(path.dirname(backup),{recursive:true});fs.writeFileSync(backup,dailyBefore,{flag:'wx'})}
   }
   const temp=file+'.'+job.id+'.tmp';fs.writeFileSync(temp,text);atomicRename(temp,file);
-  const summary=dailyText!==null?'Daily note updated; existing commitments preserved.':result.summary||result.text.trim().split(/\r?\n/).find(l=>l.trim()&&!l.startsWith('---'))?.replace(/^#+\s*/,'').slice(0,200)||'Workflow complete';
+  const summary=dailyText!==null?'Daily note updated; existing commitments preserved.':result.summary||localized.trim().split(/\r?\n/).find(l=>l.trim()&&!l.startsWith('---'))?.replace(/^#+\s*/,'').slice(0,200)||'Workflow complete';
   Object.assign(record,{status:'ok',exit_code:0,summary,deliverable_path:destination,artifact_path:audit,execution:SKILLS[job.skill].direct?'script':'agent'});
  }catch(e){Object.assign(record,{status:'error',exit_code:1,summary:String(e.message||e).slice(0,500)})}
  record.ts_completed=new Date().toISOString();writeJson(root,recordPath,record);return record;
