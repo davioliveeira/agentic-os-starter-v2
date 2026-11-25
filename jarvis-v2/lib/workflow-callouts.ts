@@ -64,8 +64,8 @@ export function liveActivityCallout(cards:WorkflowCallout[],item:{key:string;pha
   // words are the name. A follow-up names no words ("Continue “that task”"), so it is a follow-up until the task's title is known.
   const name=(text:string,fallback:string)=>{
     const quoted=text.match(/“([^”]+)”/)?.[1];
-    if(quoted)return /^that task$/i.test(quoted)?'Continuação':taskCardLabel(quoted,fallback);
-    const short=text.replace(/^(?:start|the)\s+/i,'').trim()||fallback;return short.charAt(0).toUpperCase()+short.slice(1);
+    if(quoted)return /^(?:essa tarefa|that task)$/i.test(quoted)?'Continuação':taskCardLabel(quoted,fallback);
+    const short=text.replace(/^(?:iniciar|start|the)\s+/i,'').trim()||fallback;return short.charAt(0).toUpperCase()+short.slice(1);
   };
   if(item.phase==='started'&&item.taskIds?.length){
     // The hand-off started real work: the card now follows that conversation (reconcileTaskCallouts) instead of clearing.
@@ -96,7 +96,7 @@ const FILLER=/^(?:(?:ok(?:ay)?|so|hey|yeah|yes|yep|sure|actually|alright|all rig
 const ASKING=/^(?:(?:can|could|would|will) you(?: please| just)?(?: go ahead and)?|i(?: want| need|'d like| would like)(?: you)? to|go ahead and|please|just)\s+/i;
 // Only the verbs that hand over a thing: "do some research", "build me a one-pager". "Make the intro shorter" is the request itself.
 const HANDING=/^(?:do (?:some|a|an) |(?:make|build|create|write|draft|give|get|put together) me (?:(?:a|an|the|some) )?)/i;
-export function taskCardLabel(text:string|undefined,fallback='Task'){
+export function taskCardLabel(text:string|undefined,fallback='Tarefa'){
   let clean=String(text||'').replace(/\s+/g,' ').trim().replace(/^[“"'‘]+|[”"'’]+$/g,'').replace(/[,]?\s+(?:um+|uh+|er+)[,.]?(?=\s)/gi,'');
   for(let round=0;round<3;round++)clean=clean.replace(FILLER,'').replace(ASKING,'');
   clean=clean.replace(HANDING,'').trim();

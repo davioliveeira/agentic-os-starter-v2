@@ -75,7 +75,7 @@ for(const provider of ['codex','claude']){
   assert.equal(f.check(task,send).submit,false,'Unclaimed input cannot submit');
   const claimed=f.manager.claimNative(send.id).action;assert.equal(claimed.text,send.text);assert.ok(claimed.text.startsWith('Add the next detail.\n\n'+WORKER_SPOKEN_STYLE));
   assert.ok(claimed.text.includes(task.artifactRequestKey));assert.equal(task.prompt,original);assert.equal(f.processes.length,0);
-  assert.throws(()=>f.manager.claimNative(send.id),/already claimed/);assert.equal(f.check(task,send).submit,true);
+  assert.throws(()=>f.manager.claimNative(send.id),/já reservou este comando/);assert.equal(f.check(task,send).submit,true);
   assert.equal(f.manager.submitNative({taskId:task.id,instance:task.native.instance,actionId:send.id,requestKey:crypto.randomUUID()}).submit,false);
   f.manager.nativeEvent({taskId:task.id,instance:task.native.instance,actionId:send.id,type:'input-written'});
   assert.equal(f.check(task,send).submit,false);assert.equal(f.manager.pendingNative().actions.length,0);
@@ -87,7 +87,7 @@ for(const provider of ['codex','claude']){
   for(const type of ['approval','editing','input-cancelled']){
    const f=fixture(t),task=f.ready(f.start(provider)),send=f.followup(task);f.manager.claimNative(send.id);assert.equal(f.check(task,send).submit,true);
    f.manager.nativeEvent({taskId:task.id,instance:task.native.instance,...(type==='input-cancelled'?{actionId:send.id}:{}),type,reason:'Keep this draft and review the permission.'});
-   assert.equal(f.check(task,send).submit,false);assert.throws(()=>f.manager.send(task.id,'Overwrite the draft'),/working|permission|draft/);
+   assert.equal(f.check(task,send).submit,false);assert.throws(()=>f.manager.send(task.id,'Overwrite the draft'),/em andamento|Keep this draft and review the permission/);
    const before={state:task.state,error:task.error};f.advance(TERMINAL_DELIVERY_TIMEOUT_MS+1);assert.deepEqual({state:task.state,error:task.error},before);
    assert.equal(f.processes.length,0);
   }
@@ -100,7 +100,7 @@ for(const provider of ['codex','claude']){
   f.manager.resume(task.id);assert.notEqual(task.native.instance,instance);assert.notEqual(task.native.ticket,firstTicket);assert.equal(f.processes.length,0);
   const next=readNativeTicket(task.native.ticket);assert.match(next.args.at(-1),/^Resume this conversation without using tools/);assert.ok(!next.args.at(-1).includes(task.prompt));
   f.manager.accept(task.id,{type:'native-exit',nativeInstance:instance,code:5});assert.equal(task.state,'starting','Old instance cannot terminate the replacement');
-  f.manager.accept(task.id,{type:'native-exit',nativeInstance:task.native.instance,code:5});assert.equal(task.state,'error');assert.match(task.error,/CLI exited/);
+  f.manager.accept(task.id,{type:'native-exit',nativeInstance:task.native.instance,code:5});assert.equal(task.state,'error');assert.match(task.error,/A CLI encerrou/);
  });
 }
 
@@ -116,20 +116,20 @@ test('restarting the coordinator restores status and claims without relaunching 
  const f=fixture(t),task=f.ready(f.start()),send=f.followup(task);f.manager.claimNative(send.id);
  const before=JSON.stringify(task),ticket=fs.readFileSync(task.native.ticket,'utf8');f.manager.close();
  const restored=f.open(),saved=restored.get(task.id);assert.equal(f.processes.length,0);assert.equal(saved.pid,700);assert.equal(saved.native.instance,task.native.instance);
- assert.equal(restored.live.has(task.id),true);assert.equal(restored.pendingNative().actions.length,0);assert.throws(()=>restored.claimNative(send.id),/already claimed/);
+ assert.equal(restored.live.has(task.id),true);assert.equal(restored.pendingNative().actions.length,0);assert.throws(()=>restored.claimNative(send.id),/já reservou este comando/);
  assert.equal(fs.readFileSync(saved.native.ticket,'utf8'),ticket);assert.equal(saved.state,JSON.parse(before).state);
 });
 
 test('native process screens and terminal input cannot be proxied through the bridge',t=>{
  const f=fixture(t),task=f.ready(f.start());
- assert.throws(()=>f.manager.input(task.id,'arbitrary input'),/directly/);assert.throws(()=>f.manager.output(task.id),/directly/);assert.throws(()=>f.manager.resize(task.id,80,24),/Obsidian owns/);
+ assert.throws(()=>f.manager.input(task.id,'arbitrary input'),/Digite diretamente/);assert.throws(()=>f.manager.output(task.id),/Abra a aba do terminal/);assert.throws(()=>f.manager.resize(task.id,80,24),/controla o tamanho deste terminal/);
  assert.equal(f.processes.length,0);
 });
 
 test('same request ID cannot change terminal ownership and provider selections reject the other app',t=>{
  const f=fixture(t),native=f.start(),web=f.manager.start({selection:{provider:'codex',model:'astra'},prompt:'Web request'});
- assert.throws(()=>f.manager.start({id:native.id,selection:{provider:native.provider,model:native.model},prompt:native.prompt}),/already used/);
- assert.throws(()=>f.manager.start({id:web.id,selection:{provider:web.provider,model:web.model},prompt:web.prompt,execution:'native'}),/already used/);
+ assert.throws(()=>f.manager.start({id:native.id,selection:{provider:native.provider,model:native.model},prompt:native.prompt}),/já foi usado/);
+ assert.throws(()=>f.manager.start({id:web.id,selection:{provider:web.provider,model:web.model},prompt:web.prompt,execution:'native'}),/já foi usado/);
  setCurrent(f.root,f.manager,{scope:'native',provider:'codex',id:native.id});setCurrent(f.root,f.manager,{provider:'codex',id:web.id});
  assert.throws(()=>setCurrent(f.root,f.manager,{scope:'native',provider:'codex',id:web.id}),/different app/);
  assert.throws(()=>setCurrent(f.root,f.manager,{provider:'codex',id:native.id}),/different app/);
@@ -140,7 +140,7 @@ test('same request ID cannot change terminal ownership and provider selections r
 test('native Stop before any launch claim cancels the unused ticket without touching a process',t=>{
  const f=fixture(t),task=f.start(),launch=f.action(task,'launch');f.manager.stop(task.id);
  assert.equal(task.state,'stopped');assert.equal(task.native.ended,true);assert.equal(f.manager.live.has(task.id),false);assert.equal(f.manager.pendingNative().actions.length,0);
- assert.throws(()=>f.manager.claimNative(launch.id),/claimed|replaced/);assert.equal(f.processes.length,0);
+ assert.throws(()=>f.manager.claimNative(launch.id),/já reservou este comando/);assert.equal(f.processes.length,0);
 });
 
 test('native Stop after launch waits for CLI exit and never calls bridge process-kill',t=>{
@@ -165,7 +165,7 @@ test('a view closing after launch claim cannot authorize a duplicate before CLI 
 
 test('verified empty native input returns to ready without any clearing keys',t=>{
  const f=fixture(t),task=f.ready(f.start());f.manager.nativeEvent({taskId:task.id,instance:task.native.instance,type:'editing'});
- assert.throws(()=>f.manager.markReady(task.id),/Confirm/);f.manager.markReady(task.id,{confirmedEmpty:true});
+ assert.throws(()=>f.manager.markReady(task.id),/confirme que a CLI está ociosa/);f.manager.markReady(task.id,{confirmedEmpty:true});
  assert.equal(task.state,'ready');assert.equal(task.error,null);assert.equal(f.processes.length,0);
 });
 
@@ -182,13 +182,13 @@ test('expected native shutdown maps signalled and nonzero exits to stopped while
   assert.equal(task.state,'stopped');assert.equal(task.error,null);assert.equal(task.native.ended,true);assert.equal(task.pid,null);assert.equal(f.manager.live.has(task.id),false);
  }
  const f=fixture(t),task=f.ready(f.start());f.manager.accept(task.id,{type:'native-exit',nativeInstance:task.native.instance,code:null,signal:'SIGKILL'});
- assert.equal(task.state,'error');assert.match(task.error,/CLI exited/);
+ assert.equal(task.state,'error');assert.match(task.error,/A CLI encerrou/);
 });
 
 test('native presence preserves a human draft and reports completed sessions ready without relaunching',t=>{
  const f=fixture(t),task=f.ready(f.start()),sessions=[{taskId:task.id,instance:task.native.instance,hasDraft:true}];
  const result=f.manager.nativePresence(sessions);assert.deepEqual(result.ready,[{taskId:task.id,instance:task.native.instance}]);
- assert.throws(()=>f.manager.send(task.id,'Overwrite the human draft'),/working|input/);assert.equal(f.manager.pendingNative().actions.length,0);
+ assert.throws(()=>f.manager.send(task.id,'Overwrite the human draft'),/em andamento ou precisa de uma ação no terminal/);assert.equal(f.manager.pendingNative().actions.length,0);
  f.manager.nativePresence([{...sessions[0],hasDraft:false}]);f.manager.send(task.id,'Now start the follow-up');assert.equal(f.manager.pendingNative().actions.length,1);assert.equal(f.processes.length,0);
 });
 
@@ -202,7 +202,7 @@ test('stale native view events are harmless and cannot change a resumed instance
 test('a lost launch claim is bounded and its provably unused ticket is revoked before offering recovery',async t=>{
  const f=fixture(t),task=f.start(),launch=f.action(task,'launch');f.manager.claimNative(launch.id);
  f.advance(NATIVE_LAUNCH_TIMEOUT_MS-1);assert.equal(task.state,'starting');f.advance(1);
- assert.equal(task.state,'needs input');assert.match(task.error,/unused launch was cancelled/);assert.equal(task.recoveryAvailable,true);
+ assert.equal(task.state,'needs input');assert.match(task.error,/a tentativa foi cancelada/);assert.equal(task.recoveryAvailable,true);
  assert.equal(task.native.ended,true);assert.equal(f.manager.live.has(task.id),false);assert.equal(f.manager.pendingNative().actions.length,0);
  const claim=JSON.parse(fs.readFileSync(task.native.ticket+'.claimed','utf8'));assert.equal(claim.cancelled,true);assert.equal(claim.instance,task.native.instance);
  await assert.rejects(runNativeLaunch(task.native.ticket,{env:{},spawnImpl:()=>assert.fail('A late launcher must not execute the revoked request')}),/already used/);
@@ -221,9 +221,9 @@ test('user Stop revokes a never-consumed launch even after its claim response wa
 test('a consumed launch without a PID stays uncertain and cannot be recovered or relaunched automatically',t=>{
  const f=fixture(t),task=f.start(),launch=f.action(task,'launch');f.manager.claimNative(launch.id);
  const claim={taskId:task.id,instance:task.native.instance,launcherPid:91234,ts:100000};fs.writeFileSync(task.native.ticket+'.claimed',JSON.stringify(claim));
- f.advance(NATIVE_LAUNCH_TIMEOUT_MS);assert.equal(task.state,'needs input');assert.match(task.error,/may still be running/);
+ f.advance(NATIVE_LAUNCH_TIMEOUT_MS);assert.equal(task.state,'needs input');assert.match(task.error,/continua em execução/);
  assert.equal(task.native.ended,false);assert.equal(task.recoveryAvailable,false);assert.equal(f.manager.live.has(task.id),true);
- assert.equal(f.manager.resume(task.id),task);assert.throws(()=>f.manager.send(task.id,'Repeat the original request'),/may still be running/);
+ assert.equal(f.manager.resume(task.id),task);assert.throws(()=>f.manager.send(task.id,'Repeat the original request'),/continua em execução/);
  assert.deepEqual(JSON.parse(fs.readFileSync(task.native.ticket+'.claimed','utf8')),claim);assert.equal(f.processes.length,0);
 });
 
@@ -236,7 +236,7 @@ test('missing native launch evidence never makes an unreadable or missing ticket
 test('native presence is launch evidence even before a process PID was reported',t=>{
  const f=fixture(t),task=f.start();f.manager.nativePresence([{taskId:task.id,instance:task.native.instance,hostPid:600,hasDraft:false}]);
  f.advance(NATIVE_LAUNCH_TIMEOUT_MS);assert.equal(task.state,'starting');f.advance(NATIVE_PRESENCE_TIMEOUT_MS-NATIVE_LAUNCH_TIMEOUT_MS);
- assert.equal(task.state,'needs input');assert.match(task.error,/not reconnected/);assert.equal(task.recoveryAvailable,false);assert.equal(task.native.ended,false);
+ assert.equal(task.state,'needs input');assert.match(task.error,/ainda não se reconectou/);assert.equal(task.recoveryAvailable,false);assert.equal(task.native.ended,false);
  assert.equal(fs.existsSync(task.native.ticket+'.claimed'),false);
 });
 
@@ -248,12 +248,16 @@ test('an active native session gets a fresh reconnect grace after bridge restart
  assert.equal(saved.state,'ready');assert.equal(restored.pendingNative().actions.length,0);assert.equal(f.processes.length,0);
 });
 
-test('restart waits for presence before warning and a late matching launch event restores its state',t=>{
+for(const language of ['Portuguese','saved English']) test(`restart waits for presence and a late launch restores state with the ${language} warning`,t=>{
  const f=fixture(t),task=f.start(),launch=f.action(task,'launch');f.manager.claimNative(launch.id);
  fs.writeFileSync(task.native.ticket+'.claimed',JSON.stringify({taskId:task.id,instance:task.native.instance,launcherPid:91234}));
  f.manager.close();f.advance(600000,null);const restored=f.open(),saved=restored.get(task.id);
  assert.equal(saved.recoveryAvailable,false,'Restart cannot offer recovery while an unknown native process may still be running');
  f.advance(NATIVE_PRESENCE_TIMEOUT_MS-1,restored);assert.equal(saved.state,'starting');f.advance(1,restored);assert.equal(saved.state,'needs input');
+ if(language==='saved English'){
+  saved.error='The native terminal has not reconnected. It may still be running. Open its Obsidian Terminal tab to check it; this request was not launched again.';
+  saved.inputReason=saved.error;
+ }
  restored.accept(saved.id,{type:'native-start',nativeInstance:saved.native.instance,pid:700});assert.equal(saved.state,'working');assert.equal(saved.error,null);assert.equal(saved.inputReason,undefined);
  assert.equal(saved.native.connectionWarning,undefined);assert.equal(f.processes.length,0);
 });
@@ -268,7 +272,7 @@ test('a failed launch delivery can offer recovery only after cancelling its stil
  const f=fixture(t),task=f.start(),launch=f.action(task,'launch');f.manager.claimNative(launch.id);
  f.manager.nativeEvent({taskId:task.id,instance:task.native.instance,actionId:launch.id,type:'error',reason:'The launch reply was lost.'});
  assert.equal(task.state,'needs input');assert.equal(task.native.presenceConfirmed,undefined);
- f.advance(NATIVE_LAUNCH_TIMEOUT_MS);assert.equal(task.recoveryAvailable,true);assert.equal(task.native.launchCancelled,true);assert.match(task.error,/unused launch/);
+ f.advance(NATIVE_LAUNCH_TIMEOUT_MS);assert.equal(task.recoveryAvailable,true);assert.equal(task.native.launchCancelled,true);assert.match(task.error,/a tentativa foi cancelada/);
 });
 
 test('native presence, reconnect warnings, keep changes, stop and process exit never renew conversational activity',t=>{

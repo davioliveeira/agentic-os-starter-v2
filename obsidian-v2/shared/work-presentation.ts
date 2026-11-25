@@ -34,7 +34,7 @@ export function taskStatus(task:WorkPresentationTask|null|undefined):string {
 export const workLabel=taskStatus;
 
 export function shortTaskTitle(task:WorkPresentationTask,limit=64):string {
- const fallback=task.execution==='script'?'Source refresh':task.provider==='codex'?'Codex task':task.provider==='claude'?'Claude task':'Agent task';
+ const fallback=task.execution==='script'?'Atualização da fonte':task.provider==='codex'?'Tarefa do Codex':task.provider==='claude'?'Tarefa do Claude':'Tarefa do agente';
  const title=typeof task.title==='string'?task.title.replace(/\s+/g,' ').trim():'';
  const chars=Array.from(title||fallback),size=Number.isFinite(limit)?Math.max(1,Math.floor(limit)):64;
  return chars.length>size?chars.slice(0,size-1).join('')+'…':chars.join('');
@@ -46,7 +46,7 @@ export function shortConversationTitle(task:WorkPresentationTask,limit=52):strin
  const title=original
   .replace(/^(?:hey|hi|okay|ok|alright)[,!:.]?\s+/i,'')
   .replace(/^(?:(?:can|could|would) you (?:please )?|are you able to |i(?:'d| would) like (?:you )?to |please )/i,'')
-  .trim()||original||'Untitled conversation';
+  .trim()||original||'Conversa sem título';
  const display=title.charAt(0).toUpperCase()+title.slice(1);
  const chars=Array.from(display),size=Number.isFinite(limit)?Math.max(1,Math.floor(limit)):52;
  return chars.length>size?chars.slice(0,size-1).join('')+'…':chars.join('');

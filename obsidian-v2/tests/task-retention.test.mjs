@@ -32,7 +32,7 @@ test('Keep persists across restart and unkeep starts a fresh seven days',t=>{
  f.advance(TASK_RETENTION_MS*2);m.prune();assert.equal(m.list()[0].expiresAt,null);m.close();
  const reopened=f.open();assert.equal(reopened.get(r.id).keep,true);assert.equal(reopened.get(r.id).lastActivityAt,original);
  const changed=reopened.setKeep(r.id,false);assert.equal(changed.lastActivityAt,f.now());assert.equal(changed.expiresAt,f.now()+TASK_RETENTION_MS);
- assert.throws(()=>reopened.setKeep(r.id,'false'),/true or false/);
+ assert.throws(()=>reopened.setKeep(r.id,'false'),/true ou false/);
  assert.deepEqual(Object.fromEntries(Object.entries(taskSummary(reopened.list()[0])).filter(([key])=>['keep','lastActivityAt','expiresAt'].includes(key))),{keep:false,lastActivityAt:f.now(),expiresAt:f.now()+TASK_RETENTION_MS});
  f.advance(TASK_RETENTION_MS-1);reopened.prune();assert.equal(reopened.records.size,1);f.advance(1);reopened.prune();assert.equal(reopened.records.size,0);
 });

@@ -32,7 +32,7 @@ function bench(t,{Manager=TerminalManager,...options}={}){
  const runDeferred=()=>{for(const timer of deferred.splice(0))if(!timer.cancelled)timer.fn()};
  return {root,clock,timers,processes,proof,manager,ready,done,runDeferred};
 }
-const refused=error=>error.code==='TERMINAL_NOT_IDLE'&&/no longer idle/.test(error.message);
+const refused=error=>error.code==='TERMINAL_NOT_IDLE'&&/voltou a ficar ativo/.test(error.message);
 
 test('a finished terminal nobody typed in is closed after 30 quiet minutes, not before; its conversation stays resumable',t=>{
  const b=bench(t),task=b.ready(),live=b.manager.live.get(task.id);

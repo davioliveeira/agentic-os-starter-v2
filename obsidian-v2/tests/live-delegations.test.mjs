@@ -611,14 +611,14 @@ test('a hand-off reports what it is doing: handed off, then starting and started
 });
 
 test('a request refused because the selected task is busy says so; any other failure keeps the short retry',async t=>{
- const refusal='This task is working or needs terminal input. Wait for its answer, or type directly in its terminal.';
+ const refusal='Esta tarefa está em andamento ou precisa de uma ação no terminal. Aguarde a resposta ou digite diretamente no terminal.';
  let failure=refusal;
  const f=await fixture(t,{route:async()=>{throw new Error(failure)}});await f.start();
  let id=f.turn('Add a section about history to it');
  const spoken=await f.say('ainda está em andamento',id);await f.idle();
  assert.match(spoken.content,/^Essa tarefa ainda está em andamento\. Peça de novo quando ela terminar ou diga que quer começar outra tarefa e explique o que precisa\.$/);
  assert.equal(f.appends().some(event=>/Repita o pedido/.test(event.content)),false);
- failure='This conversation has an unfinished workflow. Continue it before starting another workflow in this terminal.';
+ failure='Esta conversa tem um fluxo pendente. Continue o fluxo antes de iniciar outro neste terminal.';
  id=f.turn('Run the weekly review in there');await f.say('ainda está em andamento',id);await f.idle();
  failure='Something unexpected broke.';
  id=f.turn('Open the dashboard');await f.say('Repita o pedido daqui a pouco.',id);await f.idle();

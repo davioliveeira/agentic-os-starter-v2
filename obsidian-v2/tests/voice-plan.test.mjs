@@ -63,18 +63,18 @@ function fixture(t,{target=false,state='ready',staleCurrent=true,model={tier:3,r
 
 const routes=[
  {name:'saved lookup',said:'What was the top AI news today?'},
- {name:'tier 1 workflow',said:'Run morning intel',description:/Start the morning-intel workflow in your Claude terminal/,sites:['startWorkflow','onDispatch','updateCurrent']},
- {name:'tier 3 new task',said:'Start a new task: Options for the newsletter format.',description:/Start “/,options:{target:true},model:true,sites:['start','onDispatch','updateCurrent']},
- {name:'continue selected',said:'Continue the newsletter',description:/Continue “Newsletter”/,options:{target:true},sites:['send','onDispatch','updateCurrent']},
- {name:'continue selected workflow',said:'Run morning intel',description:/Run the morning-intel workflow in “Newsletter”/,options:{target:true},sites:['continueWorkflow','onDispatch','updateCurrent']},
- {name:'stop',said:'Stop that',description:/Stop “Newsletter”/,options:{target:true,state:'working'},sites:['stop']},
- {name:'Top 3 note edit',said:'Check off priority two',description:/Check off “Record the demo”/,options:{target:true},sites:['editDaily']},
- {name:'model-proposed note edit',said:'Mark whichever priority involves recording',description:/Check off “Record the demo”/,options:{model:{tier:2,write:{kind:'top3',index:1}}},model:true,sites:['editDaily']},
- {name:'fuzzy note edit',said:'Mark review comments done',description:/Check off “Review comments”/,sites:['editDaily']},
- {name:'add note item',said:'Add proofread the draft to my tasks',description:/Add “proofread the draft”/,sites:['editDaily']},
- {name:'conversation reset',said:'Start a new task',description:/Start a new conversation/,options:{target:true},sites:['updateCurrent']},
- {name:'legacy enqueue',said:'Run morning intel',request:{terminalMode:false},description:/Queue the morning-intel workflow/,sites:['enqueue']},
- {name:'artifact reopen',said:'Pull it up',description:/Reopen “Preview”/,options:{target:true},seed:f=>f.task.turns.push({id:'output',artifacts:[artifact]}),sites:['reopenArtifact']}
+ {name:'tier 1 workflow',said:'Run morning intel',description:/Iniciar “Boletim de IA” no terminal do Claude/,sites:['startWorkflow','onDispatch','updateCurrent']},
+ {name:'tier 3 new task',said:'Start a new task: Options for the newsletter format.',description:/Iniciar “/,options:{target:true},model:true,sites:['start','onDispatch','updateCurrent']},
+ {name:'continue selected',said:'Continue the newsletter',description:/Continuar “Newsletter”/,options:{target:true},sites:['send','onDispatch','updateCurrent']},
+ {name:'continue selected workflow',said:'Run morning intel',description:/Executar “Boletim de IA” em “Newsletter”/,options:{target:true},sites:['continueWorkflow','onDispatch','updateCurrent']},
+ {name:'stop',said:'Stop that',description:/Interromper “Newsletter”/,options:{target:true,state:'working'},sites:['stop']},
+ {name:'Top 3 note edit',said:'Check off priority two',description:/Concluir “Record the demo”/,options:{target:true},sites:['editDaily']},
+ {name:'model-proposed note edit',said:'Mark whichever priority involves recording',description:/Concluir “Record the demo”/,options:{model:{tier:2,write:{kind:'top3',index:1}}},model:true,sites:['editDaily']},
+ {name:'fuzzy note edit',said:'Mark review comments done',description:/Concluir “Review comments”/,sites:['editDaily']},
+ {name:'add note item',said:'Add proofread the draft to my tasks',description:/Adicionar “proofread the draft”/,sites:['editDaily']},
+ {name:'conversation reset',said:'Start a new task',description:/Iniciar uma nova conversa/,options:{target:true},sites:['updateCurrent']},
+ {name:'legacy enqueue',said:'Run morning intel',request:{terminalMode:false},description:/Colocar “Boletim de IA” na fila/,sites:['enqueue']},
+ {name:'artifact reopen',said:'Pull it up',description:/Reabrir “Preview”/,options:{target:true},seed:f=>f.task.turns.push({id:'output',artifacts:[artifact]}),sites:['reopenArtifact']}
 ];
 for(const item of routes)test(`plan and commit: ${item.name}`,async t=>{
  const live=fixture(t,item.options);item.seed?.(live);
@@ -130,7 +130,7 @@ for(const changed of ['target','selection','epoch','task state','note moved','no
  if(changed==='note moved')put(f.root,daily,note.replace('1. [ ] Publish the newsletter\n2. [ ] Record the demo','2. [ ] Record the demo\n1. [ ] Publish the newsletter'));
  if(changed==='note renamed')put(f.root,daily,note.replace('Record the demo','Record a tutorial'));
  const before=tree(f.root);
- await assert.rejects(handleVoiceRequest(f.ctx,commitRequest,{source:'live',phase:'commit',plannedAction:planned.action,guard:()=>assert.fail('validated too late')}),/changed/);
+ await assert.rejects(handleVoiceRequest(f.ctx,commitRequest,{source:'live',phase:'commit',plannedAction:planned.action,guard:()=>assert.fail('validated too late')}),changed.startsWith('note')?/changed/:/a seleção ou a conversa mudou/);
  assert.deepEqual(tree(f.root),before);assert.deepEqual(f.calls,[]);
 });
 

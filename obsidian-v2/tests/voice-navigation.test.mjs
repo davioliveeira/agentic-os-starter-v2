@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import {build} from 'esbuild';
+import {TIME_ZONE} from '../shared/timezone.mjs';
 const load=async result=>import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
 const {applyVoiceAction}=await load(await build({entryPoints:['src/lib/voice-actions.ts'],bundle:true,platform:'node',format:'esm',write:false}));
 const quickReply={id:'quick-reply',action:'reply',reply:'The saved Hacker News brief is available.',provider:'codex',model:null,transcript:'What is the top HN story?',queued:null,skill:null,workIds:[],panels:['documents'],deliverable:null,reveal:null,reveals:[],obsidian:null,workTarget:null};
@@ -18,7 +19,7 @@ test('explicit saved-report opens navigate directly in native Obsidian for eithe
   const leaf={openFile:async value=>opened.push(value)};
   const app={vault:{getAbstractFileByPath:query=>query===file.path?file:null},workspace:{iterateAllLeaves:()=>{},getLeaf:type=>{assert.equal(type,'tab');return leaf},revealLeaf:async value=>revealed.push(value)}};
   const result=await applyVoiceAction(app,{...quickReply,provider,reply:'',deliverable:file.path,reveal:'open'},()=>assert.fail('no dashboard activation'),()=>assert.fail('no terminal opening'));
-  assert.deepEqual(opened,[file]);assert.deepEqual(revealed,[leaf]);assert.equal(result,'Opened '+file.name+'.');
+  assert.deepEqual(opened,[file]);assert.deepEqual(revealed,[leaf]);assert.equal(result,'Nota aberta: '+file.name+'.');
  }
 });
 
@@ -67,7 +68,7 @@ test('Jarvis reports provider changes only when an active voice turn was stopped
  for(const state of ['listening','working','speaking']){
   session.mode=state;const before=logs.length;
   assert.equal(jarvis.voice.stop('provider-change'),'cancel-result');assert.equal(session.mode,'idle');
-  assert.equal(logs.length,before+1);assert.equal(logs.at(-1).kind,'sys');assert.match(logs.at(-1).text,/stopped.*switching providers/i);
+  assert.equal(logs.length,before+1);assert.equal(logs.at(-1).kind,'sys');assert.match(logs.at(-1).text,/interrompida após a troca de provedor/i);
   jarvis.voice.stop('provider-change');assert.equal(logs.length,before+1,'idle rerenders stay quiet');
  }
  session.mode='working';const before=logs.length;jarvis.voice.stop();assert.equal(logs.length,before,'ordinary stops retain existing caller messaging');
@@ -85,11 +86,11 @@ function nativeNoteFixture(file){
 }
 
 test('native repeated report, note and daily-note opens reuse the exact existing file pane',async()=>{
- const date=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago'}).format(new Date());
+ const date=new Intl.DateTimeFormat('en-CA',{timeZone:TIME_ZONE}).format(new Date());
  for(const reply of [{deliverable:'reports/brief.md',reveal:'open'},{obsidian:{op:'open-note',query:'reports/brief.md'}},{obsidian:{op:'open-note',query:'reports/brief.md',where:'tab'}},{obsidian:{op:'daily-note'}}]){
   const filePath=reply.obsidian?.op==='daily-note'?`daily-notes/${date}.md`:'reports/brief.md';
   const file={path:filePath,name:filePath.split('/').at(-1),basename:'brief',extension:'md'},f=nativeNoteFixture(file);
-  for(let attempt=0;attempt<2;attempt++)assert.equal(await applyVoiceAction(f.app,{...quickReply,...reply},()=>assert.fail('no cockpit'),()=>assert.fail('no terminal')),'Opened '+file.name+'.');
+  for(let attempt=0;attempt<2;attempt++)assert.equal(await applyVoiceAction(f.app,{...quickReply,...reply},()=>assert.fail('no cockpit'),()=>assert.fail('no terminal')),'Nota aberta: '+file.name+'.');
   assert.equal(f.created.length,1);assert.equal(f.opened.length,1);assert.notEqual(f.created[0].leaf,f.other,'matching basenames never substitute another full path');
   assert.deepEqual(f.revealed,[f.created[0].leaf,f.created[0].leaf]);assert.equal(f.created[0].leaf.editor.selection,'keep this selection');
  }

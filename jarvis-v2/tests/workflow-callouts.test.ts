@@ -44,12 +44,12 @@ test('a Live hand-off is one card that updates in place, clears when dropped, an
   const card=()=>cards.find(item=>item.target==='live:del_1');
   assert.deepEqual({label:card()?.label,phase:card()?.phase,note:card()?.note,kind:card()?.kind,startedAt:card()?.startedAt},{label:'Encaminhando',phase:'working',note:'V2 está processando',kind:'task',startedAt:1000});
   const slot=card()?.slot,id=card()?.id;
-  cards=liveActivityCallout(cards,{key:'del_1',phase:'starting',label:'Start Inbox Brief'},next);
-  assert.deepEqual({label:card()?.label,phase:card()?.phase,note:card()?.note,slot:card()?.slot,id:card()?.id},{label:'Inbox Brief',phase:'working',note:'iniciando',slot,id});
-  cards=liveActivityCallout(cards,{key:'del_1',phase:'started',label:'Start Inbox Brief'},next);
+  cards=liveActivityCallout(cards,{key:'del_1',phase:'starting',label:'Iniciar “Resumo da caixa de entrada”'},next);
+  assert.deepEqual({label:card()?.label,phase:card()?.phase,note:card()?.note,slot:card()?.slot,id:card()?.id},{label:'Resumo da caixa de entrada',phase:'working',note:'iniciando',slot,id});
+  cards=liveActivityCallout(cards,{key:'del_1',phase:'started',label:'Iniciar “Resumo da caixa de entrada”'},next);
   assert.deepEqual({phase:card()?.phase,note:card()?.note},{phase:'done',note:'iniciado'});
-  cards=liveActivityCallout(cards,{key:'del_2',phase:'answered',label:'the morning brief'},next);
-  assert.equal(cards.find(item=>item.target==='live:del_2')?.label,'Morning brief');
+  cards=liveActivityCallout(cards,{key:'del_2',phase:'answered',label:'resumo da manhã'},next);
+  assert.equal(cards.find(item=>item.target==='live:del_2')?.label,'Resumo da manhã');
   cards=liveActivityCallout(cards,{key:'del_2',phase:'dropped',label:''},next);
   assert.equal(cards.some(item=>item.target==='live:del_2'),false);
   assert.equal(liveActivityCallout(cards,{key:'del_9',phase:'dropped',label:''},next),cards);
@@ -125,15 +125,15 @@ test('one card per conversation: a follow-up on the same conversation takes over
   let {cards,next}=startedCard();
   cards=reconcileTaskCallouts(cards,[convo('working')],true,5000);
   cards=liveActivityCallout(cards,{key:'del_2',phase:'handoff',label:''},next,20000);
-  cards=liveActivityCallout(cards,{key:'del_2',phase:'starting',label:'Add to “that task” when it is free'},next,21000);
+  cards=liveActivityCallout(cards,{key:'del_2',phase:'starting',label:'Acrescentar o pedido a “essa tarefa” quando estiver disponível'},next,21000);
   assert.equal(cards.length,2);assert.equal(cards.find(card=>card.target==='live:del_2')?.label,'Continuação');
-  cards=liveActivityCallout(cards,{key:'del_2',phase:'started',label:'Add to “that task” when it is free',taskIds:['task-1']},next,23500);
+  cards=liveActivityCallout(cards,{key:'del_2',phase:'started',label:'Acrescentar o pedido a “essa tarefa” quando estiver disponível',taskIds:['task-1']},next,23500);
   assert.deepEqual(cards.map(card=>[card.target,card.taskId,card.phase]),[['live:del_2','task-1','working']]);
   // The conversation's title replaces "Follow-up" once the list is read.
   assert.equal(reconcileTaskCallouts(cards,[convo('working')],true,24000)[0].label,'Pager, make me a one-pager on black holes');
   // A hand-off that started nothing the page can follow keeps the old behavior: "started", then cleared.
-  const plain=liveActivityCallout([],{key:'del_3',phase:'started',label:'Start Inbox Brief'},next);
-  assert.deepEqual({phase:plain[0].phase,note:plain[0].note,taskId:plain[0].taskId},{phase:'done',note:'iniciado',taskId:undefined});
+  const plain=liveActivityCallout([],{key:'del_3',phase:'started',label:'Iniciar “Resumo da caixa de entrada”'},next);
+  assert.deepEqual({label:plain[0].label,phase:plain[0].phase,note:plain[0].note,taskId:plain[0].taskId},{label:'Resumo da caixa de entrada',phase:'done',note:'iniciado',taskId:undefined});
 });
 
 test('four working cards are never bumped by a finished one, and card names drop quotes and filler',()=>{

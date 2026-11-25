@@ -51,7 +51,7 @@ test('requests go one per turn in the order they were said, and a free conversat
 test('at most three wait, a stale one is dropped, and a stopped conversation keeps none',t=>{
  const f=fixture(t);
  for(let index=0;index<MAX_QUEUED_FOLLOWUPS;index++)f.manager.sendWhenFree(f.task.id,'Request '+index);
- assert.throws(()=>f.manager.sendWhenFree(f.task.id,'One too many'),/already has 3 requests waiting/);
+ assert.throws(()=>f.manager.sendWhenFree(f.task.id,'One too many'),/já tem 3 pedidos na fila/);
  f.advance(QUEUED_FOLLOWUP_MAX_AGE_MS+1);
  const before=f.typed();f.finishTurn();
  assert.equal(f.typed(),before,'a request older than half an hour is not sent out of the blue');assert.equal(f.waiting(),0);assert.equal(f.task.state,'ready');
@@ -65,6 +65,6 @@ test('a conversation waiting for an approval takes no follow-up, queued or typed
  f.manager.accept(f.task.id,{type:'PermissionRequest',sessionId:session});
  assert.equal(f.task.state,'needs input');
  const before=f.typed();
- assert.throws(()=>f.manager.sendWhenFree(f.task.id,'Add a section'),/waiting for your approval/);
+ assert.throws(()=>f.manager.sendWhenFree(f.task.id,'Add a section'),/aguarda sua aprovação/);
  assert.equal(f.typed(),before);assert.equal(f.waiting(),0);
 });

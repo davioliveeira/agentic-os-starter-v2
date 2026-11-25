@@ -90,8 +90,8 @@ test('an untested Terminal that opened a tab it does not let us follow says the 
  // Through the real binding: the fixture's Terminal views expose no emulator, as a changed Terminal might.
  const alive=setInterval(()=>{},1000);t.after(()=>clearInterval(alive));
  const outcomes=[['3.28.0',false,/abriu esta conversa\. Esta versão do Terminal impede que o Agentic OS acompanhe a sessão.*ainda pode estar em execução/,1],
-  ['3.28.0',true,/^The terminal closed before its process was ready\.$/,0],
-  ['3.27.2',false,/^Terminal did not open before the launch timeout\.$/,1]];
+  ['3.28.0',true,/^O terminal foi fechado antes que o processo estivesse pronto\.$/,0],
+  ['3.27.2',false,/^O Terminal não abriu dentro do tempo limite\.$/,1]];
  for(const [version,closeTab,expected,tabs] of outcomes){
   const f=fixture();f.app.plugins.plugins.terminal.manifest.version=version;
   f.options.bind=(view,callbacks,options)=>bindDirectTerminal(view,callbacks,{...options,timeoutMs:60,pollMs:5});

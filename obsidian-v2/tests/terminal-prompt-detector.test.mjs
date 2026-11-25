@@ -10,10 +10,10 @@ test('ordinary review/approval lists never signal input, even at partial line bo
 });
 test('hooks, trust and approval menus remain detectable across fragmented ANSI, with a changed selection or plain menu',()=>{
  const prompts=[
-  [hooks,/review its hooks/],
-  ['\x1b[1mDo you trust the contents of this directory?\x1b[0m\n› 1. Yes, continue\n  2. No, quit\n',/trust this workspace/],
-  ['Would you like to run this command?\n  1. Yes\n❯ 2. No\n',/your approval/],
-  ['Would you like to run this command?\n1. Yes\n2. No\nPress enter to confirm\n',/your approval/]
+  [hooks,/revise os hooks/],
+  ['\x1b[1mDo you trust the contents of this directory?\x1b[0m\n› 1. Yes, continue\n  2. No, quit\n',/confia neste espaço de trabalho/],
+  ['Would you like to run this command?\n  1. Yes\n❯ 2. No\n',/aguarda sua aprovação/],
+  ['Would you like to run this command?\n1. Yes\n2. No\nPress enter to confirm\n',/aguarda sua aprovação/]
  ];
  for(const [text,expected] of prompts)for(const size of [1,7,text.length]){const {detector,reasons}=feed(text,size);assert.ok(reasons.some(reason=>expected.test(reason)));assert.equal(detector.update('\x1b[2J\x1b[HWelcome back. Ready.\n'),null)}
 });
@@ -31,7 +31,7 @@ for(const header of actionHeaders)test(`Codex action approval is detected: ${hea
   const screen=`\x1b[1m${header}\x1b[0m\r\n${menu}\r\nPress enter to confirm or esc to go back\r\n`;
   for(const size of [1,7,screen.length]){
    const {detector,reasons}=feed(screen,size);
-   assert.ok(reasons.some(reason=>/waiting for your approval/.test(reason)));
+   assert.ok(reasons.some(reason=>/aguarda sua aprovação/.test(reason)));
    assert.equal(detector.update('\x1b[2J\x1b[HAction complete.\n'),null);
   }
  }

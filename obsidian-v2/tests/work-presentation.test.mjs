@@ -33,7 +33,7 @@ test('direct scripts follow task lifecycle without being mistaken for success on
 test('task titles normalize whitespace, preserve Unicode and fall back without model calls',()=>{
  assert.equal(shortTaskTitle({state:'working',title:'  Review\n\t pricing   changes '}),'Review pricing changes');
  assert.equal(shortTaskTitle({state:'working',title:'Compare 🌌 galaxy options'},10),'Compare 🌌…');
- assert.equal(shortTaskTitle({state:'stopped',title:' ',provider:'codex'}),'Codex task');assert.equal(shortTaskTitle({state:'working',provider:'claude'}),'Claude task');
- assert.equal(shortTaskTitle({state:'working',execution:'script',provider:'codex'}),'Source refresh');assert.equal(shortTaskTitle({state:'working'}),'Agent task');
+ assert.equal(shortTaskTitle({state:'stopped',title:' ',provider:'codex'}),'Tarefa do Codex');assert.equal(shortTaskTitle({state:'working',provider:'claude'}),'Tarefa do Claude');
+ assert.equal(shortTaskTitle({state:'working',execution:'script',provider:'codex'}),'Atualização da fonte');assert.equal(shortTaskTitle({state:'working'}),'Tarefa do agente');
  assert.equal(shortTaskTitle({state:'working',title:'Long name'},1),'…');
 });

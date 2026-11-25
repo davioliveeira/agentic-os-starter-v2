@@ -27,14 +27,14 @@ for(const selection of selections)for(const appScope of ['native','web'])test(`$
  assert.match(instructions,/BACKGROUND WORKFLOW CONTRACT/);assert.doesNotMatch(instructions,/INTERACTIVE TERMINAL CONTRACT/);assert.match(calls[0].prompt,/Return JSON/);
  manager.accept(task.id,{type:'complete',sessionId:crypto.randomUUID(),turnId:'unexpected-hook',text:'# Wrong report'});
  assert.equal(task.sessionId,null);assert.equal(task.workflowCompleted,undefined);assert.equal(task.turns.length,0);
- assert.throws(()=>manager.input(task.id,'text'),/Background workflows/);assert.throws(()=>manager.send(task.id,'follow-up'),/Background workflows/);assert.throws(()=>manager.resume(task.id),/Background workflows/);
+ assert.throws(()=>manager.input(task.id,'text'),/fluxos? em segundo plano/i);assert.throws(()=>manager.send(task.id,'follow-up'),/fluxos? em segundo plano/i);assert.throws(()=>manager.resume(task.id),/fluxos? em segundo plano/i);
  calls[0].resolve({status:'ok',summary:'Weekly report ready',text:'# Weekly review\n\nCompleted research.'});await done;
  assert.equal(task.state,'stopped');assert.equal(task.workflowStatus,'ok');assert.equal(task.turns.length,0);assert.equal(task.sessionId,null);assert.equal(task.recoveryAvailable,false);assert.equal(manager.live.size,0);
  assert.equal(run(task.id).status,'ok');assert.equal(run(task.id).execution,'headless');assert.equal(run(task.id).appScope,appScope);
  assert.equal(fs.readFileSync(path.join(root,run(task.id).deliverable_path),'utf8'),'# Weekly review\n\nCompleted research.');
  assert.equal(manager.startWorkflow(request),task);assert.equal(calls.length,1);
- assert.throws(()=>manager.startWorkflow({...request,appScope:appScope==='native'?'web':'native'}),/different workflow or app/);
- assert.throws(()=>manager.startWorkflow({...request,execution:appScope==='native'?'native':undefined}),/different workflow or app/);
+ assert.throws(()=>manager.startWorkflow({...request,appScope:appScope==='native'?'web':'native'}),/pertence a outro fluxo ou aplicativo/);
+ assert.throws(()=>manager.startWorkflow({...request,execution:appScope==='native'?'native':undefined}),/pertence a outro fluxo ou aplicativo/);
 });
 for(const selection of selections)test(`${selection.provider} blocked or failed headless runs never replace a report or advertise success`,async t=>{
  const {root,manager,calls,run}=fixture(t);
@@ -52,7 +52,7 @@ test('cancellation keeps the running lock until CLI closure and discards a late 
  const {root,manager,calls,run}=fixture(t),selection=selections[0];
  const task=manager.startWorkflow({selection,skill:'plan-today',execution:'headless'}),done=manager.live.get(task.id).done;
  await Promise.resolve();manager.stop(task.id);assert.equal(calls[0].signal.aborted,true);assert.equal(task.state,'stopping');assert.equal(manager.live.size,1);
- assert.throws(()=>manager.startWorkflow({selection,skill:'refresh-schedule',execution:'headless'}),/same note/);
+ assert.throws(()=>manager.startWorkflow({selection,skill:'refresh-schedule',execution:'headless'}),/atualizando a mesma nota/);
  calls[0].resolve({status:'ok',text:'# A late result'});await done;
  assert.equal(task.state,'stopped');assert.equal(run(task.id).status,'error');assert.match(run(task.id).summary,/stopped/);assert.equal(fs.existsSync(path.join(root,task.workflow.destination)),false);assert.equal(manager.live.size,0);
 });
@@ -96,6 +96,6 @@ test('unconfirmed CLI shutdown stays failed and retains its source lock until ac
  let closed;const error=new Error('Workflow cancelled; process shutdown could not be confirmed.');error.cleanupUnconfirmed=true;error.closed=new Promise(resolve=>{closed=resolve});
  calls[0].reject(error);await done;
  assert.equal(task.state,'error');assert.match(task.error,/could not be confirmed/);assert.equal(run(task.id).status,'error');assert.equal(manager.live.size,1);assert.equal(task.workflowCompleted,false);
- assert.throws(()=>manager.startWorkflow({selection,skill:'plan-today',execution:'headless'}),/same note/);
+ assert.throws(()=>manager.startWorkflow({selection,skill:'plan-today',execution:'headless'}),/atualizando a mesma nota/);
  closed();await Promise.resolve();assert.equal(manager.live.size,0);assert.equal(task.state,'error');assert.equal(task.workflowCompleted,true);
 });

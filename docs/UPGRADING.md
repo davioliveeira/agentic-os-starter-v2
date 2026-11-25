@@ -1,50 +1,48 @@
-# Upgrading the Agentic OS you already use
+# Atualizar uma instalação existente do Agentic OS
 
-You can start from V1, an older V2 starter, or a version you have customized. Open Claude Code or Codex and say:
-
-```text
-Use https://github.com/ctskool/agentic-os-starter-v2 to help upgrade my existing Agentic OS. Find my installation and vault, explain what I can add, and preserve my customizations. Show me the plan before changing my setup.
-```
-
-Your agent first finds your installation and vault. If it finds several, it asks which vault you use. If it cannot find yours, it helps you locate the vault through Obsidian and your computer's folder browser; you do not need to know the path beforehand.
+Você pode partir do V1, de uma versão antiga do V2 ou de uma instalação personalizada. Abra o Claude Code ou o Codex e diga:
 
 ```text
-Find existing system       No changes or service interruption
-        |
-Choose improvements       Keep your customizations by default
-        |
-Review a concrete plan    Files, dependencies, tests and rollback
-        |
-Apply and verify          Agree before interrupting your working system
+Use https://github.com/davioliveeira/agentic-os-starter-v2 para me ajudar a atualizar meu Agentic OS. Localize minha instalação e meu cofre, explique o que posso adicionar e preserve minhas personalizações. Mostre o plano antes de alterar a instalação.
 ```
 
-You can ask for the cockpit, Jarvis HUD, local voice, optional Live voice calls, optional Jev, an About me profile, personal dashboard buttons, or bundled workflows. Your agent explains what each needs and suggests a compatible approach. A skill or plugin being present does not prove it works with the rest of your system. Some features require matching bridge, plugin and HUD changes.
+O agente começa localizando a instalação e o cofre. Se encontrar mais de um, vai perguntar qual você usa. Se precisar de ajuda para encontrar o cofre, você pode localizá-lo pelo Obsidian e pelo gerenciador de arquivos.
 
-Tell the agent which parts of your existing setup matter to you, and which skills you use often. It can inspect selected non-secret files to compare versions, but it cannot infer your usage history from a list of installed skills.
+```text
+Localizar a instalação    Consultar sem alterar arquivos nem interromper serviços
+        |
+Escolher melhorias        Preservar suas personalizações
+        |
+Revisar o plano           Conferir arquivos, dependências, testes e restauração
+        |
+Aplicar e verificar       Combinar a transição antes de interromper os serviços
+```
 
-| Your starting point | The usual route |
+Você pode pedir o painel do Obsidian, o Jarvis, voz local, chamadas ao vivo, o roteador Jev, o perfil Sobre mim, botões personalizados ou os fluxos incluídos. O agente explica os requisitos e verifica a compatibilidade. Alguns recursos precisam de versões correspondentes da ponte, do plugin e do Jarvis.
+
+Diga ao agente quais partes da configuração importam para você e quais skills costuma usar. Ele pode comparar versões em arquivos que sejam relevantes e não contenham segredos. A lista de skills instaladas mostra as opções disponíveis. Para identificar quais você usa no dia a dia, conte ao agente sobre a sua rotina.
+
+| De onde você parte | Como atualizar |
 |---|---|
-| Unmodified, recognized V2 starter | Update the existing installation as one release. Preserve vault notes, dashboard choices and supported preferences. |
-| V1 | Prepare and test V2, keep the same vault, and keep the old plugin available until the new system is verified. |
-| Customized or unknown project | Review an integration plan, preserve your custom code, implement the chosen compatible changes, and test before a service handoff. Future upgrades may require manual integration. |
+| V2 original reconhecido, sem alterações | Atualize a instalação como uma versão completa. As notas do cofre, os ajustes do painel e as preferências compatíveis são preservados. |
+| V1 | Prepare e teste o V2 com o mesmo cofre. Mantenha o plugin anterior disponível até verificar o novo sistema. |
+| Projeto personalizado ou de versão desconhecida | Revise um plano de integração, preserve suas alterações, implemente as melhorias compatíveis e teste antes da transição. Futuras atualizações podem exigir integração manual. |
 
-There is no universal automatic merge. The agent should explain actual conflicts and let you decide when your preferences are unclear. It should keep scoped backups of the non-secret files it changes, preserve your existing notes and Obsidian settings, and never copy your whole vault or credential directories as an upgrade backup. Keys stay out of chat; you enter a missing key through the local setup page yourself.
-
-The two commands have different purposes:
+Se houver conflitos, o agente deve mostrar quais arquivos são afetados e confirmar suas preferências. Antes de editar, ele deve guardar cópias apenas dos arquivos envolvidos que não contenham segredos e preservar as notas e configurações do Obsidian. Mantenha o cofre e as pastas de credenciais fora do backup da atualização. Digite chaves apenas na página de configuração local.
 
 ```text
-node aos.mjs upgrade    # Read-only discovery and report; does not apply an upgrade
-node aos.mjs update     # Changes a recognized stock starter and rebuilds it
+node aos.mjs upgrade    # Localiza instalações e exibe um relatório de consulta
+node aos.mjs update     # Atualiza e recompila uma instalação original reconhecida
 ```
 
-**Updating from the first public release (September 2026):** that version of `update` pulls the new files but then runs the setup code it had already loaded. Run `node aos.mjs stop`, then `node aos.mjs setup` once after that update so the new setup steps run too (choosing the coding tool, the Python checks, voice package updates, the Windows login-task repair and the Mac login-item repair). The doctor reports `FAIL Setup finished for these files` until you do. Later updates run the new setup automatically.
+**Ao atualizar da primeira versão pública de setembro de 2026**, o comando `update` baixa os arquivos novos e executa o código de instalação que já estava carregado. Depois da atualização, rode `node aos.mjs stop` e `node aos.mjs setup` uma vez para aplicar também as etapas novas. Isso inclui a seleção do provedor, as verificações do Python, os pacotes de voz e os ajustes de inicialização no Windows e no macOS. Antes desse passo, o diagnóstico informa que a instalação não foi concluída para a versão. As versões seguintes executam automaticamente o código de instalação atualizado.
 
-`update` refuses customized or unknown source before stopping services. If it refuses, have your agent inspect the changes and plan an integration. Do not discard your modifications just to force it through.
+Se `update` recusar uma instalação personalizada ou de versão desconhecida, peça ao agente para avaliar as alterações e preparar uma integração que preserve seu código.
 
-Only one installation can own the system's fixed ports. Your agent must get your agreement before stopping the working installation, use its own scripts, and keep a way to restore it. Tests that need those occupied ports wait for that handoff. Unrelated speech services and recovery tasks should remain alone.
+Uma única instalação pode usar as portas fixas do Agentic OS por vez. Combine a transição antes de encerrar a instalação em uso e guarde um caminho para restaurá-la. Use os scripts da própria instalação e aguarde a liberação das portas para rodar testes que dependam delas. Deixe outros serviços de voz e tarefas de recuperação fora da transição.
 
-**After the update, your agent offers what is new.** An update installs new features but does not switch them on. Once the checks pass, your agent asks once about each thing you have not set up: an About me profile, your own dashboard buttons, and [Live voice](LIVE-VOICE.md). Say no to any of them and nothing changes. You can come back later with “set up Live voice” or “update my About me”.
+Depois das verificações, o agente pode oferecer o perfil Sobre mim, seus botões personalizados e a [voz ao vivo](LIVE-VOICE.md). Cada recurso é ativado de acordo com a sua escolha. Você também pode pedir para configurar a voz ao vivo ou atualizar o perfil Sobre mim a qualquer momento.
 
-At the end, your agent should say what changed, which tests passed, what failed or was skipped, which installation is running, and how you should update next time. **macOS remains beta:** automated checks do not replace testing the microphone, cockpit and HUD on your own Mac.
+Ao final, confira o que mudou, quais testes passaram, quais falharam ou foram pulados, qual instalação está rodando e como fazer a próxima atualização. **O suporte ao macOS está em beta.** Teste o microfone, o painel do Obsidian e o Jarvis no seu Mac.
 
-The detailed instructions your agent follows are in [the upgrade playbook](../setup/UPGRADE.md). If something is broken and you only want a repair, say **"run the doctor for my existing installation"** instead.
+Veja as instruções detalhadas no [roteiro de atualização](../setup/UPGRADE.md). Para reparar a instalação atual, peça para rodar o diagnóstico da instalação existente.

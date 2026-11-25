@@ -44,18 +44,18 @@ test('an emulator that is assigned late, then a process, is an ordinary launch',
 
 test('no terminal at all is still reported, and the message says that nothing opened',async t=>{
  const f=slowTerminal(t,{timeoutMs:60,emulatorAt:-1});
- await assert.rejects(f.binding.ready,/Terminal did not open before the launch timeout\./);
- assert.deepEqual(f.events,[{type:'error',value:'Terminal did not open before the launch timeout.'},{type:'closed',value:'disposed'}]);
+ await assert.rejects(f.binding.ready,/O Terminal não abriu dentro do tempo limite\./);
+ assert.deepEqual(f.events,[{type:'error',value:'O Terminal não abriu dentro do tempo limite.'},{type:'closed',value:'disposed'}]);
  assert.equal(f.binding.active,false);
 });
 
 test('a terminal whose process never appears is still reported, with the message used until now',async t=>{
  const f=slowTerminal(t,{timeoutMs:60});
- await assert.rejects(f.binding.ready,/Terminal did not expose its process before the launch timeout\./);
- assert.deepEqual(f.events,[{type:'error',value:'Terminal did not expose its process before the launch timeout.'},{type:'closed',value:'disposed'}]);
+ await assert.rejects(f.binding.ready,/O Terminal não disponibilizou o processo dentro do tempo limite de abertura\./);
+ assert.deepEqual(f.events,[{type:'error',value:'O Terminal não disponibilizou o processo dentro do tempo limite de abertura.'},{type:'closed',value:'disposed'}]);
  // Half-way counts as not exposed: the pseudoterminal arrived, the process did not.
  const g=slowTerminal(t,{timeoutMs:60});g.givePty();
- await assert.rejects(g.binding.ready,/did not expose its process/);
+ await assert.rejects(g.binding.ready,/não disponibilizou o processo/);
 });
 
 test('a process that arrives after the alarm is not resurrected',async t=>{
@@ -93,7 +93,7 @@ test('the terminal exiting while its process is still awaited ends the wait as a
 
 test('with the pseudoterminal already there, a process that arrives after the alarm is not resurrected either',{timeout:20000},async t=>{
  const f=slowTerminal(t,{timeoutMs:60});f.givePty();
- await assert.rejects(f.binding.ready,/did not expose its process/);
+ await assert.rejects(f.binding.ready,/não disponibilizou o processo/);
  f.giveShell();await wait(30);
  assert.deepEqual(f.types(),['error','closed']);assert.equal(f.binding.active,false);assert.equal(f.stdout.listenerCount('data'),0);assert.equal(f.input.size,0);
 });

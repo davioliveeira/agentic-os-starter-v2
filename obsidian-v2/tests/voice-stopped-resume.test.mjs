@@ -140,15 +140,15 @@ for (const provider of ['codex', 'claude']) {
 
  test(`${provider}: cancelled voice work and invalid resume text do not reopen the stopped session`, async t => {
   const f = fixture(t, provider), task = f.saved(), controller = new AbortController(); controller.abort();
-  await assert.rejects(f.speak(request, task.id, {}, noModel, f.manager, controller.signal), /cancelled/);
-  assert.throws(() => f.manager.send(task.id, 'Bad\x1b[201~\rinput', {resumeStopped: true}), /Control/);
-  assert.throws(() => terminalSpec(f.root, task, {command: 'fixture-cli', prefix: []}, {resumePrompt: 'Bad\x1binput'}), /Control/);
+  await assert.rejects(f.speak(request, task.id, {}, noModel, f.manager, controller.signal), /Solicitação por voz cancelada/);
+  assert.throws(() => f.manager.send(task.id, 'Bad\x1b[201~\rinput', {resumeStopped: true}), /caracteres de controle/);
+  assert.throws(() => terminalSpec(f.root, task, {command: 'fixture-cli', prefix: []}, {resumePrompt: 'Bad\x1binput'}), /caracteres de controle/);
   assert.equal(f.processes.length, 1); assert.equal(task.state, 'stopped'); assert.equal(f.updates.length, 0);
  });
 
  test(`${provider}: manual send keeps the resume gate, and manual resume retains its readiness-only prompt`, t => {
   const f = fixture(t, provider), task = f.saved();
-  assert.throws(() => f.manager.send(task.id, request), /Resume/);
+  assert.throws(() => f.manager.send(task.id, request), /Retome este terminal/);
   f.manager.resume(task.id);
   assert.equal(f.processes.length, 2); assert.match(f.processes[1].args.at(-1), /without using tools or taking actions/);
   assert.deepEqual(f.processes[1].writes, []);
@@ -184,7 +184,7 @@ for (const provider of ['codex', 'claude']) {
   f.manager.resume(task.id); f.complete(task, 'ready-after-resume');
   f.manager.continueWorkflow(task.id, {selection: f.selection, skill: 'inbox-brief'}); f.manager.stop(task.id);
   const prior = JSON.stringify(task), count = f.processes.length, id = crypto.randomUUID();
-  await assert.rejects(f.speak('Run the weekly review', task.id, {id}), /unfinished workflow/);
+  await assert.rejects(f.speak('Run the weekly review', task.id, {id}), /tem um fluxo pendente/);
   assert.equal(JSON.stringify(task), prior); assert.equal(f.processes.length, count);
   assert.equal(fs.existsSync(path.join(f.root, 'system/v2/task-instructions', `${id}.md`)), false);
  });

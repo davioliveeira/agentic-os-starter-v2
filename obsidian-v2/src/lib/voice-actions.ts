@@ -53,13 +53,13 @@ export async function applyVoiceAction(app:App,reply:Partial<VoiceReply>,activat
   if(!where||where==='tab')app.workspace.iterateAllLeaves(leaf=>{if(!existing&&(leaf.view as Partial<FileView>).file?.path===file.path&&leaf.view.getViewType()!=='empty')existing=leaf});
   const leaf=existing||leafFor(where);if(!leaf)throw new Error('Esta nota está indisponível.');
   if(!existing)await leaf.openFile(file as TFile);await app.workspace.revealLeaf(leaf);
-  return `Opened ${file.name}.`;
+  return `Nota aberta: ${file.name}.`;
  };
  if(reply.deliverable&&reply.reveal==='open')return open(reply.deliverable);
  const action=reply.obsidian||(reply.action==='cockpit'?{op:'cockpit' as const}:null);
  if(!action)return null;
  switch(action.op){
-  case 'cockpit':await activate();return 'Opened command center.';
+  case 'cockpit':await activate();return 'Painel aberto.';
   case 'daily-note':return open(`daily-notes/${new Intl.DateTimeFormat('en-CA',{timeZone:TIME_ZONE}).format(new Date())}.md`,action.where);
   case 'open-note':{
    const exact=app.vault.getAbstractFileByPath(action.query);
@@ -72,20 +72,20 @@ export async function applyVoiceAction(app:App,reply:Partial<VoiceReply>,activat
   case 'search':{
    const search=(app as any).internalPlugins?.getPluginById?.('global-search')?.instance;
    if(!search?.openGlobalSearch)throw new Error('Ative o plugin nativo Busca do Obsidian para pesquisar notas.');
-   search.openGlobalSearch(action.query);return `Searching for ${action.query}.`;
+   search.openGlobalSearch(action.query);return `Buscando por ${action.query}.`;
   }
   case 'command':{
    if(!COMMAND_ALLOW[action.id])throw new Error('Este comando do espaço de trabalho é incompatível.');
-   if(action.id==='terminal:open-terminal.default.root'){openWork();return 'Opened terminals.'}
+   if(action.id==='terminal:open-terminal.default.root'){openWork();return 'Visualização de terminais aberta.'}
    if(!(app as any).commands?.executeCommandById?.(action.id))throw new Error('Este comando do espaço de trabalho está indisponível.');
-   return `Opened ${action.label}.`;
+   return `Aberto: ${action.label}.`;
   }
   case 'repo':case 'web':{
    if(action.op==='repo'&&!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(action.slug))throw new Error('Repositório inválido.');
    if(action.op==='web'&&!Object.values(WEB_TARGETS).some(t=>t.url===action.url))throw new Error('Este endereço da web é incompatível.');
    const leaf=leafFor(action.where);if(!leaf)throw new Error('Nenhuma aba do espaço de trabalho está disponível.');
    await leaf.setViewState({type:'webviewer',active:true,state:{url:action.op==='repo'?`https://github.com/${action.slug}`:action.url,navigate:true}});
-   await app.workspace.revealLeaf(leaf);return `Opened ${action.op==='repo'?action.slug:action.label}.`;
+   await app.workspace.revealLeaf(leaf);return `Aberto: ${action.op==='repo'?action.slug:action.label}.`;
   }
  }
 }

@@ -41,7 +41,7 @@ export function createWorkConversations(options:Options){
   if(sessionPending)return sessionPending;
   const attempt=Promise.resolve().then(async()=>{
    const result=await options.startSession!();
-   if(!validMap(result)||!validRevision(result.revision))throw new Error('Conversation state is unavailable. Refresh the dashboard and try again.');
+   if(!validMap(result)||!validRevision(result.revision))throw new Error('O estado das conversas está indisponível. Atualize o painel e tente de novo.');
    sessionCurrent={codex:result.codex,claude:result.claude};sessionStarted=true;accept(result,result.revision);
   });
   sessionPending=attempt;
@@ -49,17 +49,17 @@ export function createWorkConversations(options:Options){
   return attempt;
  };
  const choose=(id:string|null,p:ConversationProvider=provider):Promise<void>=>{
-  if(!validProvider(p)||!(id===null||typeof id==='string'&&id.length>0&&id.length<=160))return Promise.reject(new Error('Invalid conversation selection.'));
+  if(!validProvider(p)||!(id===null||typeof id==='string'&&id.length>0&&id.length<=160))return Promise.reject(new Error('A seleção de conversa é inválida.'));
   sync(options.getSnapshot());
   const task=options.getSnapshot().tasks.find(task=>task.id===id);
-  if(task&&(task.provider!==p||['script','headless'].includes(task.execution||'')))return Promise.reject(new Error('Choose a CLI conversation for the selected provider.'));
+  if(task&&(task.provider!==p||['script','headless'].includes(task.execution||'')))return Promise.reject(new Error('Escolha uma conversa de terminal do provedor selecionado.'));
   const version=++versions[p];dirty[p]++;current[p]=id;errors[p]=null;notify();
   // Serialize writes, including different providers: each response is one shared map.
   const write=queue.then(async()=>{
    try{
     await startSession();
     const result=await options.persist(p,id);
-    if(!validMap(result)||!validRevision(result.revision)||result[p]!==id)throw new Error('The conversation selection was not confirmed. Try again.');
+    if(!validMap(result)||!validRevision(result.revision)||result[p]!==id)throw new Error('Não foi possível confirmar a conversa selecionada. Tente de novo.');
     dirty[p]--;if(result.revision<revision){if(!dirty[p])current[p]=confirmed[p]}else accept(result,result.revision);if(versions[p]===version)errors[p]=null;publish();notify();
    }catch(error){
     dirty[p]=Math.max(0,dirty[p]-1);
@@ -74,19 +74,19 @@ export function createWorkConversations(options:Options){
  };
  return {
   sync,choose,startSession,
-  setProvider(next:ConversationProvider){if(!validProvider(next))throw new Error('Invalid provider.');if(next!==provider){provider=next;notify()}},
+  setProvider(next:ConversationProvider){if(!validProvider(next))throw new Error('Provedor inválido.');if(next!==provider){provider=next;notify()}},
   provider:()=>provider,
   target:(p:ConversationProvider=provider)=>current[p],
   error:(p:ConversationProvider=provider)=>errors[p],
   current:()=>({...current}),
   async getSelection(chosen:ConversationChoice){
-   if(!validProvider(chosen.provider))throw new Error('Invalid provider.');
+   if(!validProvider(chosen.provider))throw new Error('Provedor inválido.');
    sync(options.getSnapshot());
    const captured={...chosen},p=chosen.provider,id=current[p],known=initialized||versions[p]>0,wait=pending[p],error=errors[p],capturedVersion=versions[p],capturedRevision=revision,startedAtCapture=sessionStarted;
    if(error)throw new Error(error);if(wait)await wait;
    await startSession();
    const fresh=await options.readFresh();if(fresh.error)throw new Error(fresh.error);
-   if(!Array.isArray(fresh.tasks)||!validMap(fresh.current)||!validRevision(fresh.currentRevision))throw new Error('Conversation state is unavailable. Refresh the dashboard and try again.');
+   if(!Array.isArray(fresh.tasks)||!validMap(fresh.current)||!validRevision(fresh.currentRevision))throw new Error('O estado das conversas está indisponível. Atualize o painel e tente de novo.');
    sync(fresh);
    // Expiry can clear the target in the fresh read. Respect that clear unless
    // the user changed their selection after capture. Never replace a captured
@@ -94,7 +94,7 @@ export function createWorkConversations(options:Options){
    const expired=known&&id!==null&&fresh.current[p]===null&&fresh.currentRevision>capturedRevision&&versions[p]===capturedVersion;
    const initialTarget=versions[p]===capturedVersion?fresh.current[p]:!startedAtCapture?sessionCurrent?.[p]??null:null;
    const targetId=expired?null:known?id:initialTarget,task=fresh.tasks.find(task=>task.id===targetId);
-   if(task&&(task.provider!==p||['script','headless'].includes(task.execution||'')))throw new Error('The remembered conversation does not belong to this provider. Choose New conversation or another conversation.');
+   if(task&&(task.provider!==p||['script','headless'].includes(task.execution||'')))throw new Error('A conversa selecionada não pertence a este provedor. Escolha Nova conversa ou selecione outra conversa.');
    // Missing/closed/busy targets remain explicit. The router must hear requests
    // such as "start a new task" before deciding whether continuation is valid.
    return {...captured,provider:p,model:task?.model||captured.model,terminalMode:true,targetId};

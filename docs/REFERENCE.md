@@ -1,78 +1,86 @@
-# Commands and technical reference
+<a id="commands-and-technical-reference"></a>
 
-Run commands from the starter's top-level folder. For guided installation, use the [setup playbook](../setup/PLAYBOOK.md); for an existing system, start with [the upgrade guide](UPGRADING.md).
+# Comandos e referência técnica
 
-## Commands
+Rode os comandos na pasta raiz do Agentic OS. Para uma instalação guiada, consulte o [roteiro de instalação](../setup/PLAYBOOK.md). Se você já usa o sistema, comece pelo [guia de atualização](UPGRADING.md).
 
-| Command | Purpose |
+<a id="commands"></a>
+
+## Comandos
+
+| Comando | O que faz |
 |---|---|
-| `node aos.mjs status` | Show which services are running. |
-| `node aos.mjs start` | Start this installation's services. |
-| `node aos.mjs stop` | Stop them when no terminal conversation remains open. |
-| `node aos.mjs doctor` | Check services, plugin, providers, the voice round trip and, when Live voice is set up, the saved OpenAI key. |
-| `node aos.mjs doctor --full` | Also run one real workflow using your provider account. |
-| `node aos.mjs setup` | Build and install using the vault and options chosen in the playbook. |
-| `node aos.mjs upgrade` | Find existing installations and report upgrade options without applying changes. |
-| `node aos.mjs update` | Update and rebuild a recognized, unmodified starter as a complete release. |
-| `node aos.mjs jev-key` | Add or replace an OpenRouter key through a local browser page. |
-| `node aos.mjs openai-key` | Add or replace the OpenAI API key and record consent for [Live voice](LIVE-VOICE.md). The page checks the key with OpenAI before saving it. |
-| `node aos.mjs openai-key --check` | Say whether a key and consent are saved, without showing the key. |
-| `node aos.mjs autostart on\|off` | Enable or disable starting this installation at login. |
-| `node aos.mjs dashboard` | Manage dashboard choices; see [personalization commands](DASHBOARD.md). `dashboard list` shows what every button does and needs. |
-| `node aos.mjs skills list` | Show the skill pack: optional skills you can install as your own, what each needs, and which are installed. |
-| `node aos.mjs skills install --skills "<id>,<id>" --provider claude\|codex` | Copy the chosen skills into that coding tool's skills folder. A copy you edited is never overwritten. |
-| `node aos.mjs schedule` | Run a bundled workflow by itself at a set time, for example `schedule add plan-today 07:00 --days weekdays`. Nothing is scheduled until you add it; `node aos.mjs schedule help` explains the rules. |
-| `node aos.mjs voice` | Show and change how voice sounds (mute, voice, speed), how fast it answers, and the words it listens for. `node aos.mjs voice help` lists the choices; the same settings are in the voice menu on both screens. |
-| `node aos.mjs about show` | Show the About me text Live receives and the bytes used out of 2,000. |
-| `node aos.mjs about write --from <file>` | Back up `AGENTS.md` if it exists, then write its About me section from a file. |
-| `node aos.mjs live-context show [--full]` | List what a Live call reads when it starts. `--full` prints it exactly as it would be sent now. |
-| `node aos.mjs live-context add <path> [--label "…"]` | Add one of your notes, or a report folder whose newest note is read, to every call. Up to six. |
-| `node aos.mjs live-context remove <path or number>` | Take a note off the list. |
-| `node aos.mjs live-context section <name> on\|off` | Turn a built-in part on or off: `today`, `inbox`, `numbers`, `news`, `radar`. Saved in `system/v2/live-context.json`. |
-| `node aos.mjs about migrate` | Preview moving `CLAUDE.md` to `AGENTS.md` and linking it back with an import. Add `--yes` to apply after reviewing the preview. |
+| `node aos.mjs status` | Mostra quais serviços estão rodando. |
+| `node aos.mjs start` | Inicia os serviços desta instalação. |
+| `node aos.mjs stop` | Encerra os serviços quando todas as conversas no terminal estiverem fechadas. |
+| `node aos.mjs doctor` | Verifica os serviços, o plugin, os provedores, a síntese e a transcrição de voz. Se a voz ao vivo estiver configurada, também verifica a chave da OpenAI salva. |
+| `node aos.mjs doctor --full` | Também roda um fluxo real usando a sua conta no provedor. |
+| `node aos.mjs setup` | Compila e instala o sistema com o cofre e as opções escolhidos no roteiro de instalação. |
+| `node aos.mjs upgrade` | Localiza instalações existentes e mostra as opções de atualização em uma consulta somente leitura. |
+| `node aos.mjs update` | Atualiza e recompila uma cópia reconhecida e sem modificações, instalando a versão completa. |
+| `node aos.mjs jev-key` | Adiciona ou substitui uma chave do OpenRouter em uma página local do navegador. |
+| `node aos.mjs openai-key` | Adiciona ou substitui a chave da API da OpenAI e registra sua autorização para a [voz ao vivo](LIVE-VOICE.md). A página verifica a chave na OpenAI antes de salvá-la. |
+| `node aos.mjs openai-key --check` | Informa se a chave e a autorização estão salvas, mantendo a chave oculta. |
+| `node aos.mjs autostart on\|off` | Ativa ou desativa o início automático desta instalação ao entrar na sessão. |
+| `node aos.mjs dashboard` | Gerencia as opções do painel. Veja os [comandos de personalização](DASHBOARD.md). `dashboard list` mostra o que cada botão faz e quais são seus requisitos. |
+| `node aos.mjs skills list` | Lista as skills opcionais do pacote, os requisitos de cada uma e quais já estão instaladas. Você pode instalar as que quiser como skills pessoais. |
+| `node aos.mjs skills install --skills "<id>,<id>" --provider claude\|codex` | Copia as skills escolhidas para a pasta de skills da ferramenta selecionada, preservando as cópias que você editou. |
+| `node aos.mjs schedule` | Agenda a execução automática de um fluxo incluído, como em `schedule add plan-today 07:00 --days weekdays`. Cada agendamento precisa ser adicionado por você. Consulte as regras em `node aos.mjs schedule help`. |
+| `node aos.mjs voice` | Mostra e ajusta as respostas em voz alta, a voz, a velocidade da fala, o tempo para começar a responder e as palavras reconhecidas. Consulte `node aos.mjs voice help` ou abra o menu de voz em um dos painéis. |
+| `node aos.mjs about show` | Mostra o texto de Sobre mim que a voz ao vivo recebe e quantos dos 2.000 bytes disponíveis ele ocupa. |
+| `node aos.mjs about write --from <file>` | Faz uma cópia de segurança do `AGENTS.md`, se o arquivo já existir, e grava a seção Sobre mim (`## About me`) a partir de um arquivo. |
+| `node aos.mjs live-context show [--full]` | Lista o que a voz ao vivo lê no início da chamada. `--full` mostra exatamente o que seria enviado agora. |
+| `node aos.mjs live-context add <path> [--label "…"]` | Inclui em todas as chamadas uma nota sua ou a nota mais recente de uma pasta de relatórios. Você pode adicionar até seis entradas. |
+| `node aos.mjs live-context remove <path or number>` | Remove uma nota ou pasta da lista. |
+| `node aos.mjs live-context section <name> on\|off` | Ativa ou desativa qualquer uma das seções do contexto (`today`, `inbox`, `numbers`, `news` e `radar`). A opção fica salva em `system/v2/live-context.json`. |
+| `node aos.mjs about migrate` | Mostra uma prévia da migração de `CLAUDE.md` para `AGENTS.md`. O `CLAUDE.md` passa a importar o `AGENTS.md`. Depois de revisar a prévia, adicione `--yes` para aplicar. |
 
-Doctor prints **PASS**, **FAIL**, **WAIT** or **SKIP**, with reasons. Any FAIL produces exit code 1; the summary distinguishes core failures from optional features that need attention. Its speech round trip tests generated audio, not your microphone. See [Mac voice checks](MAC-VOICE.md) for app permissions and shortcut testing.
+O diagnóstico informa o motivo de cada resultado **PASS**, **FAIL**, **WAIT** ou **SKIP**. Qualquer **FAIL** retorna o código de saída 1. O resumo indica se a falha afeta uma parte essencial ou um recurso opcional. O teste de voz usa áudio gerado. Para testar o microfone, as permissões e o atalho, consulte o [guia de voz no Mac](MAC-VOICE.md).
 
-If a terminal conversation is still open, `stop` changes nothing and prints:
+Se ainda houver uma conversa aberta em um terminal, `stop` mantém os serviços em execução. O comando exibe a mensagem abaixo em inglês.
 
 ```text
 Stop active tasks in Terminals first. No service was stopped.
 ```
 
-When you are ready to end that conversation, close its terminal tab in the HUD or Obsidian, then retry. An upgrade or service handoff needs your agreement before interrupting a working installation. Use that installation's own scripts; leave unrelated speech services and recovery tasks alone.
+Quando estiver pronto para encerrar a conversa, feche a aba correspondente no Jarvis ou no Obsidian e tente novamente. Uma atualização ou troca de instalação precisa da sua autorização antes de interromper uma instalação ativa. Use os scripts da instalação correspondente e mantenha em execução os serviços de voz e as tarefas de recuperação de outros programas.
 
-`update` refuses customized or unknown source before stopping services. Do not discard modifications to bypass that check. Custom projects need the [upgrade playbook's integration plan](../setup/UPGRADE.md) and may require manual future upgrades.
+`update` recusa código-fonte modificado ou desconhecido antes de parar os serviços. Preserve suas alterações e siga o [plano de integração do roteiro de atualização](../setup/UPGRADE.md) para projetos personalizados. Atualizações futuras desses projetos podem exigir integração manual.
 
-## Layout and local ports
+<a id="layout-and-local-ports"></a>
+
+## Estrutura e portas locais
 
 ```text
-aos.mjs           Top-level launcher
-setup/            Instructions for the installing or upgrading agent
-obsidian-v2/      Bridge, Obsidian plugin, workflows, speech and vault template
-jarvis-v2/        Browser HUD
-docs/             User guides and troubleshooting
+aos.mjs           Comando de entrada na pasta raiz
+setup/            Instruções para o agente que instala ou atualiza o sistema
+obsidian-v2/      Ponte, plugin do Obsidian, fluxos, voz e modelo de cofre
+jarvis-v2/        Painel do Jarvis no navegador
+docs/             Guias de uso e solução de problemas
 ```
 
-Services bind to `127.0.0.1`: **3217** HUD, **3218** preview, **3219** bridge, **3220** this installation's speech service, **3221** monitor. A compatible shared speech service can have a different address, shown by doctor. Only one installation can own the fixed ports; identify the existing owner before starting another. Do not expose these services to the internet.
+Os serviços escutam em `127.0.0.1`. O Jarvis usa a porta **3217**, a prévia usa a **3218**, a ponte usa a **3219**, o serviço de voz desta instalação usa a **3220** e o monitor usa a **3221**. Um serviço de voz compartilhado e compatível pode estar em outro endereço, que aparece no diagnóstico. Mantenha esses serviços acessíveis apenas no computador. Só uma instalação pode usar as portas fixas por vez. Antes de iniciar outra, identifique qual instalação está usando as portas.
 
-The daily-note structure follows `system/schemas/daily-note.md` (v1) in the vault. Keep its section headings intact: the cockpit parses them. Customize the content within those sections. Dashboard button choices live separately in `system/v2/dashboard.json` and survive supported updates.
+A nota diária segue a estrutura de `system/schemas/daily-note.md` (v1) no cofre. O painel interpreta os títulos das seções, então personalize apenas o conteúdo de cada uma. Os atalhos do painel ficam em `system/v2/dashboard.json` e são preservados nas atualizações compatíveis.
 
-**Share task titles** controls `liveShareWork` in `system/v2/profile.json`. It defaults to `true`. Set it to `false` from the Live settings on either screen to omit the work-in-progress section. **Share morning brief** controls `liveShareBrief`. It defaults to `false`. Set it to `true` to send the whole morning brief, including its email section, to OpenAI at the start of each Live call, so Live can answer from it directly. To revise the personal section of the Live snapshot, ask your coding agent “update my About me”.
+**Compartilhar títulos de tarefas** controla `liveShareWork` em `system/v2/profile.json`. O padrão é `true`. Nas configurações da voz ao vivo de qualquer painel, desative a opção (`false`) para retirar do contexto as tarefas em andamento. **Compartilhar boletim da manhã** controla `liveShareBrief`. O padrão é `false`. Ao ativar a opção (`true`), a OpenAI recebe o boletim completo, incluindo a seção de e-mails, no início de cada chamada. Assim, a voz ao vivo pode responder com base nele. Para revisar a parte pessoal do contexto da chamada, peça ao seu agente de código para “atualizar minha seção Sobre mim”.
 
-**Task updates** uses `liveTaskUpdates` in `system/v2/profile.json`. Choose `done` (**Done & blockers**, the default), `silent` (**Screen only**), or `chatty` (**Check in on long tasks**, after each three-minute interval). Both screens use the same choice.
+**Atualizações de tarefas** usa `liveTaskUpdates` em `system/v2/profile.json`. Escolha `done` (**Conclusões e impedimentos**, o padrão), `silent` (**Só na tela**) ou `chatty` (**Acompanhar tarefas longas**, com atualizações a cada três minutos). Os dois painéis usam a mesma opção.
 
-Say “slash today”, “run the today slash command”, or “run slash plan-tomorrow for next week” to run an installed skill in a fresh terminal on the selected provider. The CLI receives the slash command and its arguments as given. Install the skill or command in the provider’s supported locations before invoking it.
+Para rodar uma skill instalada em um terminal novo com o provedor selecionado, use uma das frases reconhecidas em inglês, como “slash today”, “run the today slash command” ou “run slash plan-tomorrow for next week”. A ferramenta de linha de comando recebe o comando com barra e os argumentos informados. Instale a skill ou o comando em um local aceito pelo provedor antes de usá-lo.
 
-The **Confirm actions** setting uses `liveConfirm` in `system/v2/profile.json`. Its values are `auto` (**Just do it**, the default, with about 2.5 seconds to cancel), `voice` (**Say yes**), `click` (**Tap to confirm**), and `destructive` (**Ask only for stops & edits**). Both screens use the saved choice.
+A opção **Confirmar ações** usa `liveConfirm` em `system/v2/profile.json`. Os valores são `auto` (**Executar direto**, o padrão, com cerca de 2,5 segundos para cancelar), `voice` (**Diga “sim”**), `click` (**Clique para confirmar**) e `destructive` (**Confirmar só paradas e edições**). Os dois painéis usam a opção salva.
 
-## Data and costs
+<a id="data-and-costs"></a>
 
-In **Local** mode, speech recognition and speech generation run on your computer. Local speech has no speech API charge. Claude Code/Codex requests use your provider account and may include vault content the workflow reads. Searches, connectors and personal skills can contact other services and incur their own charges.
+## Dados e custos
 
-[Live voice](LIVE-VOICE.md) is opt-in and uses the OpenAI API organization linked to your key. The call bar estimates $0.05 per active minute and $0.02 per standby minute. Check your API usage page for actual charges.
+No modo **Local**, o reconhecimento e a síntese de voz rodam no seu computador, sem cobrança por uma API de voz. Os pedidos ao Claude Code ou ao Codex usam a sua conta no provedor e podem incluir conteúdo do cofre lido pelo fluxo. Pesquisas, conectores e skills pessoais podem consultar outros serviços, com cobranças próprias.
 
-Optional Jev uses OpenRouter to reduce routing delay for eligible voice requests. It does not generate the answer or perform the work, and voice works without it. It sends spoken text, brief recent voice exchanges, the selected conversation's title and excerpt, and report names. Full note files are not attached to the router request, but conversation excerpts can contain quoted note content. OpenRouter usage is billed separately; routing speed and cost vary.
+A [voz ao vivo](LIVE-VOICE.md) é opcional e usa a organização da API da OpenAI vinculada à sua chave. A barra da chamada estima US$ 0,05 por minuto ativo e US$ 0,02 por minuto em espera. Consulte a página de consumo da API para conferir a cobrança.
 
-Enter keys through the local setup page, never chat. Bundled workflows are instructed to write drafts and reports without sending messages, publishing, scheduling posts or deleting notes. Personal skills follow their own instructions and the coding agent's permissions; review their required accounts and external actions before connecting them.
+O Jev é opcional e usa o OpenRouter para reduzir o tempo de encaminhamento dos pedidos de voz compatíveis. Seu papel é encaminhar o pedido. A voz também funciona com o encaminhamento pelo Claude Code ou Codex. O Jev envia o texto falado, trechos curtos de interações de voz recentes, o título e um trecho da conversa selecionada, além dos nomes dos relatórios. O pedido de encaminhamento inclui esses dados sem anexar notas inteiras. Se a conversa citar uma nota, a citação pode aparecer no trecho enviado. O OpenRouter cobra pelo uso separadamente. A velocidade e o custo variam.
 
-For repairs, ask your coding agent to “run the doctor” and follow [troubleshooting](TROUBLESHOOTING.md).
+Informe as chaves somente na página local de configuração. Os fluxos incluídos recebem instruções para produzir apenas rascunhos e relatórios, sem enviar mensagens, publicar, agendar publicações ou apagar notas. Skills pessoais seguem as próprias instruções e as permissões do agente de código. Confira quais contas e ações externas cada skill exige antes de conectá-las.
+
+Para reparos, peça ao seu agente de código para “rodar o diagnóstico” e siga o [guia de solução de problemas](TROUBLESHOOTING.md).

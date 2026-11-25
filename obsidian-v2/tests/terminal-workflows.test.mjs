@@ -47,14 +47,14 @@ test('continued workflow IDs deduplicate pending and historical runs without red
  const id=crypto.randomUUID(),request={id,selection,skill:'deep-research-chase',args:{topic:'Original topic'}};
  manager.continueWorkflow(task.id,request);const pending=JSON.stringify(task),writes=processes[0].writes.length;
  assert.equal(manager.continueWorkflow(task.id,request),task);assert.equal(manager.startWorkflow(request),task);assert.equal(JSON.stringify(task),pending);assert.equal(processes[0].writes.length,writes);
- assert.throws(()=>manager.continueWorkflow(task.id,{...request,args:{topic:'Different topic'}}),/already used/);
- assert.throws(()=>manager.start({id,selection,prompt:'Reuse workflow identity'}),/already used/);
+ assert.throws(()=>manager.continueWorkflow(task.id,{...request,args:{topic:'Different topic'}}),/já foi usado/);
+ assert.throws(()=>manager.start({id,selection,prompt:'Reuse workflow identity'}),/já foi usado/);
  manager.accept(task.id,{type:'complete',turnId:'research',text:'# Original research'});
  manager.continueWorkflow(task.id,{id:crypto.randomUUID(),selection,skill:'weekly-review'});
  const later=JSON.stringify(task),laterWrites=processes[0].writes.length;
  assert.equal(manager.continueWorkflow(task.id,request),task);assert.equal(manager.startWorkflow(request),task);assert.equal(JSON.stringify(task),later);assert.equal(processes[0].writes.length,laterWrites);
  const other=manager.start({selection,prompt:'Other conversation'});manager.accept(other.id,{type:'complete',turnId:'other-ready',text:'Ready'});
- assert.throws(()=>manager.continueWorkflow(other.id,request),/already used/);assert.equal(processes.length,2);assert.equal(processes[1].writes.length,0);
+ assert.throws(()=>manager.continueWorkflow(other.id,request),/já foi usado/);assert.equal(processes.length,2);assert.equal(processes[1].writes.length,0);
  assert.equal(fs.readFileSync(path.join(root,'system/v2/artifacts',id+'.md'),'utf8'),'# Original research');
 });
 
@@ -63,29 +63,29 @@ test('blocked workflow continuations never create instructions, change metadata 
  for(const state of ['working','starting','needs input','editing','stopping','error','stopped']){
   task.state=state;task.error=state==='needs input'?'Review this permission in its terminal.':null;
   const id=crypto.randomUUID(),before=JSON.stringify(task);
-  assert.throws(()=>manager.continueWorkflow(task.id,{id,selection,skill:'weekly-review'}),/working|terminal|permission/);
+  assert.throws(()=>manager.continueWorkflow(task.id,{id,selection,skill:'weekly-review'}),/em andamento|terminal|permissão/);
   assert.equal(JSON.stringify(task),before);assert.equal(fs.existsSync(path.join(root,'system/v2/task-instructions',id+'.md')),false);assert.equal(processes[0].writes.length,0);
  }
  task.state='ready';manager.live.get(task.id).inputBoundary.update('A draft that must survive');
- const draft=JSON.stringify(task);assert.throws(()=>manager.continueWorkflow(task.id,{selection,skill:'weekly-review'}),/working/);assert.equal(JSON.stringify(task),draft);assert.equal(processes[0].writes.length,0);
+ const draft=JSON.stringify(task);assert.throws(()=>manager.continueWorkflow(task.id,{selection,skill:'weekly-review'}),/em andamento ou precisa de uma ação no terminal/);assert.equal(JSON.stringify(task),draft);assert.equal(processes[0].writes.length,0);
  manager.live.get(task.id).inputBoundary.reset();manager.stop(task.id);const stopped=JSON.stringify(task);
- assert.throws(()=>manager.continueWorkflow(task.id,{selection,skill:'weekly-review'}),/Resume/);assert.equal(JSON.stringify(task),stopped);
+ assert.throws(()=>manager.continueWorkflow(task.id,{selection,skill:'weekly-review'}),/Retome este terminal/);assert.equal(JSON.stringify(task),stopped);
 });
 
 test('continuing rejects direct scripts, provider changes and queued approvals before preparing output',t=>{
  const {root,manager,processes}=fixture(t),task=manager.start({selection,prompt:'Conversation'});
  manager.accept(task.id,{type:'complete',turnId:'initial',text:'Ready'});
- for(const skill of ['metrics-pull','github-trending'])assert.throws(()=>manager.continueWorkflow(task.id,{selection,skill}),/run as scripts/);
- assert.throws(()=>manager.continueWorkflow(task.id,{selection:{provider:'claude',model:'sonnet'},skill:'weekly-review'}),/different provider/);
+ for(const skill of ['metrics-pull','github-trending'])assert.throws(()=>manager.continueWorkflow(task.id,{selection,skill}),/a atualização de fontes usa scripts/i);
+ assert.throws(()=>manager.continueWorkflow(task.id,{selection:{provider:'claude',model:'sonnet'},skill:'weekly-review'}),/pertence a outro provedor/);
  fs.writeFileSync(path.join(manager.folder(task.id),'events','queued-approval.json'),JSON.stringify({type:'PermissionRequest'}));
- const id=crypto.randomUUID();assert.throws(()=>manager.continueWorkflow(task.id,{id,selection,skill:'weekly-review'}),/approval/);
+ const id=crypto.randomUUID();assert.throws(()=>manager.continueWorkflow(task.id,{id,selection,skill:'weekly-review'}),/aprovação/);
  assert.equal(task.state,'needs input');assert.equal(fs.existsSync(path.join(root,'system/v2/task-instructions',id+'.md')),false);assert.deepEqual(processes[0].writes,[]);
 });
 
 test('continued daily workflows retain destination locks, exact backups and conflict protection per run',t=>{
  const {root,manager}=fixture(t),lock=manager.startWorkflow({selection,skill:'plan-today'}),task=manager.start({selection,prompt:'Conversation'});
  manager.accept(task.id,{type:'complete',turnId:'initial',text:'Ready'});
- const blockedId=crypto.randomUUID();assert.throws(()=>manager.continueWorkflow(task.id,{id:blockedId,selection,skill:'refresh-schedule'}),/same note/);
+ const blockedId=crypto.randomUUID();assert.throws(()=>manager.continueWorkflow(task.id,{id:blockedId,selection,skill:'refresh-schedule'}),/atualizando a mesma nota/);
  assert.equal(fs.existsSync(path.join(root,'system/v2/task-instructions',blockedId+'.md')),false);manager.stop(lock.id);
  const file=path.join(root,lock.workflow.destination),date=path.basename(file,'.md');fs.mkdirSync(path.dirname(file),{recursive:true});
  const before=`\uFEFF---\r\ndate: ${date}\r\nschema_version: 1\r\n---\r\n## Top 3 Priorities\r\n1. [x] Keep priority\r\n2. [ ] \r\n3. [ ] \r\n\r\n## Schedule\r\nOld\r\n\r\n## Notes\r\nKeep notes\r\n`;fs.writeFileSync(file,before);
@@ -102,10 +102,10 @@ test('interrupted continued workflow resumes without submitting or saving readin
  manager.accept(task.id,{type:'complete',sessionId,turnId:'initial',text:'Ready'});
  const id=crypto.randomUUID();manager.continueWorkflow(task.id,{id,selection,skill:'inbox-brief'});manager.stop(task.id);
  const recovery=manager.originalRequest(task.id);assert.equal(recovery.prompt,task.workflow.prompt);assert.equal(recovery.skill,'inbox-brief');assert.equal(recovery.title,SKILLS['inbox-brief'].label);assert.equal(recovery.selection.model,selection.model);
- const metadata=JSON.stringify(task);assert.throws(()=>manager.continueWorkflow(task.id,{selection,skill:'weekly-review'}),/Resume/);assert.equal(JSON.stringify(task),metadata);
+ const metadata=JSON.stringify(task);assert.throws(()=>manager.continueWorkflow(task.id,{selection,skill:'weekly-review'}),/Retome este terminal/);assert.equal(JSON.stringify(task),metadata);
  manager.resume(task.id);assert.equal(processes.length,2);assert.deepEqual(processes[1].writes,[]);assert.match(processes[1].args.at(-1),/without using tools or taking actions/);
  manager.accept(task.id,{type:'complete',sessionId,turnId:'resume-ready',text:'Ready for a follow-up.'});assert.equal(task.workflowCompleted,false);assert.equal(fs.existsSync(path.join(root,'system/v2/artifacts',id+'.md')),false);
- assert.throws(()=>manager.continueWorkflow(task.id,{selection,skill:'weekly-review'}),/unfinished workflow/);assert.deepEqual(processes[1].writes,[]);
+ assert.throws(()=>manager.continueWorkflow(task.id,{selection,skill:'weekly-review'}),/tem um fluxo pendente/);assert.deepEqual(processes[1].writes,[]);
  manager.send(task.id,'Continue the inbox brief');manager.accept(task.id,{type:'complete',sessionId,turnId:'completed-after-resume',text:'# Inbox brief\nVerified result'});
  assert.equal(task.workflowStatus,'ok');assert.equal(fs.readFileSync(path.join(root,'system/v2/artifacts',id+'.md'),'utf8'),'# Inbox brief\nVerified result');
 });
@@ -117,7 +117,7 @@ test('persisted continued workflow identity survives restart without relaunch or
  manager.continueWorkflow(task.id,{id:crypto.randomUUID(),selection,skill:'inbox-brief'});manager.accept(task.id,{type:'complete',turnId:'latest',text:'# Inbox brief'});manager.stop(task.id);
  const reopened=new TerminalManager(root,{directory:path.join(root,'sessions'),spawn});t.after(()=>reopened.close());
  assert.equal(reopened.live.size,0);assert.equal(reopened.continueWorkflow(task.id,request).id,task.id);assert.equal(reopened.startWorkflow(request).id,task.id);assert.equal(processes.length,1);
- assert.throws(()=>reopened.continueWorkflow(task.id,{selection,skill:'weekly-review'}),/Resume/);assert.equal(processes.length,1);
+ assert.throws(()=>reopened.continueWorkflow(task.id,{selection,skill:'weekly-review'}),/Retome este terminal/);assert.equal(processes.length,1);
  const pending=reopened.get(task.id);pending.workflowCompleted=false;pending.state='working';const before=JSON.stringify(pending);
  reopened.accept(task.id,{type:'complete',turnId:'continued',text:'# Replayed former output'});assert.equal(JSON.stringify(pending),before);
 });
@@ -153,7 +153,7 @@ test('model skills validate into persistent conversations with immutable task in
 });
 test('same daily note tasks conflict but independent same-day reports have separate destinations',t=>{
  const {manager}=fixture(t);manager.startWorkflow({selection,skill:'plan-today'});
- assert.throws(()=>manager.startWorkflow({selection,skill:'refresh-schedule'}),/same note/);
+ assert.throws(()=>manager.startWorkflow({selection,skill:'refresh-schedule'}),/atualizando a mesma nota/);
  const a=manager.startWorkflow({selection,skill:'weekly-review'}),b=manager.startWorkflow({selection,skill:'weekly-review'});
  assert.notEqual(a.workflow.destination,b.workflow.destination);assert.equal(manager.live.size,3);
 });
@@ -203,12 +203,12 @@ test('direct workflows require no CLI, return immediately, deduplicate and publi
  const task=manager.startWorkflow({selection,skill:'metrics-pull'}),done=manager.live.get(task.id).done;
  assert.equal(task.execution,'script');assert.equal(task.model,'none');assert.equal(task.state,'working');
  assert.equal(manager.startWorkflow({id:task.id,selection,skill:'metrics-pull'}),task);
- assert.throws(()=>manager.startWorkflow({selection,skill:'metrics-pull'}),/already running/);
+ assert.throws(()=>manager.startWorkflow({selection,skill:'metrics-pull'}),/já está em andamento/);
  await Promise.resolve();assert.equal(calls,1);release({text:'# Metrics refresh\nDone'});await done;
  assert.equal(task.state,'stopped');assert.equal(task.workflowStatus,'ok');assert.equal(manager.live.size,0);assert.equal(task.turns.length,1);
  assert.equal(fs.readFileSync(path.join(root,task.resultPath),'utf8'),'# Metrics refresh\nDone');
  const record=JSON.parse(fs.readFileSync(path.join(root,'system/v2/runs',task.id+'.json'),'utf8'));assert.equal(record.execution,'script');assert.equal(record.model,'none');
- assert.ok(changes.some(change=>change.turns===1));assert.throws(()=>manager.resume(task.id),/new refresh/);
+ assert.ok(changes.some(change=>change.turns===1));assert.throws(()=>manager.resume(task.id),/Inicie outra para consultar a fonte/);
 });
 test('script-owned GitHub output is retained without a competing bridge replacement',async t=>{
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'aos-direct-github-'));let expected;
@@ -224,7 +224,7 @@ test('stopping a direct source refresh aborts it and cannot publish a late succe
  const manager=new TerminalManager(root,{directory:path.join(root,'sessions'),direct:async(_root,_job,options)=>{signal=options.signal;return new Promise(resolve=>{release=resolve})}});
  t.after(()=>{manager.close();fs.rmSync(root,{recursive:true,force:true})});
  const task=manager.startWorkflow({selection,skill:'metrics-pull'}),done=manager.live.get(task.id).done;await Promise.resolve();manager.stop(task.id);
- assert.equal(signal.aborted,true);assert.equal(task.state,'stopping');assert.equal(manager.live.size,1);assert.throws(()=>manager.startWorkflow({selection,skill:'metrics-pull'}),/already running/);
+ assert.equal(signal.aborted,true);assert.equal(task.state,'stopping');assert.equal(manager.live.size,1);assert.throws(()=>manager.startWorkflow({selection,skill:'metrics-pull'}),/já está em andamento/);
  release({text:'Late success'});await done;assert.equal(task.state,'stopped');assert.equal(manager.live.size,0);assert.equal(task.turns.length,0);assert.equal(task.workflowStatus,'error');assert.equal(fs.existsSync(path.join(root,task.workflow.destination)),false);
 });
 test('daily merges preserve concurrent activity logging but reject changed priorities or schedule',t=>{

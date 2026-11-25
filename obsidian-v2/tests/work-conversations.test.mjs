@@ -57,9 +57,9 @@ test('missing, stopped, or busy targets do not prevent the router from hearing a
  for(const state of ['stopped','working']){f.options.readFresh=async()=>({tasks:[{...tasks[0],state}],current:{codex:'c1',claude:null},currentRevision:1});c.sync(await f.options.readFresh());assert.equal((await c.getSelection(selection('codex'))).targetId,'c1')}
 });
 test('foreign-provider or direct-script remembered records reject instead of overriding the top provider',async()=>{
- for(const id of ['h1','script','background']){const f=fixture({codex:id,claude:null}),c=f.create();c.sync(f.snapshot);await assert.rejects(c.getSelection(selection('codex')),/does not belong/);assert.equal(c.target(),id)}
- const f=fixture(),c=f.create();await assert.rejects(c.choose('h1'),/selected provider/);await assert.rejects(c.choose('script'),/CLI conversation/);assert.equal(f.writes.length,0);
- await assert.rejects(c.choose('background'),/CLI conversation/);assert.equal(f.writes.length,0);
+ for(const id of ['h1','script','background']){const f=fixture({codex:id,claude:null}),c=f.create();c.sync(f.snapshot);await assert.rejects(c.getSelection(selection('codex')),/não pertence/);assert.equal(c.target(),id)}
+ const f=fixture(),c=f.create();await assert.rejects(c.choose('h1'),/provedor selecionado/);await assert.rejects(c.choose('script'),/conversa de terminal/);assert.equal(f.writes.length,0);
+ await assert.rejects(c.choose('background'),/conversa de terminal/);assert.equal(f.writes.length,0);
 });
 test('failed saves stay actionable and prevent accidental new-target dispatch until a successful explicit choice',async()=>{
  const f=fixture({codex:null,claude:'h1'}),c=f.create();c.sync(f.snapshot);f.options.persist=async()=>{throw new Error('Selection was not saved')};

@@ -19,7 +19,7 @@ test('explicit expired-task draft copy preserves the original text and provider 
   assert.equal(readDraft(storage,destination),text);
   assert.deepEqual(readRecoveredDraft(storage,destination),staged);
   assert.deepEqual(staged.selection,{provider:'claude',model:'sonnet'});
-  assert.equal(staged.title,'Draft from Earlier research');
+  assert.equal(staged.title,'Rascunho da tarefa Earlier research');
   assert.equal(staged.skill,undefined,'copying user text must not retry the expired workflow');
 });
 
@@ -28,7 +28,7 @@ test('copying an expired draft cannot replace an occupied new composer or its pr
   stageRecoveredDraft(storage,destination,{prompt:text,title:'Existing',selection:{provider:'codex',model:'astra'}});
   const before=storage.getItem(destination+':recovery');
   for(const draft of ['Different unsent text',text]){
-    assert.throws(()=>stageExpiredTaskDraft(storage,source,destination,draft,oldTask),/new-task draft is already saved/);
+    assert.throws(()=>stageExpiredTaskDraft(storage,source,destination,draft,oldTask),/Já existe um rascunho de nova tarefa/);
     assert.equal(readDraft(storage,source),draft,'even a refused copy preserves the source draft');
     assert.equal(readDraft(storage,destination),text);
     assert.equal(storage.getItem(destination+':recovery'),before);

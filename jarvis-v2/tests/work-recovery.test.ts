@@ -28,7 +28,7 @@ test('workflow recovery stages exact arguments for review and does not launch a 
   const recovery = readRecoveredDraft(storage, key)!;
   assert.equal(recovery.skill, 'yt-search');
   assert.deepEqual(recovery.args, { topic: 'agents' });
-  assert.match(readDraft(storage, key), /Workflow: yt-search/);
+  assert.match(readDraft(storage, key), /Fluxo: yt-search/);
   assert.match(readDraft(storage, key), /agents/);
 });
 

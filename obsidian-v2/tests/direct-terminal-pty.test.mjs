@@ -18,7 +18,7 @@ function fixture(t,options={}){
 test('native observation preserves Terminal display listeners and writes only to its current process',async t=>{
  const f=fixture(t);await f.binding.ready;assert.equal(f.binding.hostPid,456);assert.equal(f.stdout.listenerCount('data'),2);
  f.stdout.emit('data',Buffer.from('hello'));assert.equal(f.display.length,1);await f.binding.write('test');assert.deepEqual(f.writes,['test']);
- f.binding.dispose();assert.equal(f.stdout.listenerCount('data'),1);assert.equal(f.stderr.listenerCount('data'),0);assert.equal(f.input.size,0);assert.equal(f.pty.kills,0);await assert.rejects(f.binding.write('unsafe'),/changed or exited/);
+ f.binding.dispose();assert.equal(f.stdout.listenerCount('data'),1);assert.equal(f.stderr.listenerCount('data'),0);assert.equal(f.input.size,0);assert.equal(f.pty.kills,0);await assert.rejects(f.binding.write('unsafe'),/mudou ou foi encerrada/);
 });
 test('human drafts and submits are observed while automatic terminal responses are ignored',async t=>{
  const f=fixture(t);await f.binding.ready;for(const listener of f.input)listener('\x1b]10;rgb:ffff/ffff/ffff\x07');assert.equal(f.binding.hasDraft,false);
@@ -28,7 +28,7 @@ test('human drafts and submits are observed while automatic terminal responses a
 test('approval parsing is local, survives fragmented output and never changes the display stream',async t=>{
  const f=fixture(t);await f.binding.ready;
  for(const chunk of ['Would you like to run this ','command?\r\n› 1. Yes\r\n  2. No\r\n'])f.stdout.emit('data',Buffer.from(chunk));
- assert.match(f.binding.approval,/your approval/);assert.equal(f.display.length,2);assert.equal(f.events.filter(event=>event.type==='approval').length,1);
+ assert.match(f.binding.approval,/aguarda sua aprovação/);assert.equal(f.display.length,2);assert.equal(f.events.filter(event=>event.type==='approval').length,1);
  f.binding.clearApproval();assert.equal(f.binding.approval,null);
 });
 test('history navigation is treated as a possible draft instead of an empty composer',async t=>{
@@ -67,14 +67,14 @@ test('focus and recognized mouse reports never create drafts or emit editing',as
  for(const listener of f.input)listener('\x1b[A');assert.equal(f.binding.hasDraft,true);assert.equal(f.events.at(-1).value.edited,true);
 });
 test('a replaced emulator immediately rejects input and detaches observers without killing either process',async t=>{
- const f=fixture(t);await f.binding.ready;f.view.emulator={...f.emulator};await assert.rejects(f.binding.write('wrong session'),/changed or exited/);
+ const f=fixture(t);await f.binding.ready;f.view.emulator={...f.emulator};await assert.rejects(f.binding.write('wrong session'),/mudou ou foi encerrada/);
  await new Promise(resolve=>setTimeout(resolve,10));assert.equal(f.binding.active,false);assert.equal(f.pty.kills,0);assert.ok(f.events.some(event=>event.type==='closed'&&event.value==='replaced'));
 });
 test('exit and real view unload close once and never stop an unrelated process',async t=>{
  const f=fixture(t);await f.binding.ready;f.exit(0);await tick();f.cleanup.forEach(fn=>fn());assert.equal(f.binding.active,false);assert.equal(f.events.filter(event=>event.type==='closed').length,1);assert.equal(f.pty.kills,0);
 });
 test('a child which has already exited cannot be reported ready or accept input',async t=>{
- const f=fixture(t);f.process.exitCode=1;await assert.rejects(f.binding.ready,/changed or exited/);assert.equal(f.binding.active,false);assert.equal(f.writes.length,0);
+ const f=fixture(t);f.process.exitCode=1;await assert.rejects(f.binding.ready,/mudou ou foi encerrada/);assert.equal(f.binding.active,false);assert.equal(f.writes.length,0);
 });
 test('a Terminal whose emulator or process cannot be reached is a TerminalAccessError; a closed or replaced tab is not',async t=>{
  // The binding's timers are unref'd on purpose; keep the loop alive while it times out.
@@ -95,6 +95,6 @@ test('a Terminal whose emulator or process cannot be reached is a TerminalAccess
   ['process never exposed',view({terminal:{onData},pseudoterminal:new Promise(()=>{})})],
  ];
  for(const [label,made] of access){const error=await outcome(made);assert.equal(error.name,'TerminalAccessError',label)}
- const closed=await outcome(view(null),{close:true});assert.equal(closed.name,'Error');assert.match(closed.message,/closed before its process was ready/);
+ const closed=await outcome(view(null),{close:true});assert.equal(closed.name,'Error');assert.match(closed.message,/foi fechado antes que o processo estivesse pronto/);
  const replaced=await outcome(view({terminal:{onData},pseudoterminal:new Promise(()=>{})}),{replace:true});assert.equal(replaced.name,'Error');
 });

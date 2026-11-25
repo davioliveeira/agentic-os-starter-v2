@@ -54,8 +54,8 @@ export class NativeDirectHost {
    ready:({hostPid})=>{if(actionId)event('launched',{hostPid})},
    input:({submitted,hasDraft})=>{session.revision++;event(submitted?'submitted':'editing',{hasDraft})},
    approval:reason=>{session.revision++;event('approval',{reason,hasDraft:session.binding.hasDraft})},
-   exit:code=>close(`Terminal exited (${String(code)}).`),
-   closed:reason=>{if(reason!=='disposed')close(reason==='replaced'?'The Terminal session was replaced.':'The Terminal tab was closed.')},
+   exit:code=>close(`O terminal foi encerrado (código ${String(code)}).`),
+   closed:reason=>{if(reason!=='disposed')close(reason==='replaced'?'A sessão do terminal foi substituída.':'A aba do terminal foi fechada.')},
    error:reason=>{session.revision++;event('error',{reason})},
   },{provider:directTerminalMetadata(leaf)?.provider});
   this.registry.sessions.set(instance,session);return session;
@@ -94,7 +94,7 @@ export class NativeDirectHost {
     return created;
    });
    const target=directTerminalMetadata(leaf);
-   if(!this.options.app.workspace.getLeavesOfType(NATIVE_TERMINAL_VIEW).includes(leaf)||target?.instance!==action.instance){lifetime.close();this.enqueue({taskId:action.taskId,instance:action.instance,actionId:action.id,type:'closed',reason:'The terminal was closed while opening.'});return null}
+   if(!this.options.app.workspace.getLeavesOfType(NATIVE_TERMINAL_VIEW).includes(leaf)||target?.instance!==action.instance){lifetime.close();this.enqueue({taskId:action.taskId,instance:action.instance,actionId:action.id,type:'closed',reason:'O terminal foi fechado durante a abertura.'});return null}
    bindTerminalLifetime(leaf.view,lifetime);
    const session=this.bind(leaf,action.taskId,action.instance,lifetime,action.id);
    await session.binding.ready;
@@ -117,20 +117,20 @@ export class NativeDirectHost {
   if(!session||session.taskId!==action.taskId||!this.alive(session))throw new Error('O terminal nativo da conversa foi fechado.');
   const {binding}=session,text=action.text;
   if(typeof text!=='string'||!text.trim()||text.length>60000||/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(text)||!directId(action.requestKey))throw new Error('A solicitação de continuação no terminal é inválida.');
-  if(binding.hasDraft||binding.approval)throw new Error(binding.approval||'This terminal has a draft. Finish it in the terminal before sending another request.');
+  if(binding.hasDraft||binding.approval)throw new Error(binding.approval||'Há um rascunho neste terminal. Termine de editá-lo no terminal antes de enviar outra solicitação.');
   const revision=session.revision;
   const cancelled=(reason:string,hasDraft=true)=>this.enqueue({taskId:action.taskId,instance:action.instance,actionId:action.id,type:'input-cancelled',reason,hasDraft});
   const authorization={taskId:action.taskId,instance:action.instance,actionId:action.id,requestKey:action.requestKey};
   const firstCheck=await this.options.request('/native/submit-check',authorization) as {submit?:boolean;reason?:string};
-  if(firstCheck.submit!==true||this.disposed||!this.alive(session)||session.revision!==revision||binding.hasDraft||binding.approval){cancelled(firstCheck.reason||binding.approval||'This request is no longer ready to be pasted.',binding.hasDraft);return}
+  if(firstCheck.submit!==true||this.disposed||!this.alive(session)||session.revision!==revision||binding.hasDraft||binding.approval){cancelled(firstCheck.reason||binding.approval||'A solicitação não pode mais ser colada no terminal.',binding.hasDraft);return}
   // Record the claim before any bytes. A lost acknowledgement can only resend
   // an event; this action will never paste or press Enter a second time.
   await binding.write(`\x1b[200~${text}\x1b[201~`);
   await (this.options.settle?.()??new Promise<void>(resolve=>setTimeout(resolve,750)));
-  if(this.disposed||!this.alive(session)||session.revision!==revision||binding.hasDraft||binding.approval){cancelled(binding.approval||'The terminal changed while the request was pasted. Review its input before pressing Enter.');return}
+  if(this.disposed||!this.alive(session)||session.revision!==revision||binding.hasDraft||binding.approval){cancelled(binding.approval||'O terminal mudou enquanto a solicitação era colada. Revise o texto no terminal antes de pressionar Enter.');return}
   let check:{submit?:boolean;reason?:string};
-  try{check=await this.options.request('/native/submit-check',authorization)}catch{cancelled('Could not confirm the terminal is ready. Review the pasted request in its input.');return}
-  if(check.submit!==true||this.disposed||!this.alive(session)||session.revision!==revision||binding.hasDraft||binding.approval){cancelled(check.reason||binding.approval||'The terminal needs your input. The pasted request was left for review.');return}
+  try{check=await this.options.request('/native/submit-check',authorization)}catch{cancelled('Não foi possível confirmar que o terminal está pronto. Revise a solicitação colada no terminal.');return}
+  if(check.submit!==true||this.disposed||!this.alive(session)||session.revision!==revision||binding.hasDraft||binding.approval){cancelled(check.reason||binding.approval||'O terminal precisa de uma resposta. Revise a solicitação colada no terminal.');return}
   await binding.write('\r');
   this.enqueue({taskId:action.taskId,instance:action.instance,actionId:action.id,type:'input-written'});
  }

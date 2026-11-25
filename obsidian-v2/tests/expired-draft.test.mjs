@@ -12,14 +12,14 @@ test('expired task draft can be explicitly copied without destroying the origina
 });
 test('copying an expired draft never overwrites another request or recovered workflow',()=>{
  const s=storage(),key=draftKey('obsidian','vault',null);s.setItem(key,'A different request');
- assert.throws(()=>copyDraftToNewTask(s,'obsidian','vault','My follow-up'),/already saved/);assert.equal(s.getItem(key),'A different request');
+ assert.throws(()=>copyDraftToNewTask(s,'obsidian','vault','My follow-up'),/Já existe um rascunho/);assert.equal(s.getItem(key),'A different request');
  s.removeItem(key);s.setItem(key+':selection','saved workflow');
- assert.throws(()=>copyDraftToNewTask(s,'obsidian','vault','My follow-up'),/already saved/);assert.equal(s.getItem(key+':selection'),'saved workflow');assert.equal(s.getItem(key),null);
+ assert.throws(()=>copyDraftToNewTask(s,'obsidian','vault','My follow-up'),/Já existe um rascunho/);assert.equal(s.getItem(key+':selection'),'saved workflow');assert.equal(s.getItem(key),null);
 });
 test('failed storage and empty drafts fail visibly without deleting anything',()=>{
- assert.throws(()=>copyDraftToNewTask(storage(),'obsidian','vault',' '),/no draft/);
+ assert.throws(()=>copyDraftToNewTask(storage(),'obsidian','vault',' '),/Não há rascunho/);
  const s=storage();s.setItem=()=>{throw new Error('Full')};
- assert.throws(()=>copyDraftToNewTask(s,'obsidian','vault','Keep this text'),/Could not save/);
+ assert.throws(()=>copyDraftToNewTask(s,'obsidian','vault','Keep this text'),/Não foi possível salvar/);
  s.getItem=()=>{throw new Error('Storage unavailable')};
  assert.throws(()=>copyDraftToNewTask(s,'obsidian','vault','Keep this text'),/Storage unavailable/);
 });

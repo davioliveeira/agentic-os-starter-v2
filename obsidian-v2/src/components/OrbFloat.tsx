@@ -82,7 +82,7 @@ export function OrbFloat({plugin,surfaceKind='native'}:{plugin:ChaseCommandCente
   live.onEffect=async r=>{
    await showReply(r);if(!alive)return;
    if(r.reply)setMessage(r.reply);
-   const reveals=r.reveals??(r.deliverable&&r.reveal!=='open'?[{kind:'doc' as const,target:r.deliverable,label:r.deliverable.split('/').pop()||'Report',at:0}]:[]);
+   const reveals=r.reveals??(r.deliverable&&r.reveal!=='open'?[{kind:'doc' as const,target:r.deliverable,label:r.deliverable.split('/').pop()||'Relatório',at:0}]:[]);
    if(reveals.length)setLiveReveals(reveals);
    if(r.panels?.some(id=>id==='pipeline'||id==='diagnostics')&&!r.workIds?.length)openWork();
    else if(r.panels?.length&&!r.obsidian&&!r.deliverable&&!reveals.length&&!r.workIds?.length)await plugin.activateView();

@@ -99,10 +99,10 @@ export class TerminalPromptDetector {
   const footer=/^\s*press (?:enter|return) to confirm(?: or (?:esc|escape) to (?:go back|cancel))?\.?\s*$/im.test(text);
   const menu=choices.some(choice=>choice[1])||(choices.length>=2&&footer);
   if(!menu)return null;
-  if(/(?:^|\n)\s*Hooks need review\s*(?:\n|$)/i.test(text)&&/review hooks|trust all and continue/i.test(text))return `${this.name} needs you to review its hooks. Open the terminal and choose how to proceed.`;
-  if(/(?:do you trust (?:the (?:contents|files|authors)|this)|trust this (?:folder|directory|workspace)|working in this directory)/i.test(text)&&/trust|yes, continue/i.test(text))return `${this.name} is asking whether you trust this workspace. Review the terminal prompt.`;
+  if(/(?:^|\n)\s*Hooks need review\s*(?:\n|$)/i.test(text)&&/review hooks|trust all and continue/i.test(text))return `${this.name} precisa que você revise os hooks. Abra o terminal e escolha como prosseguir.`;
+  if(/(?:do you trust (?:the (?:contents|files|authors)|this)|trust this (?:folder|directory|workspace)|working in this directory)/i.test(text)&&/trust|yes, continue/i.test(text))return `${this.name} pergunta se você confia neste espaço de trabalho. Confira a mensagem no terminal.`;
   const actionPrompt=/^\s*(?:would you like to (?:make the following edits|grant these permissions|send input to terminal \d+)|approve app tool call)\?\s*$/im.test(text);
-  if(actionPrompt||/(?:would you like to (?:run|allow)|approve (?:this|the)|requires? (?:your )?approval|do you want to (?:run|proceed|allow))/i.test(text))return `${this.name} is waiting for your approval. Review the requested action in its terminal.`;
+  if(actionPrompt||/(?:would you like to (?:run|allow)|approve (?:this|the)|requires? (?:your )?approval|do you want to (?:run|proceed|allow))/i.test(text))return `${this.name} aguarda sua aprovação. Revise a ação solicitada no terminal.`;
   return null;
  }
 }

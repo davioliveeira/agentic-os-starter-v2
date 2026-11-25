@@ -91,6 +91,6 @@ test('canonical intel wins over legacy brief and top-story fallback skips inbox 
 });
 test('cancelled news request neither reads nor saves a response',async t=>{
  const {root}=fixture(t),controller=new AbortController();controller.abort();
- await assert.rejects(routeVoice(root,{id:crypto.randomUUID(),selection:{provider:'codex',model:'astra'},transcript:'What is the biggest AI news today?'},controller.signal),/cancelled/);
+ await assert.rejects(routeVoice(root,{id:crypto.randomUUID(),selection:{provider:'codex',model:'astra'},transcript:'What is the biggest AI news today?'},controller.signal),/Solicitação por voz cancelada/);
  assert.equal(fs.existsSync(path.join(root,'system')),false);
 });

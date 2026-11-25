@@ -27,7 +27,7 @@ function get(){
   syncWorkReply(r);
   void workFeed.refresh().catch(()=>{});
   if(r.panels?.length)panels(r.panels);
-  if(r.deliverable){if(r.reveal==='open')openDoc(r.deliverable,liveReport);else if(!r.reveals?.length)deliverable(r.deliverable,r.deliverable.split('/').pop()||'Report',liveReport)}
+  if(r.deliverable){if(r.reveal==='open')openDoc(r.deliverable,liveReport);else if(!r.reveals?.length)deliverable(r.deliverable,r.deliverable.split('/').pop()||'Relatório',liveReport)}
   if(r.action==='cockpit')window.scrollTo({top:0});if(r.workIds?.length&&!r.conversationSuperseded)openWork(r.workIds);
   const a=r.obsidian;if(!a)return;
   if(a.op==='cockpit')window.scrollTo({top:0});
@@ -35,7 +35,7 @@ function get(){
   else if(a.op==='open-note')openDoc(a.query,liveReport);
   else if(a.op==='command'&&a.id==='terminal:open-terminal.default.root')openWork([],true);
   else if(a.op==='web'||a.op==='repo')reveal({kind:'link',target:a.op==='repo'?`https://github.com/${a.slug}`:a.url,label:a.op==='repo'?a.slug:a.label,at:0});
-  else log('sys','That workspace action is available in Obsidian.');
+  else log('sys','Essa ação do espaço de trabalho está disponível no Obsidian.');
  };session.onReply=showReply;session.connect();
  const call=live=new LiveSession({scope:'web',fetch:liveBridgeFetch('web',authorizeBridge),getSelection:getWorkSelection});
  call.onError=message=>log('err',message);
@@ -72,7 +72,7 @@ export const voice={
   // (a tab click hung up a call mid-task, 2026-11-22). Only Local voice stops; 'local-only' says so directly.
   const keepLive=reason==='provider-change'||reason==='target-change'||reason==='local-only';
   const stoppedLive=keepLive?false:live?.stop(),current=get(),wasActive=['listening','working','speaking'].includes(current.mode),result=current.cancel(reason==='provider-change'?reason:undefined);
-  if(wasActive&&reason==='provider-change')log('sys','Voice stopped after switching providers. Click the orb to start again.');
+  if(wasActive&&reason==='provider-change')log('sys','A voz foi interrompida após a troca de provedor. Clique no botão de voz para começar de novo.');
   return result||stoppedLive;
  },
  speak(text:string){if(localTaskSpeech(voicePrefs.getSnapshot().prefs.voiceMode))get().enqueue(text)},announce(id:string,text:string){return localTaskSpeech(voicePrefs.getSnapshot().prefs.voiceMode)?get().announce(id,text):Promise.resolve()},getLevel(){return live?.isActive()?live.getLevel():session?.getLevel()??null},

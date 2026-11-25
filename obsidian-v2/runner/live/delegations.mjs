@@ -11,7 +11,7 @@ const expired='Essa ação não está mais disponível. Repita o pedido.';
 // A request that cannot be delivered says why when the reason is one the caller can act on. "Say that again in a
 // moment" told a caller nothing when the real answer was "the task you started is still working" (2026-11-23).
 const busyTarget='Essa tarefa ainda está em andamento. Peça de novo quando ela terminar ou diga que quer começar outra tarefa e explique o que precisa.';
-const spokenFailure=error=>/working or needs terminal input|unfinished workflow/i.test(String(error?.message||''))?busyTarget:retry;
+const spokenFailure=error=>/em andamento ou precisa de uma ação no terminal|tem um fluxo pendente|working or needs terminal input|unfinished workflow/i.test(String(error?.message||''))?busyTarget:retry;
 const readOffer=/\b(?:hear|read|tell you|go over|walk you through|what['’]s in it|the result|the summary)\b/i;
 const compoundReadAction=/\b(?:and then|(?:and|then) (?:run|start|create|draft|write|delete|send))\b/i;
 const pendingRead=/^(?:what (?:is|are|was|were|did|does|do|happened)|when (?:is|are|was|did|does|do)|how (?:many|much)|(?:check|read|show|summarize) (?:me )?(?:the |my )?(?:saved reading|report|result|summary|note|schedule|calendar|inbox))\b/i;

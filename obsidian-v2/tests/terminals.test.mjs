@@ -29,17 +29,17 @@ test('attachment input and resize cannot cross a stop/resume boundary with the s
  const first=manager.output(task.id).instance;
  manager.accept(task.id,{type:'complete',sessionId:crypto.randomUUID(),turnId:'first',text:'Ready.'});
  manager.input(task.id,'x',first);assert.deepEqual(processes[0].writes,['x']);
- manager.stop(task.id);assert.throws(()=>manager.resize(task.id,80,24,first),/session changed/);
+ manager.stop(task.id);assert.throws(()=>manager.resize(task.id,80,24,first),/sessão do terminal mudou/);
  manager.resume(task.id);const second=manager.output(task.id).instance;assert.notEqual(second,first);
  for(const bad of [first,'',null,17]){
-  assert.throws(()=>manager.input(task.id,'\r',bad),/session changed/);
-  assert.throws(()=>manager.resize(task.id,80,24,bad),/session changed/);
+  assert.throws(()=>manager.input(task.id,'\r',bad),/sessão do terminal mudou/);
+  assert.throws(()=>manager.resize(task.id,80,24,bad),/sessão do terminal mudou/);
  }
  assert.deepEqual(processes[1].writes,[]);assert.equal(manager.live.get(task.id).sizes.at(-1).cols,110);
  manager.input(task.id,'y',second);manager.resize(task.id,80,24,second);
  assert.deepEqual(processes[1].writes,['y']);assert.equal(manager.live.get(task.id).sizes.at(-1).cols,80);
  manager.live.get(task.id).exitObserved=true;
- assert.throws(()=>manager.input(task.id,'\r',second),/session changed/);
+ assert.throws(()=>manager.input(task.id,'\r',second),/sessão do terminal mudou/);
 });
 test('shared terminal replay preserves the geometry of each output segment',t=>{const {manager,processes}=fixture(t);
  const task=manager.start({selection,prompt:'Geometry check'});processes[0].data('wide');manager.resize(task.id,80,20);processes[0].data('narrow');
@@ -57,14 +57,14 @@ test('separate provider conversations run concurrently; no task is globally seri
 });
 test('duplicate starts cannot repeat work, and resume never replays initial prompt',t=>{const {manager,processes}=fixture(t);const id=crypto.randomUUID();const a=manager.start({id,selection,prompt:'Original request'});
  manager.start({id,selection,prompt:'Original request'});assert.equal(processes.length,1);
- assert.throws(()=>manager.start({id,selection,prompt:'Different request'}));manager.stop(id);assert.throws(()=>manager.resume(id),/No saved/);
+ assert.throws(()=>manager.start({id,selection,prompt:'Different request'}));manager.stop(id);assert.throws(()=>manager.resume(id),/Ainda não há uma sessão da CLI salva/);
  manager.accept(id,{type:'complete',sessionId:crypto.randomUUID(),turnId:'one',text:'Answer'});manager.resume(id);
  assert.ok(processes[1].args.includes('resume'));assert.ok(!processes[1].args.includes(a.prompt));
 });
 test('voice cannot overwrite a terminal draft or inject terminal control sequences',t=>{const {manager}=fixture(t);const a=manager.start({selection,prompt:'Initial'});
- assert.throws(()=>manager.send(a.id,'too soon'),/working/);manager.accept(a.id,{type:'complete',text:'Answer',turnId:'one'});
- manager.input(a.id,'unfinished draft');assert.equal(a.state,'editing');assert.throws(()=>manager.send(a.id,'overwrite'),/working/);
- assert.throws(()=>cleanPrompt('hello\x1b[201~\rquit'),/Control/);
+ assert.throws(()=>manager.send(a.id,'too soon'),/em andamento ou precisa de uma ação no terminal/);manager.accept(a.id,{type:'complete',text:'Answer',turnId:'one'});
+ manager.input(a.id,'unfinished draft');assert.equal(a.state,'editing');assert.throws(()=>manager.send(a.id,'overwrite'),/em andamento ou precisa de uma ação no terminal/);
+ assert.throws(()=>cleanPrompt('hello\x1b[201~\rquit'),/caracteres de controle/);
 });
 test('restarting the bridge preserves session history but does not auto-launch agents',t=>{const {manager,directory,spawn}=fixture(t);const a=manager.start({selection,prompt:'Initial'});
  manager.accept(a.id,{type:'complete',sessionId:crypto.randomUUID(),turnId:'one',text:'Saved answer'});manager.stop(a.id);
@@ -100,14 +100,14 @@ test('Codex interactive prompts survive split ANSI chunks, surface a reason, and
  proc.data('\x1b[1');proc.data('mHooks need rev');proc.data('iew\x1b[0m\r\n7 hooks are new or changed.\r\n');
  assert.equal(task.state,'working');
  proc.data('› 1. Review hooks\r\n2. Trust all and continue\r\nPress enter to confirm or esc to go back');
- assert.equal(task.state,'needs input');assert.match(task.error,/review its hooks/);assert.equal(proc.writes.length,0);
- assert.throws(()=>manager.send(task.id,'Next task'),/review its hooks/);
+ assert.equal(task.state,'needs input');assert.match(task.error,/revise os hooks/);assert.equal(proc.writes.length,0);
+ assert.throws(()=>manager.send(task.id,'Next task'),/revise os hooks/);
  manager.input(task.id,'\r');assert.equal(task.state,'working');assert.equal(task.error,null);
  proc.data('Starting the requested work');assert.equal(task.state,'working');
  proc.data('\x1b[2JDo you trust the contents of this directory?\r\n› 1. Yes, continue\r\nPress enter to confirm');
- assert.equal(task.state,'needs input');assert.match(task.error,/trust this workspace/);
+ assert.equal(task.state,'needs input');assert.match(task.error,/confia neste espaço de trabalho/);
  manager.input(task.id,'\r');proc.data('Would you like to run the following command?\r\n› 1. Yes, proceed\r\nPress enter to confirm');
- assert.equal(task.state,'needs input');assert.match(task.error,/your approval/);
+ assert.equal(task.state,'needs input');assert.match(task.error,/aguarda sua aprovação/);
  manager.accept(task.id,{type:'complete',turnId:'done',text:'Done'});assert.equal(task.state,'ready');assert.equal(task.error,null);
  proc.data('Documentation mentions Hooks need review as a possible prompt.');assert.equal(task.state,'ready');
  manager.stop(task.id);proc.data('\nHooks need review\n› 1. Review hooks\nPress enter to confirm');assert.equal(task.state,'stopped');
@@ -118,8 +118,8 @@ test('all pinned Codex action approval screens pause work without sending an ans
   const task=manager.start({selection,prompt:'Harmless approval fixture'}),proc=processes.at(-1);
   const screen=`${header}\r\n  1. Approve\r\n  2. Approve for me\r\n› 3. Reject\r\n`;
   for(let at=0;at<screen.length;at+=7)proc.data(screen.slice(at,at+7));
-  assert.equal(task.state,'needs input');assert.match(task.error,/waiting for your approval/);
-  assert.throws(()=>manager.send(task.id,'Follow up before approval'),/waiting for your approval/);
+  assert.equal(task.state,'needs input');assert.match(task.error,/aguarda sua aprovação/);
+  assert.throws(()=>manager.send(task.id,'Follow up before approval'),/aguarda sua aprovação/);
   assert.deepEqual(proc.writes,[]);
   manager.input(task.id,'\r');assert.equal(task.state,'working');assert.equal(task.error,null);
   manager.accept(task.id,{type:'complete',turnId:'done',text:'Done'});assert.equal(task.state,'ready');
@@ -129,7 +129,7 @@ test('an interrupted first turn preserves its exact original request for explici
  const {manager,processes}=fixture(t),prompt='"Compare X and Y"\nKeep this second line.';
  const task=manager.start({selection,prompt});manager.stop(task.id);
  assert.equal(task.recoveryAvailable,true);assert.equal(manager.originalRequest(task.id).prompt,prompt);
- assert.deepEqual(manager.originalRequest(task.id).selection,selection);assert.throws(()=>manager.resume(task.id),/Recover request/);assert.equal(processes.length,1);
+ assert.deepEqual(manager.originalRequest(task.id).selection,selection);assert.throws(()=>manager.resume(task.id),/Recuperar pedido/);assert.equal(processes.length,1);
  assert.equal(manager.list()[0].prompt,undefined);
 });
 test('Windows raw PTY arguments round-trip literal quotes, Unicode, spaces and backslashes through real argv', {skip:process.platform!=='win32'},t=>{
@@ -145,14 +145,14 @@ test('empty completion permits follow-up without inventing an answer, but preser
  const {manager,processes}=fixture(t);const task=manager.start({selection,prompt:'Initial'});
  manager.accept(task.id,{type:'complete',turnId:'empty',text:''});assert.equal(task.state,'ready');assert.equal(task.turns.length,0);
  manager.input(task.id,'unfinished');manager.accept(task.id,{type:'Stop',turnId:'empty-two',text:''});assert.equal(task.state,'editing');
- manager.input(task.id,'\x7f');assert.equal(task.state,'editing');assert.throws(()=>manager.markReady(task.id),/Confirm/);
+ manager.input(task.id,'\x7f');assert.equal(task.state,'editing');assert.throws(()=>manager.markReady(task.id),/confirme que a CLI está ociosa/);
  const writes=processes[0].writes.length;manager.markReady(task.id,{confirmedEmpty:true});assert.equal(task.state,'ready');assert.equal(processes[0].writes.length,writes);
  manager.send(task.id,'Now safe to continue');assert.equal(task.state,'working');manager.input(task.id,'\x03');assert.equal(task.state,'editing');
  manager.markReady(task.id,{confirmedEmpty:true});assert.equal(task.state,'ready');
 });
 test('bracketed multiline paste is a draft until a separate Enter, including split envelope chunks',t=>{
  const {manager}=fixture(t);const task=manager.start({selection,prompt:'Initial'});manager.accept(task.id,{type:'complete',text:''});
- manager.input(task.id,'\x1b[200~first\rsecond\x1b[201~');assert.equal(task.state,'editing');assert.throws(()=>manager.send(task.id,'Overwrite'),/working/);
+ manager.input(task.id,'\x1b[200~first\rsecond\x1b[201~');assert.equal(task.state,'editing');assert.throws(()=>manager.send(task.id,'Overwrite'),/em andamento ou precisa de uma ação no terminal/);
  manager.input(task.id,'\r');assert.equal(task.state,'working');manager.accept(task.id,{type:'complete',text:''});assert.equal(task.state,'ready');
  manager.input(task.id,'\x1b[20');manager.input(task.id,'0~one\r');manager.input(task.id,'two\x1b[201~');assert.equal(task.state,'editing');
  manager.markReady(task.id,{confirmedEmpty:true});assert.equal(task.state,'ready');
@@ -161,7 +161,7 @@ test('late completion cannot revive a stopping terminal or announce successful w
  const {manager}=fixture(t);const task=manager.start({selection,prompt:'Task'}),sessionId=crypto.randomUUID();task.state='stopping';
  manager.accept(task.id,{type:'complete',sessionId,turnId:'late',text:'Late completed answer'});
  assert.equal(task.state,'stopping');assert.equal(task.sessionId,sessionId);assert.equal(task.turns.length,0);
- assert.throws(()=>manager.markReady(task.id,{confirmedEmpty:true}),/running terminal/);
+ assert.throws(()=>manager.markReady(task.id,{confirmedEmpty:true}),/Abra um terminal ativo/);
 });
 test('PTY tree cleanup refuses exited or unowned roots and stops only its owned process tree', {skip:process.platform!=='win32'},async t=>{
  let launches=0;const fake={proc:{pid:12345},exitObserved:true};

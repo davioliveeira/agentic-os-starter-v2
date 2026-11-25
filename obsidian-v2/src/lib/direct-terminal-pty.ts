@@ -64,11 +64,11 @@ export function bindDirectTerminal(view:DirectTerminalView,callbacks:DirectTermi
   input?.dispose();input=undefined;
   for(const {stream,listener} of streamListeners)stream.removeListener('data',listener);
   streamListeners.length=0;
-  if(!settled){settled=true;readyReject(error||new Error('The terminal closed before its process was ready.'))}
+  if(!settled){settled=true;readyReject(error||new Error('O terminal foi fechado antes que o processo estivesse pronto.'))}
   notify('closed',reason);
  }
  function assertCurrent(){
-  if(!active||!emulator||view.emulator!==emulator||!child||child.exitCode!==null||child.signalCode||child.stdin.destroyed||child.stdin.writableEnded)throw new Error('The terminal session changed or exited. Open its current tab before sending input.');
+  if(!active||!emulator||view.emulator!==emulator||!child||child.exitCode!==null||child.signalCode||child.stdin.destroyed||child.stdin.writableEnded)throw new Error('A sessão do terminal mudou ou foi encerrada. Abra a aba atual antes de enviar texto.');
  }
  function observe(stream:Stream){
   const decoder=new TextDecoder();
@@ -81,7 +81,7 @@ export function bindDirectTerminal(view:DirectTerminalView,callbacks:DirectTermi
  }
  async function attach(candidate:Emulator){
   emulator=candidate;
-  if(typeof candidate.terminal?.onData!=='function'||typeof candidate.pseudoterminal?.then!=='function')throw new TerminalAccessError('This Terminal version does not expose the process access Agentic OS needs.');
+  if(typeof candidate.terminal?.onData!=='function'||typeof candidate.pseudoterminal?.then!=='function')throw new TerminalAccessError('Esta versão do Terminal não dá ao Agentic OS acesso ao processo.');
   // Attach the human-input observer before awaiting the process so a draft
   // typed while the terminal starts cannot be mistaken for an empty composer.
   input=candidate.terminal.onData(data=>{
@@ -92,12 +92,12 @@ export function bindDirectTerminal(view:DirectTerminalView,callbacks:DirectTermi
   pty=await candidate.pseudoterminal;
   if(!active)return;
   if(view.emulator!==candidate){finish('replaced');return}
-  if(typeof pty?.kill!=='function'||typeof pty.onExit?.then!=='function'||typeof pty.shell?.then!=='function')throw new TerminalAccessError('This Terminal version does not expose the process access Agentic OS needs.');
+  if(typeof pty?.kill!=='function'||typeof pty.onExit?.then!=='function'||typeof pty.shell?.then!=='function')throw new TerminalAccessError('Esta versão do Terminal não dá ao Agentic OS acesso ao processo.');
   void pty.onExit.then(code=>{if(active&&view.emulator===candidate){notify('exit',code);finish('closed')}},error=>{if(active){notify('error',message(error));finish('disposed',new Error(message(error)))}});
   const process=await pty.shell;
   if(!active)return;
   if(view.emulator!==candidate){finish('replaced');return}
-  if(!process?.stdin||typeof process.stdin.write!=='function'||!process.stdout||typeof process.stdout.on!=='function'||typeof process.stdout.removeListener!=='function'||!process.stderr||typeof process.stderr.on!=='function'||typeof process.stderr.removeListener!=='function')throw new TerminalAccessError('This Terminal version does not expose the process streams Agentic OS needs.');
+  if(!process?.stdin||typeof process.stdin.write!=='function'||!process.stdout||typeof process.stdout.on!=='function'||typeof process.stdout.removeListener!=='function'||!process.stderr||typeof process.stderr.on!=='function'||typeof process.stderr.removeListener!=='function')throw new TerminalAccessError('Esta versão do Terminal não dá ao Agentic OS acesso à entrada e às saídas do processo.');
   child=process;assertCurrent();
   hostPid=Number.isInteger(process.pid)&&process.pid!>0?process.pid!:null;
   observe(process.stdout);observe(process.stderr);
@@ -114,14 +114,14 @@ export function bindDirectTerminal(view:DirectTerminalView,callbacks:DirectTermi
   if(!emulator&&view.emulator){void attach(view.emulator).catch(error=>{if(active){notify('error',message(error));finish('disposed',error instanceof Error?error:new Error(message(error)))}})}
   // Either way the tab exists and its CLI may have started: an unknown Terminal can
   // simply hide its emulator. Only a closed or replaced view is a plain Error.
-  if(!settled&&Date.now()-started>=timeoutMs){const error=new TerminalAccessError(emulator?'Terminal did not expose its process before the launch timeout.':'Terminal did not open before the launch timeout.');notify('error',error.message);finish('disposed',error);return}
+  if(!settled&&Date.now()-started>=timeoutMs){const error=new TerminalAccessError(emulator?'O Terminal não disponibilizou o processo dentro do tempo limite de abertura.':'O Terminal não abriu dentro do tempo limite.');notify('error',error.message);finish('disposed',error);return}
   timer=setTimeout(poll,pollMs);timer.unref?.();
  }
  view.register(()=>finish('closed'));poll();
  return {ready,get active(){return active},get hostPid(){return hostPid},get hasDraft(){return !!boundary.hasDraft},get approval(){return approval},
   async write(data:string){
    await ready;assertCurrent();
-   if(typeof data!=='string'||!data.length)throw new Error('Terminal input must be nonempty text.');
+   if(typeof data!=='string'||!data.length)throw new Error('Digite algum texto para enviar ao terminal.');
    await new Promise<void>((resolve,reject)=>{
     try{child!.stdin.write(data,error=>error?reject(error):resolve())}catch(error){reject(error)}
    });

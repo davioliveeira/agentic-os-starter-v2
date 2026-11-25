@@ -33,9 +33,9 @@ test('receipt-confirmed delivery distinguishes accepted work from a successful P
 test('missing receipt becomes visible once, never retries, and a later manual submit can recover',t=>{
  const f=fixture(t);f.manager.send(f.task.id,'Change the robot');const pending=f.pending(),proc=f.processes[0];
  f.advance(TERMINAL_DELIVERY_TIMEOUT_MS-1);assert.equal(f.task.state,'working');
- f.advance(1);assert.equal(f.task.state,'needs input');assert.match(f.task.error,/hasn't confirmed/);assert.equal(f.pending(),pending);
+ f.advance(1);assert.equal(f.task.state,'needs input');assert.match(f.task.error,/ainda não confirmou/);assert.equal(f.pending(),pending);
  const warning=f.task.error;f.advance(30000);assert.equal(f.task.error,warning);assert.deepEqual(proc.writes.slice(1),['\r']);
- assert.throws(()=>f.manager.send(f.task.id,'Duplicate request'),/hasn't confirmed/);
+ assert.throws(()=>f.manager.send(f.task.id,'Duplicate request'),/ainda não confirmou/);
  f.manager.input(f.task.id,'\r');f.append(receipt(pending.text));f.manager.collect();assert.equal(f.pending(),null);assert.equal(f.task.state,'working');assert.equal(f.task.error,null);
  assert.deepEqual(proc.writes.slice(1),['\r','\r']);
 });
@@ -47,7 +47,7 @@ test('approval appearing between paste and Enter remains unanswered and is not o
  const f=fixture(t);f.manager.send(f.task.id,'Change the robot');
  f.processes[0].data('Would you like to make the following edits?\r\n› 1. Approve\r\n  2. Reject\r\nPress enter to confirm');
  assert.equal(f.task.state,'needs input');const warning=f.task.error;f.advance(TERMINAL_DELIVERY_TIMEOUT_MS);
- assert.equal(f.processes[0].writes.length,1);assert.equal(f.task.error,warning);assert.match(warning,/approval/);
+ assert.equal(f.processes[0].writes.length,1);assert.equal(f.task.error,warning);assert.match(warning,/aprovação/);
 });
 test('human editing, stop, and replaced process each cancel the one scheduled Enter',t=>{
  for(const action of ['editing','stop','replacement']){
@@ -84,7 +84,7 @@ test('Claude confirms only the exact current request hook, ignores stale hooks a
 test('Claude queued approval events cancel Enter before it reaches the CLI',t=>{
  const f=fixture(t,'claude');f.manager.send(f.task.id,'Update it');const file=path.join(f.manager.folder(f.task.id),'events','approval.json');
  fs.writeFileSync(file,JSON.stringify({type:'PermissionRequest',sessionId:session,ts:f.now()}));f.advance(TERMINAL_PASTE_SETTLE_MS);
- assert.equal(f.processes[0].writes.length,1);assert.equal(f.task.state,'needs input');assert.match(f.task.error,/approval/);
+ assert.equal(f.processes[0].writes.length,1);assert.equal(f.task.state,'needs input');assert.match(f.task.error,/aprovação/);
 });
 for(const provider of ['codex','claude'])test(`${provider} manual editing preserves the pasted helper identity; fresh typed turns rotate it`,t=>{
  const f=fixture(t,provider);f.manager.send(f.task.id,'Edit the robot');const pending=f.pending(),key=pending.key;

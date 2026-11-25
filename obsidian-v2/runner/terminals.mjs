@@ -30,23 +30,23 @@ import {createCodexDeliveryWatch} from './terminal-delivery.mjs';
 const require=createRequire(import.meta.url);
 export const TERMINAL_PASTE_SETTLE_MS=750;
 export const TERMINAL_DELIVERY_TIMEOUT_MS=10000;
-const DELIVERY_WARNING="The terminal hasn't confirmed this request. Check its input box; if the request is still there, press Enter once.";
+const DELIVERY_WARNING="O terminal ainda não confirmou o pedido. Confira o campo de entrada. Se o pedido ainda estiver ali, pressione Enter uma vez.";
 const normalizedPrompt=text=>String(text||'').replace(/\r\n?/g,'\n').trim();
 // xterm answers cursor/device/color queries without any human keypress. These
 // complete reports must not cancel the only pending submission or create a draft.
 const terminalReport=data=>/^(?:\x1b\[(?:\??\d+;\d+R|[?>]?\d+(?:;\d+)*c)|\x1b\](?:10|11|12);rgb:[\da-f]{1,4}\/[\da-f]{1,4}\/[\da-f]{1,4}(?:\x07|\x1b\\))+$/i.test(data);
 function assertAttachmentInstance(live,instance){
- if(instance!==undefined&&(typeof instance!=='string'||!instance||!live||live.exitObserved||live.instance!==instance))throw new Error('Terminal session changed. Reconnect before sending more input.');
+ if(instance!==undefined&&(typeof instance!=='string'||!instance||!live||live.exitObserved||live.instance!==instance))throw new Error('A sessão do terminal mudou. Reconecte-se antes de enviar mais texto.');
 }
 export const workId=id=>typeof id==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(id);
 export function cleanPrompt(text){
- if(typeof text!=='string'||!text.trim()||text.length>12000)throw new Error('Enter a request of 1–12000 characters.');
+ if(typeof text!=='string'||!text.trim()||text.length>12000)throw new Error('Digite um pedido de 1 a 12.000 caracteres.');
  // Text is pasted into the CLI composer, never interpreted as terminal control codes.
- if(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(text))throw new Error('Control characters are not allowed in a request.');
+ if(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(text))throw new Error('O pedido não pode conter caracteres de controle.');
  return text.trim();
 }
 export function terminalSpec(root,record,cli=findCli(record.provider),{resumePrompt,spoken=!!record.spoken,events}={}){
- if(!cli)throw new Error(`${record.provider} CLI is not installed.`);
+ if(!cli)throw new Error(`A CLI de ${record.provider} não está instalada.`);
  const hook=path.join(projectRoot,'runner/terminal-hook.mjs');
  let args;
  if(record.provider==='codex'){
@@ -126,7 +126,7 @@ export class TerminalManager {
   this.collect(id);const live=this.live.get(id);if(!live)return this.stop(id);
   const boundary=live.inputBoundary,drawing=Number.isFinite(live.lastOutputAt)&&this.now()-live.lastOutputAt<QUIET_BEFORE_CLOSE_MS;
   const busy=r.state!=='ready'||drawing||live.exitObserved||live.pendingDelivery||live.draftRequestKey||live.userTyped||live.unsentPaste||boundary&&(boundary.hasDraft||boundary.pasting||boundary.pending);
-  if(busy){const error=new Error('This terminal is no longer idle. Check it, then press Stop? to end it anyway.');error.code='TERMINAL_NOT_IDLE';throw error}
+  if(busy){const error=new Error('O terminal voltou a ficar ativo. Confira o que está rodando e depois confirme se quiser encerrá-lo.');error.code='TERMINAL_NOT_IDLE';throw error}
   return this.stop(id);
  }
  sweepIdle(){
@@ -141,9 +141,9 @@ export class TerminalManager {
   }
   return stopped;
  }
- folder(id){if(!workId(id))throw new Error('Invalid task ID');return path.join(this.directory,id)}
- artifactOutbox(id){if(!workId(id))throw new Error('Invalid task ID');return vaultPath(fs.realpathSync(this.root),`system/v2/artifact-requests/${id}`)}
- get(id){const r=this.records.get(id);if(!r)throw new Error('Task not found');return r}
+ folder(id){if(!workId(id))throw new Error('ID da tarefa inválido.');return path.join(this.directory,id)}
+ artifactOutbox(id){if(!workId(id))throw new Error('ID da tarefa inválido.');return vaultPath(fs.realpathSync(this.root),`system/v2/artifact-requests/${id}`)}
+ get(id){const r=this.records.get(id);if(!r)throw new Error('Tarefa não encontrada.');return r}
  touch(r,{conversation=false}={}){r.lastActivityAt=this.now();if(conversation)r.conversationActivityAt=r.lastActivityAt;if(r.state==='stopped')r.stoppedAt=r.lastActivityAt}
  cancelSubmit(live){const pending=live?.pendingDelivery;if(pending?.timer){this.cancelDeferred(pending.timer);pending.timer=null}if(pending)pending.submitCanceled=true}
  clearDelivery(live,{preserveDraft=false}={}){this.cancelSubmit(live);try{live?.pendingDelivery?.watcher?.close?.()}catch{}if(live){live.pendingDelivery=null;if(!preserveDraft)live.draftRequestKey=null}}
@@ -191,7 +191,7 @@ export class TerminalManager {
   r.requestTitle??=r.title;r.title=title.trim().slice(0,70);r.titleSource='session';this.save(r);return true;
  }
  list(){for(const r of this.records.values())this.refreshTitle(r);return [...this.records.values()].sort((a,b)=>b.created-a.created).map(r=>({...r,queuedFollowups:this.live.get(r.id)?.queued?.length||0,expiresAt:this.retention.expiresAt(r,this.live.has(r.id)),prompt:undefined,vault:undefined,native:undefined,activeLiveCallId:undefined,pendingArtifacts:undefined,artifactRequestKey:undefined,workflowHistory:undefined,completedTurnIds:undefined,workflow:r.workflow?{skill:r.workflow.job.skill,destination:r.workflow.destination,startedAt:r.workflow.startedAt}:undefined}))}
- setKeep(id,keep){if(typeof keep!=='boolean')throw new Error('Keep must be true or false');const r=this.get(id);if(r.keep!==keep){r.keep=keep;if(!keep)this.touch(r);this.save(r)}return {...r,expiresAt:this.retention.expiresAt(r,this.live.has(id))}}
+ setKeep(id,keep){if(typeof keep!=='boolean')throw new Error('O valor de keep deve ser true ou false.');const r=this.get(id);if(r.keep!==keep){r.keep=keep;if(!keep)this.touch(r);this.save(r)}return {...r,expiresAt:this.retention.expiresAt(r,this.live.has(id))}}
  prune(){
   if(this.closed)return;
   for(const [id,r] of this.records){const expires=this.retention.expiresAt(r,this.live.has(id));if(expires===null||this.now()<expires)continue;
@@ -207,44 +207,44 @@ export class TerminalManager {
   return null;
  }
  startWorkflow({id=crypto.randomUUID(),selection,skill,args={},execution,reveal=true,liveCallId,appScope=execution==='native'?'native':'web'}){
-  if(!workId(id))throw new Error('Invalid task ID');
-  if(![undefined,'native','headless'].includes(execution)||!['native','web'].includes(appScope))throw new Error('Invalid workflow owner');
+  if(!workId(id))throw new Error('ID da tarefa inválido.');
+  if(![undefined,'native','headless'].includes(execution)||!['native','web'].includes(appScope))throw new Error('Aplicativo de origem do fluxo inválido.');
   const previous=this.workflowRequest(id);
   const existing=previous?.record||this.records.get(id);
-  if(existing?.execution==='headless'&&existing.model!==selection.model)throw new Error('Task ID already used with a different model.');
-  if(existing&&(existing.execution==='headless'||execution==='headless')&&(existing.execution!=='script'&&existing.execution!==execution||(existing.appScope||(existing.execution==='native'?'native':'web'))!==appScope))throw new Error('Task ID belongs to a different workflow or app.');
-  if(existing&&existing.execution!=='script'&&(existing.execution==='native')!==(execution==='native'))throw new Error('Task ID belongs to a different app.');
-  if(previous){if(previous.workflow.job.skill!==skill||JSON.stringify(previous.workflow.job.args)!==JSON.stringify(args)||previous.record.provider!==selection.provider)throw new Error('Task ID already used');return previous.record}
-  if(this.records.has(id)){const existing=this.get(id);if(existing.workflow?.job.skill!==skill||JSON.stringify(existing.workflow.job.args)!==JSON.stringify(args)||existing.provider!==selection.provider)throw new Error('Task ID already used');return existing}
+  if(existing?.execution==='headless'&&existing.model!==selection.model)throw new Error('Este ID de tarefa já foi usado com outro modelo.');
+  if(existing&&(existing.execution==='headless'||execution==='headless')&&(existing.execution!=='script'&&existing.execution!==execution||(existing.appScope||(existing.execution==='native'?'native':'web'))!==appScope))throw new Error('Este ID de tarefa pertence a outro fluxo ou aplicativo.');
+  if(existing&&existing.execution!=='script'&&(existing.execution==='native')!==(execution==='native'))throw new Error('Este ID de tarefa pertence a outro aplicativo.');
+  if(previous){if(previous.workflow.job.skill!==skill||JSON.stringify(previous.workflow.job.args)!==JSON.stringify(args)||previous.record.provider!==selection.provider)throw new Error('Este ID de tarefa já foi usado.');return previous.record}
+  if(this.records.has(id)){const existing=this.get(id);if(existing.workflow?.job.skill!==skill||JSON.stringify(existing.workflow.job.args)!==JSON.stringify(args)||existing.provider!==selection.provider)throw new Error('Este ID de tarefa já foi usado.');return existing}
   this.retention.assertNew(id);
   const job=validateIntent({version:2,id,...selection,skill,args,from:'plugin',ts:new Date().toISOString()});
   const destination=destinationFor(job);
-  if(SKILLS[skill].direct&&[...this.records.values()].some(r=>r.execution==='script'&&r.workflow?.job.skill===skill&&this.live.has(r.id)))throw new Error('This source refresh is already running. Wait for its result; other tasks can still run.');
-  if([...this.records.values()].some(r=>r.workflow?.destination===destination&&!r.workflowCompleted&&this.live.has(r.id)))throw new Error('Another task is updating that same note. Continue it or wait for its result; unrelated tasks can still run.');
+  if(SKILLS[skill].direct&&[...this.records.values()].some(r=>r.execution==='script'&&r.workflow?.job.skill===skill&&this.live.has(r.id)))throw new Error('A atualização dessa fonte já está em andamento. Aguarde o resultado. As outras tarefas podem continuar.');
+  if([...this.records.values()].some(r=>r.workflow?.destination===destination&&!r.workflowCompleted&&this.live.has(r.id)))throw new Error('Outra tarefa está atualizando a mesma nota. Continue essa tarefa ou aguarde o resultado. As demais tarefas podem continuar.');
   if(SKILLS[skill].direct)return this.startDirect(job,destination,appScope,{background:execution==='headless',liveCallId});
   const workflow=prepareWorkflow(this.root,{id,selection,skill,args,execution});
   if(execution==='headless')return startHeadlessWorkflow(this,workflow,appScope);
   return this.start({id,selection,prompt:workflow.prompt,title:skill.replaceAll('-',' '),workflow,execution,reveal,liveCallId});
  }
  continueWorkflow(targetId,{id=crypto.randomUUID(),selection,skill,args={}},{resumeStopped=false,liveCallId}={}){
-  if(!workId(id))throw new Error('Invalid task ID');
+  if(!workId(id))throw new Error('ID da tarefa inválido.');
   const r=this.get(targetId),chosen=validateSelection(selection);
-  if(r.provider!==chosen.provider)throw new Error('This conversation belongs to a different provider.');
+  if(r.provider!==chosen.provider)throw new Error('Esta conversa pertence a outro provedor.');
   const job=validateIntent({version:2,id,provider:r.provider,model:r.model,skill,args,from:'plugin',ts:new Date().toISOString()});
-  if(SKILLS[skill].direct)throw new Error('Source refreshes run as scripts; start a separate refresh instead of sending one to a terminal.');
+  if(SKILLS[skill].direct)throw new Error('A atualização de fontes usa scripts. Inicie-a em uma tarefa separada.');
   const previous=this.workflowRequest(id);
-  if(previous){if(previous.record!==r||previous.workflow.job.skill!==skill||JSON.stringify(previous.workflow.job.args)!==JSON.stringify(args))throw new Error('Task ID already used');return r}
-  if(this.records.has(id))throw new Error('Task ID already used');
+  if(previous){if(previous.record!==r||previous.workflow.job.skill!==skill||JSON.stringify(previous.workflow.job.args)!==JSON.stringify(args))throw new Error('Este ID de tarefa já foi usado.');return r}
+  if(this.records.has(id))throw new Error('Este ID de tarefa já foi usado.');
   this.retention.assertNew(id);
   const ready=()=>{
    this.assertFollowup(targetId,{resumeStopped});
-   if(r.workflow&&!r.workflowCompleted)throw new Error('This conversation has an unfinished workflow. Continue it before starting another workflow in this terminal.');
+   if(r.workflow&&!r.workflowCompleted)throw new Error('Esta conversa tem um fluxo pendente. Continue o fluxo antes de iniciar outro neste terminal.');
   };
   // Process already-arrived hooks before assigning a new output contract. A
   // queued approval or completion cannot be mistaken for the new workflow.
   ready();this.collect(targetId);ready();
   const destination=destinationFor(job);
-  if([...this.records.values()].some(other=>other.workflow?.destination===destination&&!other.workflowCompleted&&this.live.has(other.id)))throw new Error('Another task is updating that same note. Continue it or wait for its result; unrelated tasks can still run.');
+  if([...this.records.values()].some(other=>other.workflow?.destination===destination&&!other.workflowCompleted&&this.live.has(other.id)))throw new Error('Outra tarefa está atualizando a mesma nota. Continue essa tarefa ou aguarde o resultado. As demais tarefas podem continuar.');
   const workflow=prepareWorkflow(this.root,{id,selection:{provider:r.provider,model:r.model},skill,args});
   cleanPrompt(workflow.prompt);
   workflow.startedAt=this.now();workflow.continued=true;
@@ -260,12 +260,12 @@ export class TerminalManager {
   fs.mkdirSync(path.join(this.folder(r.id),'events'),{recursive:true});this.records.set(r.id,r);
   const controller=new AbortController();
   const live={controller,proc:{kill:()=>controller.abort(),resize(){}},output:'',start:0,instance:crypto.randomUUID(),sizes:[{at:0,cols:110,rows:30}]};
-  writeJson(this.root,`system/v2/runs/${r.id}.json`,{...job,model:'none',ts_queued:job.ts,ts_started:new Date(r.created).toISOString(),ts_completed:null,status:'running',summary:'Fetching source data',execution:'script',appScope,task_id:r.id,deliverable_path:null});
+  writeJson(this.root,`system/v2/runs/${r.id}.json`,{...job,model:'none',ts_queued:job.ts,ts_started:new Date(r.created).toISOString(),ts_completed:null,status:'running',summary:'Consultando as fontes de dados',execution:'script',appScope,task_id:r.id,deliverable_path:null});
   this.live.set(r.id,live);this.save(r);
-  live.done=Promise.resolve().then(()=>{if(controller.signal.aborted)throw new Error('Task stopped');return this.direct(this.root,job,{signal:controller.signal})}).then(result=>{
+  live.done=Promise.resolve().then(()=>{if(controller.signal.aborted)throw new Error('Tarefa interrompida.');return this.direct(this.root,job,{signal:controller.signal})}).then(result=>{
    if(this.live.get(r.id)!==live)return;
-   if(controller.signal.aborted)throw new Error('Source refresh was stopped. Any source data already fetched remains available.');
-   const text=String(result.text||'');if(!text.trim())throw new Error('The source refresh returned no result.');
+   if(controller.signal.aborted)throw new Error('A atualização foi interrompida. Os dados já consultados continuam disponíveis.');
+   const text=String(result.text||'');if(!text.trim())throw new Error('A atualização da fonte não retornou resultados.');
    saveWorkflowResult(this.root,r,text,{ownsDestination:!!result.ownsDestination});
    r.turns.push({id:'script-complete',ts:Date.now(),text:text.slice(0,100000)});r.state=r.workflowStatus==='ok'?'stopped':'error';
   }).catch(error=>{
@@ -275,13 +275,13 @@ export class TerminalManager {
   return r;
  }
  start({id=crypto.randomUUID(),selection,prompt,title,workflow,spoken=false,execution,openWhenDone=false,slashSkill=false,reveal=true,liveCallId}){
-  if(execution!==undefined&&execution!=='native')throw new Error('Invalid terminal owner');
-  if(!workId(id))throw new Error('Invalid task ID');
+  if(execution!==undefined&&execution!=='native')throw new Error('Aplicativo de origem do terminal inválido.');
+  if(!workId(id))throw new Error('ID da tarefa inválido.');
   const chosen=validateSelection(selection);prompt=cleanPrompt(prompt);
-  if(!this.records.has(id)&&this.workflowRequest(id))throw new Error('Task ID already used');
-  if(this.records.has(id)){const r=this.get(id);if(r.provider!==chosen.provider||r.prompt!==prompt||(r.execution==='native')!==(execution==='native'))throw new Error('Task ID already used');return r}
+  if(!this.records.has(id)&&this.workflowRequest(id))throw new Error('Este ID de tarefa já foi usado.');
+  if(this.records.has(id)){const r=this.get(id);if(r.provider!==chosen.provider||r.prompt!==prompt||(r.execution==='native')!==(execution==='native'))throw new Error('Este ID de tarefa já foi usado.');return r}
   this.retention.assertNew(id);
-  if(!this.spawn&&!findCli(chosen.provider))throw new Error(`${chosen.provider} CLI is not installed`);
+  if(!this.spawn&&!findCli(chosen.provider))throw new Error(`A CLI de ${chosen.provider} não está instalada.`);
   const r={id,vault:this.root,...chosen,prompt,title:String(title||prompt).replace(/\s+/g,' ').slice(0,70),created:this.now(),lastActivityAt:this.now(),keep:false,state:'starting',sessionId:null,pid:null,turns:[],error:null,workflow,...(execution?{execution}:{}),...(spoken?{spoken:true}:{}),...(slashSkill?{slashSkill:true}:{}),...(!reveal?{reveal:false}:{}),...(openWhenDone?{openWhenDone:true}:{})};
   fs.mkdirSync(path.join(this.folder(id),'events'),{recursive:true});this.records.set(id,r);this.save(r);
   try{this.launch(r,{liveCallId})}catch(e){r.state='error';r.error=e.message;r.recoveryAvailable=!r.sessionId;this.save(r);throw e}return r;
@@ -290,7 +290,7 @@ export class TerminalManager {
   if(this.live.has(r.id))return r;
   delete r.idleStoppedAt;
   if(resumePrompt!==undefined)resumePrompt=cleanPrompt(resumePrompt);
-  if(r.workflow&&!r.workflowCompleted&&[...this.records.values()].some(other=>other.id!==r.id&&other.workflow?.destination===r.workflow.destination&&!other.workflowCompleted&&this.live.has(other.id)))throw new Error('Another task is updating this note. Resume after it finishes.');
+  if(r.workflow&&!r.workflowCompleted&&[...this.records.values()].some(other=>other.id!==r.id&&other.workflow?.destination===r.workflow.destination&&!other.workflowCompleted&&this.live.has(other.id)))throw new Error('Outra tarefa está atualizando esta nota. Retome quando ela terminar.');
   r.skipWorkflowCompletion=!!r.sessionId&&resumePrompt===undefined;
   this.beginRequest(r,liveCallId);
   const events=this.artifactOutbox(r.id);
@@ -307,10 +307,10 @@ export class TerminalManager {
   proc.onData(data=>{if(this.live.get(r.id)!==live)return;live.lastOutputAt=this.now();live.output+=data;if(live.output.length>500000){const trim=live.output.length-400000;live.output=live.output.slice(trim);live.start+=trim;const base=live.sizes.filter(s=>s.at<=live.start).at(-1);live.sizes=[{...base,at:live.start},...live.sizes.filter(s=>s.at>live.start)]}
    if(r.provider==='codex'&&r.state!=='stopping'){const reason=live.detector.update(data);if(reason&&!(r.state==='needs input'&&r.error===reason)){this.cancelSubmit(live);r.state='needs input';r.error=reason;this.save(r)}}
   });
-  proc.onExit(async({exitCode})=>{live.exitObserved=true;this.clearDelivery(live);if(this.stopTree)await releaseStoppedWindowsPty(proc);if(this.live.get(r.id)!==live)return;const stopping=r.state==='stopping';this.collect();this.live.delete(r.id);r.pid=null;r.state=exitCode&&!stopping?'error':'stopped';r.recoveryAvailable=!r.sessionId;r.error=exitCode&&!stopping?`CLI exited (${exitCode}). ${r.sessionId?'Resume the saved conversation.':'Use Recover request to review the original request and start a new task.'}`:null;this.touch(r);this.save(r)});
+  proc.onExit(async({exitCode})=>{live.exitObserved=true;this.clearDelivery(live);if(this.stopTree)await releaseStoppedWindowsPty(proc);if(this.live.get(r.id)!==live)return;const stopping=r.state==='stopping';this.collect();this.live.delete(r.id);r.pid=null;r.state=exitCode&&!stopping?'error':'stopped';r.recoveryAvailable=!r.sessionId;r.error=exitCode&&!stopping?`A CLI encerrou com código ${exitCode}. ${r.sessionId?'Retome a conversa salva.':'Use Recuperar pedido para revisar o pedido original e iniciar outra tarefa.'}`:null;this.touch(r);this.save(r)});
   return r;
  }
- resume(id){const r=this.get(id);if(r.execution==='headless')throw new Error('Background workflows cannot be resumed. Start a new workflow to run it again.');if(this.live.has(id))return r;if(r.execution==='script')throw new Error('This source refresh has finished. Start a new refresh to run it again.');if(!r.sessionId)throw new Error('No saved CLI session yet. Your original request is preserved. Use Recover request to review it and start a new task explicitly.');return this.launch(r)}
+ resume(id){const r=this.get(id);if(r.execution==='headless')throw new Error('Para executar novamente um fluxo em segundo plano, inicie um novo fluxo.');if(this.live.has(id))return r;if(r.execution==='script')throw new Error('Esta atualização terminou. Inicie outra para consultar a fonte novamente.');if(!r.sessionId)throw new Error('Ainda não há uma sessão da CLI salva. Seu pedido original foi preservado. Use Recuperar pedido para revisá-lo e iniciar outra tarefa.');return this.launch(r)}
  output(id,cursor=0,instance=''){
   const r=this.get(id),live=this.live.get(id);if(!live)return {data:'',cursor:0,instance:'',state:r.state};
   const reset=instance!==live.instance||cursor<live.start||cursor>live.start+live.output.length;
@@ -324,16 +324,16 @@ export class TerminalManager {
   return {data:live.output.slice(offset),frames,cursor:end,instance:live.instance,reset,state:r.state};
  }
  input(id,data,instance){
-  const r=this.get(id),live=this.live.get(id);if(!live)throw new Error('Terminal is stopped. Resume it first.');
-  if(r.execution==='headless')throw new Error('Background workflows do not have an interactive terminal.');
+  const r=this.get(id),live=this.live.get(id);if(!live)throw new Error('O terminal está parado. Retome-o antes de continuar.');
+  if(r.execution==='headless')throw new Error('Fluxos em segundo plano rodam sem terminal interativo.');
   assertAttachmentInstance(live,instance);
-  if(typeof data!=='string'||data.length>16000)throw new Error('Invalid terminal input');
-  if(r.execution==='script')throw new Error('Source refreshes do not have an interactive terminal.');
-  if(r.state==='stopping')throw new Error('This terminal is stopping. Wait for it to close.');
+  if(typeof data!=='string'||data.length>16000)throw new Error('Entrada de terminal inválida.');
+  if(r.execution==='script')throw new Error('As atualizações de fontes rodam sem terminal interativo.');
+  if(r.state==='stopping')throw new Error('O terminal está sendo encerrado. Aguarde até fechar.');
   const report=terminalReport(data);
   // Receipt may already be on disk: distinguish editing the managed paste from
   // composing the next message after the provider has accepted that paste.
-  if(data.length&&!report&&live.pendingDelivery){this.collect(id);if(this.live.get(id)!==live||live.exitObserved)throw new Error('Terminal session changed. Reconnect before sending more input.')}
+  if(data.length&&!report&&live.pendingDelivery){this.collect(id);if(this.live.get(id)!==live||live.exitObserved)throw new Error('A sessão do terminal mudou. Reconecte-se antes de enviar mais texto.')}
   const pending=live.pendingDelivery;
   if(data.length&&!report){if(pending)live.draftRequestKey=pending.key;this.clearDelivery(live,{preserveDraft:true})}
   live.proc.write(data);
@@ -357,33 +357,33 @@ export class TerminalManager {
  }
  markReady(id,{confirmedEmpty=false}={}){
   const r=this.get(id),live=this.live.get(id);
-  if(!live||['script','headless'].includes(r.execution)||r.state==='stopping')throw new Error('Open a running terminal before returning to the message box.');
-  if(confirmedEmpty!==true)throw new Error('Confirm that the CLI is idle and its input box is empty. Preserve any draft first.');
+  if(!live||['script','headless'].includes(r.execution)||r.state==='stopping')throw new Error('Abra um terminal ativo antes de voltar para a caixa de mensagens.');
+  if(confirmedEmpty!==true)throw new Error('Salve qualquer rascunho e confirme que a CLI está ociosa e com o campo de entrada vazio.');
   // User verification changes only our routing state. Never send clearing keys,
   // an interrupt, an approval response, or a prompt on the user's behalf.
   this.clearDelivery(live);live.inputBoundary.reset();live.userTyped=false;live.unsentPaste=false;live.detector.reset();r.state='ready';r.error=null;this.touch(r,{conversation:true});this.save(r);return r;
  }
  assertFollowup(id,{resumeStopped=false}={}){
   const r=this.get(id),live=this.live.get(id);
-  if(r.execution==='headless')throw new Error('Background workflows do not have an interactive terminal. Start a new workflow instead.');
-  if(r.execution==='script')throw new Error('Source refreshes do not have an interactive terminal.');
+  if(r.execution==='headless')throw new Error('Fluxos em segundo plano rodam sem terminal interativo. Inicie um novo fluxo.');
+  if(r.execution==='script')throw new Error('As atualizações de fontes rodam sem terminal interativo.');
   if(!live){
-   if(!resumeStopped)throw new Error('Resume this terminal before sending a follow-up.');
-   if(!['stopped','error','ready'].includes(r.state))throw new Error('This terminal is still closing. Wait for it to stop before sending a follow-up.');
-   if(!r.sessionId)throw new Error('No saved CLI session yet. Your original request is preserved. Use Recover request to review it and start a new task explicitly.');
+   if(!resumeStopped)throw new Error('Retome este terminal antes de enviar outra mensagem.');
+   if(!['stopped','error','ready'].includes(r.state))throw new Error('O terminal ainda está sendo encerrado. Aguarde até fechar para enviar outra mensagem.');
+   if(!r.sessionId)throw new Error('Ainda não há uma sessão da CLI salva. Seu pedido original foi preservado. Use Recuperar pedido para revisá-lo e iniciar outra tarefa.');
    return;
   }
-  if(live.exitObserved)throw new Error('This terminal is still closing. Wait for it to stop before sending a follow-up.');
-  if(r.state!=='ready'||live.inputBoundary?.hasDraft)throw new Error(r.state==='needs input'&&r.error?r.error:'This task is working or needs terminal input. Wait for its answer, or type directly in its terminal.');
+  if(live.exitObserved)throw new Error('O terminal ainda está sendo encerrado. Aguarde até fechar para enviar outra mensagem.');
+  if(r.state!=='ready'||live.inputBoundary?.hasDraft)throw new Error(r.state==='needs input'&&r.error?r.error:'Esta tarefa está em andamento ou precisa de uma ação no terminal. Aguarde a resposta ou digite diretamente no terminal.');
  }
  // Sends now when the conversation is free; holds the request when it is in the middle of a turn.
  sendWhenFree(id,text,{resumeStopped=false,spoken=false,openWhenDone=false,liveCallId}={}){
   const r=this.get(id),live=this.live.get(id);
   if(!live||live.exitObserved||!['starting','working'].includes(r.state))return this.send(id,text,{resumeStopped,spoken,openWhenDone,liveCallId});
-  if(r.execution==='headless'||r.execution==='script')throw new Error('Background workflows do not have an interactive terminal. Start a new workflow instead.');
+  if(r.execution==='headless'||r.execution==='script')throw new Error('Fluxos em segundo plano rodam sem terminal interativo. Inicie um novo fluxo.');
   text=cleanPrompt(text);
   live.queued=(live.queued||[]).filter(item=>item.at>=this.now()-QUEUED_FOLLOWUP_MAX_AGE_MS);
-  if(live.queued.length>=MAX_QUEUED_FOLLOWUPS)throw new Error(`That task already has ${MAX_QUEUED_FOLLOWUPS} requests waiting. Let it catch up first.`);
+  if(live.queued.length>=MAX_QUEUED_FOLLOWUPS)throw new Error(`A tarefa já tem ${MAX_QUEUED_FOLLOWUPS} pedidos na fila. Aguarde até que ela processe os pedidos anteriores.`);
   live.queued.push({text,options:{spoken,openWhenDone,...(liveCallId?{liveCallId}:{})},at:this.now()});
   return r;
  }
@@ -424,7 +424,7 @@ export class TerminalManager {
    if(this.live.get(id)===live&&!live.exitObserved&&live.pendingDelivery===pending&&!pending.submitCanceled&&r.state==='working')live.proc.write('\r');
   },TERMINAL_PASTE_SETTLE_MS);pending.timer?.unref?.();return r;
  }
- resize(id,cols,rows,instance){if(!Number.isInteger(cols)||!Number.isInteger(rows)||cols<20||cols>300||rows<5||rows>120)throw new Error('Invalid terminal size');const live=this.live.get(id);assertAttachmentInstance(live,instance);if(!live)return;const last=live.sizes.at(-1);if(last.cols===cols&&last.rows===rows)return;const at=live.start+live.output.length;if(last.at===at)live.sizes.pop();live.sizes.push({at,cols,rows});live.proc.resize(cols,rows)}
+ resize(id,cols,rows,instance){if(!Number.isInteger(cols)||!Number.isInteger(rows)||cols<20||cols>300||rows<5||rows>120)throw new Error('Dimensões do terminal inválidas.');const live=this.live.get(id);assertAttachmentInstance(live,instance);if(!live)return;const last=live.sizes.at(-1);if(last.cols===cols&&last.rows===rows)return;const at=live.start+live.output.length;if(last.at===at)live.sizes.pop();live.sizes.push({at,cols,rows});live.proc.resize(cols,rows)}
  stop(id,{idle=false}={}){const r=this.get(id),live=this.live.get(id);
   this.clearDelivery(live);
   if(!live&&r.state==='stopped')return r;
@@ -440,13 +440,13 @@ export class TerminalManager {
    live.stopped=stopOwnedPtyTree(live,{isCurrent:()=>this.live.get(id)===live&&!live.exitObserved}).then(async confirmed=>{
     if(this.live.get(id)!==live)return;
     if(confirmed){
-     if(!await releaseStoppedWindowsPty(live.proc)){r.state='error';r.error='Process tree stopped, but this node-pty version could not release its terminal handles.';this.save(r)}
+     if(!await releaseStoppedWindowsPty(live.proc)){r.state='error';r.error='Os processos foram encerrados. Esta versão do node-pty ainda mantém os recursos do terminal ocupados.';this.save(r)}
      return;
     }
     // Calling node-pty.kill after the root exited starts its console-list agent
     // against a vanished console (AttachConsole failure). Never double-kill.
-    r.state='error';r.error='Could not confirm terminal process cleanup. Inspect the terminal or retry Stop.';delete r.idleStoppedAt;this.save(r);
-   }).catch(()=>{if(this.live.get(id)!==live)return;delete r.idleStoppedAt;r.state='error';r.error='Could not confirm terminal process cleanup. Inspect the terminal or retry Stop.';try{this.save(r)}catch{}});return r;
+    r.state='error';r.error='Não foi possível confirmar que todos os processos do terminal foram encerrados. Confira o terminal ou selecione Parar novamente.';delete r.idleStoppedAt;this.save(r);
+   }).catch(()=>{if(this.live.get(id)!==live)return;delete r.idleStoppedAt;r.state='error';r.error='Não foi possível confirmar que todos os processos do terminal foram encerrados. Confira o terminal ou selecione Parar novamente.';try{this.save(r)}catch{}});return r;
   }
   if(live){this.live.delete(id);live.proc.kill()}r.pid=null;r.state='stopped';r.recoveryAvailable=!r.sessionId&&!['script','headless'].includes(r.execution);this.save(r);return r
  }
@@ -519,8 +519,8 @@ export class TerminalManager {
    if(pending&&live)live.unsentPaste=false;
    this.finishDelivery(r,live);this.touch(r,{conversation:true});r.state='working';r.error=null;live?.detector?.reset();live?.inputBoundary?.reset();
   }
-  if(event.type==='PermissionRequest'){this.cancelSubmit(live);r.state='needs input';r.error='Claude is waiting for your approval. Review the requested action in its terminal.'}
-  if(event.type==='StopFailure'){this.clearDelivery(live);r.state='error';r.error='The provider reported a failed turn. See the terminal.'}
+  if(event.type==='PermissionRequest'){this.cancelSubmit(live);r.state='needs input';r.error='O Claude aguarda sua aprovação. Revise a ação solicitada no terminal.'}
+  if(event.type==='StopFailure'){this.clearDelivery(live);r.state='error';r.error='O provedor informou que a solicitação falhou. Confira o terminal.'}
   if(completion){
    this.refreshTitle(r,{force:true});
    this.finishDelivery(r,live);

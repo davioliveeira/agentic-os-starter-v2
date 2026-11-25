@@ -49,7 +49,7 @@ export async function routeVoice(root,{id,transcript,selection:chosen,terminalMo
  if(!['web','native'].includes(appScope))throw new Error('Aplicativo inválido.');
  validateSelection(chosen);
  if(typeof transcript!=='string'||!transcript.trim()||transcript.length>4000)throw new Error('Fale novamente com um pedido mais curto. O áudio anterior não pôde ser processado.');
- if(signal?.aborted)throw new Error('Voice request cancelled');
+ if(signal?.aborted)throw new Error('Solicitação por voz cancelada.');
  if(!['local','live'].includes(transport))throw new Error('Modo de voz inválido.');
  if(phase!==undefined&&!['plan','commit'].includes(phase))throw new Error('Etapa de roteamento de voz inválida.');
  const planning=phase==='plan';
@@ -119,7 +119,7 @@ export async function routeVoice(root,{id,transcript,selection:chosen,terminalMo
  };
  const editDaily=(change,describe)=>{
   const edit=plan||guard?describe():null;
-  const description=edit?.kind==='add'?`Add “${edit.text}” to today's Daily Drivers`:edit?`${/^\S+\s+\[x\]/.test(edit.replacement)?'Check off':'Uncheck'} “${edit.item.text}” in today's note`:null;
+  const description=edit?.kind==='add'?`Adicionar “${edit.text}” às rotinas de hoje`:edit?`${/^\S+\s+\[x\]/.test(edit.replacement)?'Concluir':'Desmarcar'} “${edit.item.text}” na nota de hoje`:null;
   effect('editDaily',{path:change.path,...(edit?{edit}:{})},description,false,change);
  };
  let worker=chosen.provider==='codex'?{provider:'codex',model:'astra'}:{...chosen};
@@ -162,7 +162,7 @@ export async function routeVoice(root,{id,transcript,selection:chosen,terminalMo
    task=candidates[0]||null;
   }
   if(!task)return {action:'reply',reply:'Nenhuma tarefa em execução no momento.'};
-  effect('stop',{taskId:task.id},`Stop “${existingTitle(task)}”`);stopped={taskId:task.id,title:transport==='live'&&liveCallId?existingTitle(task):task.title};
+  effect('stop',{taskId:task.id},`Interromper “${existingTitle(task)}”`);stopped={taskId:task.id,title:transport==='live'&&liveCallId?existingTitle(task):task.title};
   return {action:'reply',reply:`Interrompi ${existingTitle(task)}.`};
  };
  const stopping=/[\p{L}\p{N}]/u.test(ask)?stopIntent(ask)||(transport==='live'&&/^never\s*mind the report[.!?\s]*$/i.test(ask)?{provider:null}:null):null;
@@ -173,13 +173,13 @@ export async function routeVoice(root,{id,transcript,selection:chosen,terminalMo
   return execute(...args);
  }});
  const routingMs=Math.round((performance.now()-routingStarted)*10)/10;
- if(signal?.aborted)throw new Error('Voice request cancelled');
+ if(signal?.aborted)throw new Error('Solicitação por voz cancelada.');
  // A file the selected conversation already registered reopens through the
  // artifact handoff on the requesting surface. No worker turn is spent on it.
  let reopened=null;
  // What this request actually did, recorded for provenance beside the intent.
  const effects=[];
- if(classified.reopenArtifact){const {taskId,artifact,label}=classified.reopenArtifact;effect('reopenArtifact',{id,taskId,artifact,target:handoffTarget},`Reopen “${label}”`);reopened={taskId,artifactId:artifact.id,label};effects.push('reopen')}
+ if(classified.reopenArtifact){const {taskId,artifact,label}=classified.reopenArtifact;effect('reopenArtifact',{id,taskId,artifact,target:handoffTarget},`Reabrir “${label}”`);reopened={taskId,artifactId:artifact.id,label};effects.push('reopen')}
  let {reply}=classified,queued=null,workIds=[],action=classified.obsidian?.op==='cockpit'?'cockpit':direct?.action||'reply';
  const skill=classified.tier===1?classified.skill:classified.tier===3?'voice-ask':null;
  const context=classified.context||'';
@@ -195,7 +195,7 @@ export async function routeVoice(root,{id,transcript,selection:chosen,terminalMo
  // request starts as its own conversation. A tweak to idle work stays a follow-up.
  if(skill==='voice-ask'&&terminalMode&&terminals&&workTarget&&supersedeIntent(executionAsk)){
   const task=selectedStopTarget();
-  if(task&&running(task)){effect('stop',{taskId:task.id},`Stop “${existingTitle(task)}”`);stopped={taskId:task.id,title:transport==='live'&&liveCallId?existingTitle(task):task.title};workTarget=null;effects.push('supersede-stop')}
+  if(task&&running(task)){effect('stop',{taskId:task.id},`Interromper “${existingTitle(task)}”`);stopped={taskId:task.id,title:transport==='live'&&liveCallId?existingTitle(task):task.title};workTarget=null;effects.push('supersede-stop')}
  }
  // On a call, the task started a minute ago becomes the selected conversation. A named workflow asked for while
  // it is still working is its own job: it starts by itself instead of being refused by a busy conversation.
@@ -287,7 +287,7 @@ export async function routeVoice(root,{id,transcript,selection:chosen,terminalMo
   if(sameConversation&&cliWork){
    if(!selectionChanged||newTask)return {pending:effect('updateCurrent',{scope:appScope,provider:chosen.provider,id:workIds[0],...(newTask?{resetContext:true}:{})},null,true)};
   }else if(sameConversation&&currentReset){
-   if(!selectionChanged)return {pending:effect('updateCurrent',{scope:appScope,provider:chosen.provider,id:null},'Start a new conversation',true)};
+   if(!selectionChanged)return {pending:effect('updateCurrent',{scope:appScope,provider:chosen.provider,id:null},'Iniciar uma nova conversa',true)};
   }else if(sameConversation&&workTarget&&/[\p{L}\p{N}]/u.test(ask))effect('renewConversation',{scope:appScope,provider:chosen.provider,id:workTarget},null,true);
  };
  if(plan){publishCurrent();const proposed=plan.finish(response);if(proposed)return proposed}

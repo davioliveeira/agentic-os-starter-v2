@@ -29,7 +29,7 @@ export function directTerminalViewState(action:DirectAction,base:Record<string,u
  if(launch.pythonExecutable!==undefined&&!pythonPath(launch.pythonExecutable))throw new Error('O Python configurado para o terminal nativo é inválido.');
  if(launch.environment&&(!Array.isArray(launch.environment)||launch.environment.some(entry=>!Array.isArray(entry)||entry.length!==2||entry.some(value=>typeof value!=='string'||/[\x00\r\n]/.test(value)))))throw new Error('O ambiente configurado para o terminal nativo é inválido.');
  const platform=/^[A-Za-z]:[\\/]/.test(launch.executable)?'win32':typeof process!=='undefined'?process.platform:'darwin';
- const title=`${action.provider==='codex'?'Codex':'Claude'} · ${(action.title||'Conversation').replace(/[\x00-\x1f\x7f]/g,' ').replace(/\s+/g,' ').trim().slice(0,70)}`;
+ const title=`${action.provider==='codex'?'Codex':'Claude'} · ${(action.title||'Conversa').replace(/[\x00-\x1f\x7f]/g,' ').replace(/\s+/g,' ').trim().slice(0,70)}`;
  const environment=(launch.environment||[]).filter(([key])=>!['AOS_V2_NATIVE_DIRECT','AOS_V2_TASK_ID','AOS_V2_TASK_PROVIDER','AOS_V2_NATIVE_INSTANCE'].includes(key));
  environment.push(['AOS_V2_NATIVE_DIRECT','1'],['AOS_V2_TASK_ID',action.taskId],['AOS_V2_TASK_PROVIDER',action.provider!],['AOS_V2_NATIVE_INSTANCE',action.instance]);
  return {type:NATIVE_TERMINAL_VIEW,active:false,state:{[NATIVE_TERMINAL_VIEW]:{cwd:launch.cwd,focus:false,profileSourceId:null,serial:null,userTitle:title,profile:{

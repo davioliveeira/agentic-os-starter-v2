@@ -2,6 +2,7 @@ import {isDeepStrictEqual} from 'node:util';
 import {readConversationEpoch,reconcileCurrent,resolveVoiceTarget,renewConversation} from './current-conversations.mjs';
 import {replaceDaily,resolveDailyEdit} from './note-edits.mjs';
 import {destinationFor} from './workflows.mjs';
+import {SKILLS} from '../shared/contract.mjs';
 
 const taskAt=(terminals,id)=>{try{return terminals?.get(id)||null}catch{return null}};
 function taskRevision(terminals,id){
@@ -29,15 +30,15 @@ export function planVoiceEffects(root,terminals,context,{watchSelected=true}={})
    // renewal that accompanies a proposed effect is kept in its original order.
    const meaningful=effects.filter(effect=>effect.description);
    if(!meaningful.length)return null;
-   const description=meaningful.map(effect=>effect.description).join(' and then ');
+   const description=meaningful.map(effect=>effect.description).join(' e depois ');
    return {kind:'action',action:snapshot({version:1,context,targets:[...targets],effects,receipt}),description};
   }
  };
 }
 
 export function checkVoiceAction(root,terminals,plan,{request,profile,handoffTarget}){
- if(plan?.version!==1||!plan.effects?.length||plan.receipt?.id!==request.id)throw new Error('A planned voice action is required for this request.');
- const changed=()=>new Error('The voice target, selection, or conversation changed. Say the request again.');
+ if(plan?.version!==1||!plan.effects?.length||plan.receipt?.id!==request.id)throw new Error('Este pedido exige uma ação de voz planejada.');
+ const changed=()=>new Error('O destino do pedido, a seleção ou a conversa mudou. Repita o pedido.');
  const {context,effects,targets}=plan,{appScope:scope,selection:{provider}}=request;
  const current=reconcileCurrent(root,terminals,{scope,persist:false});
  const resolvedTarget=request.workTarget?resolveVoiceTarget(root,terminals,{scope,provider,id:request.workTarget}):null;
@@ -93,17 +94,18 @@ export function voiceEffectRunner(root,terminals,{guard,enqueue,resolveCli,updat
     case 'reopenArtifact':check(site,details);return reopenArtifact({id:details.id,taskId,artifact:details.artifact},check);
     case 'onDispatch':check(site,details);return onDispatch(taskId,details.epoch);
     case 'updateCurrent':check(site,details);return updateCurrent(details);
-    default:throw new Error('Unknown planned voice effect.');
+    default:throw new Error('A ação de voz planejada é desconhecida.');
    }
   }
  };
 }
 
 export function describeWork(site,{job,taskTitle}){
- if(site==='send')return `Continue “${taskTitle}”`;
- if(site==='queueFollowup')return `Add to “${taskTitle}” when it is free`;
- if(site==='continueWorkflow')return `Run the ${job.skill} workflow in “${taskTitle}”`;
- if(site==='startWorkflow')return `Start the ${job.skill} workflow in your ${providerName(job.selection.provider)} terminal`;
- if(site==='enqueue')return job.skill==='voice-ask'?'Queue the requested work':`Queue the ${job.skill} workflow`;
- return `Start “${job.title}” in your ${providerName(job.selection.provider)} terminal`;
+ if(site==='send')return `Continuar “${taskTitle}”`;
+ if(site==='queueFollowup')return `Acrescentar o pedido a “${taskTitle}” quando estiver disponível`;
+ const skill=SKILLS[job.skill]?.label??job.skill;
+ if(site==='continueWorkflow')return `Executar “${skill}” em “${taskTitle}”`;
+ if(site==='startWorkflow')return `Iniciar “${skill}” no terminal do ${providerName(job.selection.provider)}`;
+ if(site==='enqueue')return job.skill==='voice-ask'?'Colocar o pedido na fila':`Colocar “${skill}” na fila`;
+ return `Iniciar “${job.title}” no terminal do ${providerName(job.selection.provider)}`;
 }

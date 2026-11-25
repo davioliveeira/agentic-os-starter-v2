@@ -15,8 +15,9 @@ const hash=text=>crypto.createHash('sha256').update(normalize(text)).digest('hex
 const native=r=>r.execution==='native';
 export const NATIVE_LAUNCH_TIMEOUT_MS=30000;
 export const NATIVE_PRESENCE_TIMEOUT_MS=90000;
-const UNSTARTED='The native terminal did not start. Its unused launch was cancelled. Recover the request to review it before starting again.';
-const UNCONFIRMED='The native terminal has not reconnected. It may still be running. Open its Obsidian Terminal tab to check it; this request was not launched again.';
+const UNSTARTED='O terminal do Obsidian não abriu e a tentativa foi cancelada. Use Recuperar pedido para revisar o texto antes de tentar novamente.';
+const UNCONFIRMED='O terminal do Obsidian ainda não se reconectou. Abra a aba do terminal para verificar se o pedido original continua em execução.';
+const LEGACY_UNCONFIRMED='The native terminal has not reconnected. It may still be running. Open its Obsidian Terminal tab to check it; this request was not launched again.';
 export class NativeTerminalManager extends TerminalManager {
  constructor(root,options={}){
   super(root,options);this.resolveNativeCli=options.resolveNativeCli||findCli;
@@ -50,7 +51,7 @@ export class NativeTerminalManager extends TerminalManager {
  nativeContact(r){
   const first=!r.native.presenceConfirmed,warning=r.native.connectionWarning;
   r.native.presenceConfirmed=true;r.native.lastSeen=this.now();delete r.native.closedAt;
-  if(warning){if(r.state==='needs input'&&r.error===UNCONFIRMED){r.state=warning.state;r.error=null;delete r.inputReason}delete r.native.connectionWarning;}
+  if(warning){if(r.state==='needs input'&&[UNCONFIRMED,LEGACY_UNCONFIRMED].includes(r.error)){r.state=warning.state;r.error=null;delete r.inputReason}delete r.native.connectionWarning;}
   return first||!!warning;
  }
  reconcileNative(){
@@ -82,7 +83,7 @@ export class NativeTerminalManager extends TerminalManager {
   if(this.live.has(r.id))return r;
   const {resumePrompt,spoken=!!r.spoken,liveCallId}=options;
   if(resumePrompt!==undefined)cleanPrompt(resumePrompt);
-  if(r.workflow&&!r.workflowCompleted&&[...this.records.values()].some(other=>other.id!==r.id&&other.workflow?.destination===r.workflow.destination&&!other.workflowCompleted&&this.live.has(other.id)))throw Error('Another task is updating this note. Wait for it to finish.');
+  if(r.workflow&&!r.workflowCompleted&&[...this.records.values()].some(other=>other.id!==r.id&&other.workflow?.destination===r.workflow.destination&&!other.workflowCompleted&&this.live.has(other.id)))throw Error('Outra tarefa está atualizando esta nota. Aguarde até ela terminar.');
   r.skipWorkflowCompletion=!!r.sessionId&&resumePrompt===undefined;this.beginRequest(r,liveCallId);
   const cli=this.resolveNativeCli?.(r.provider)||findCli(r.provider);
   const spec=terminalSpec(this.root,r,cli,{resumePrompt,spoken,events:this.artifactOutbox(r.id)});
@@ -110,48 +111,48 @@ export class NativeTerminalManager extends TerminalManager {
   live.pendingDelivery={key:r.artifactRequestKey,text:submitted,sessionId:r.sessionId,sentAt:this.now(),watcher,timer:null,warned:false};
   this.command(r,'send',{text:submitted,requestKey:r.artifactRequestKey});return r;
  }
- input(id,...args){if(native(this.get(id)))throw Error('Type directly in the Obsidian Terminal tab.');return super.input(id,...args)}
- output(id,...args){if(native(this.get(id)))throw Error('This terminal is displayed directly inside Obsidian.');return super.output(id,...args)}
- resize(id,...args){if(native(this.get(id)))throw Error('Obsidian owns this terminal size.');return super.resize(id,...args)}
+ input(id,...args){if(native(this.get(id)))throw Error('Digite diretamente na aba do terminal do Obsidian.');return super.input(id,...args)}
+ output(id,...args){if(native(this.get(id)))throw Error('Abra a aba do terminal dentro do Obsidian.');return super.output(id,...args)}
+ resize(id,...args){if(native(this.get(id)))throw Error('O Obsidian controla o tamanho deste terminal.');return super.resize(id,...args)}
  pendingNative(){
   const actions=[];for(const r of this.records.values())if(native(r)&&!r.native?.ended)for(const a of r.native?.actions||[])if(a.state==='pending')actions.push({id:a.id,taskId:r.id,instance:a.instance,type:a.type});
   return {actions};
  }
  claimNative(id){
-  if(!workId(id))throw Error('Invalid native command');
+  if(!workId(id))throw Error('Comando do terminal do Obsidian inválido.');
   for(const r of this.records.values())if(native(r)){
    const action=r.native?.actions?.find(a=>a.id===id);if(!action)continue;
-   if(action.state!=='pending'||r.native.ended||action.instance!==r.native.instance)throw Error('This native command was already claimed or replaced. Check the terminal; it was not resent.');
+   if(action.state!=='pending'||r.native.ended||action.instance!==r.native.instance)throw Error('O terminal já reservou este comando para execução ou o substituiu. Confira a aba antes de tentar novamente.');
    action.state='claimed';action.claimedAt=this.now();this.save(r);
    return {action:structuredClone(action)};
   }
-  throw Error('Native command not found');
+  throw Error('Comando do terminal do Obsidian não encontrado.');
  }
- nativeRecord(id,instance){const r=this.get(id);if(!native(r)||!r.native||r.native.instance!==instance)throw Error('Native terminal instance changed');return r}
+ nativeRecord(id,instance){const r=this.get(id);if(!native(r)||!r.native||r.native.instance!==instance)throw Error('A sessão do terminal do Obsidian mudou.');return r}
  submitNative({taskId,instance,actionId,requestKey}){
   const r=this.nativeRecord(taskId,instance);this.collect(taskId);
   const action=r.native.actions.find(a=>a.id===actionId),live=this.live.get(taskId);
   const submit=!!live&&!live.exitObserved&&r.state==='working'&&action?.type==='send'&&action.state==='claimed'&&r.artifactRequestKey===requestKey&&live.pendingDelivery?.key===requestKey&&!live.pendingDelivery.submitCanceled;
-  return {submit,...(!submit?{reason:r.error||'This request is no longer waiting to be submitted.'}:{})};
+  return {submit,...(!submit?{reason:r.error||'Este pedido já saiu da fila de envio.'}:{})};
  }
  nativeEvent(event){
   const {taskId,instance,type,actionId}=event;
-  if(!workId(taskId)||!workId(instance)||!['launched','input-written','input-cancelled','editing','submitted','approval','closed','error'].includes(type))throw Error('Invalid native event');
+  if(!workId(taskId)||!workId(instance)||!['launched','input-written','input-cancelled','editing','submitted','approval','closed','error'].includes(type))throw Error('Evento do terminal do Obsidian inválido.');
   const existing=this.records.get(taskId);if(!existing||!native(existing)||existing.native?.instance!==instance)return {ok:true,ignored:true};
   const r=existing,live=this.live.get(taskId);
   if(r.native.ended)return {ok:true};
   const action=actionId?r.native.actions.find(a=>a.id===actionId):null;
-  if(actionId&&(!action||action.instance!==instance))throw Error('Native command does not match this terminal');
+  if(actionId&&(!action||action.instance!==instance))throw Error('O comando pertence a outro terminal.');
   if(action&&['done','error'].includes(action.state))return {ok:true};
   const reason=String(event.reason||'').slice(0,500);
   if(!['closed','error'].includes(type))this.nativeContact(r);
   if(['editing','submitted','approval','closed'].includes(type))for(const a of r.native.actions||[])if(a.type==='send'&&['pending','claimed'].includes(a.state))a.state='error';
-  if(type==='launched'){if(action?.type!=='launch')throw Error('Invalid launch acknowledgment');action.state='done';r.native.launchedAt=this.now();if(r.state==='starting')r.state='working';}
-  else if(type==='input-written'){if(action?.type!=='send')throw Error('Invalid input acknowledgment');action.state='done';}
-  else if(type==='input-cancelled'){if(action)action.state='error';this.clearDelivery(live);r.state='needs input';r.error=reason||'The request is in the terminal. Review its input box before submitting.';}
+  if(type==='launched'){if(action?.type!=='launch')throw Error('Confirmação de abertura do terminal inválida.');action.state='done';r.native.launchedAt=this.now();if(r.state==='starting')r.state='working';}
+  else if(type==='input-written'){if(action?.type!=='send')throw Error('Confirmação de entrada do terminal inválida.');action.state='done';}
+  else if(type==='input-cancelled'){if(action)action.state='error';this.clearDelivery(live);r.state='needs input';r.error=reason||'O pedido está no terminal. Revise o campo de entrada antes de enviar.';}
   else if(type==='editing'){this.clearDelivery(live);if(live)live.inputBoundary.hasDraft=event.hasDraft!==false;r.state='editing';r.error=null;}
   else if(type==='submitted'){this.clearDelivery(live);live?.inputBoundary.reset();r.state='working';r.error=null;}
-  else if(type==='approval'){this.cancelSubmit(live);r.state='needs input';r.error=reason||'Review the requested permission in the terminal.';}
+  else if(type==='approval'){this.cancelSubmit(live);r.state='needs input';r.error=reason||'Revise a permissão solicitada no terminal.';}
   else if(type==='closed'){
    // The launcher reports actual CLI exit separately. A missing view alone must
    // not authorize launching another copy of a potentially running conversation.
@@ -160,12 +161,12 @@ export class NativeTerminalManager extends TerminalManager {
    r.state=mightHaveLaunched?'stopping':'stopped';r.error=null;
    if(!mightHaveLaunched){r.native.ended=true;this.live.delete(taskId)}
   }
-  else if(type==='error'){if(action)action.state='error';this.clearDelivery(live);r.state='needs input';r.error=reason||'The native terminal could not confirm this action. Check its tab before retrying.';}
-  else throw Error('Unknown native event');
+  else if(type==='error'){if(action)action.state='error';this.clearDelivery(live);r.state='needs input';r.error=reason||'O terminal do Obsidian não confirmou esta ação. Confira a aba antes de tentar novamente.';}
+  else throw Error('Evento do terminal do Obsidian desconhecido.');
   this.touch(r,{conversation:['launched','input-written','editing','submitted'].includes(type)});this.save(r);return {ok:true};
  }
  nativePresence(sessions){
-  if(!Array.isArray(sessions)||sessions.length>100)throw Error('Invalid native sessions');
+  if(!Array.isArray(sessions)||sessions.length>100)throw Error('Sessões do terminal do Obsidian inválidas.');
   for(const item of sessions){
    const r=this.records.get(item.taskId);if(!r||!native(r)||r.native?.instance!==item.instance||r.native.ended)continue;
    const changed=this.nativeContact(r);
@@ -197,7 +198,7 @@ export class NativeTerminalManager extends TerminalManager {
   }
   if(event.type==='native-exit'){
    if(event.nativeInstance!==r.native?.instance)return;
-   const stopping=r.state==='stopping'||r.native.connectionWarning?.state==='stopping',failed=!stopping&&(event.exitCode??event.code)!==0;this.clearDelivery(this.live.get(id));this.live.delete(id);r.native.ended=true;delete r.native.connectionWarning;delete r.inputReason;r.pid=null;r.state=failed?'error':'stopped';r.error=failed?'The CLI exited. Resume its saved conversation in Obsidian.':null;r.recoveryAvailable=!r.sessionId;this.touch(r);this.save(r);return;
+   const stopping=r.state==='stopping'||r.native.connectionWarning?.state==='stopping',failed=!stopping&&(event.exitCode??event.code)!==0;this.clearDelivery(this.live.get(id));this.live.delete(id);r.native.ended=true;delete r.native.connectionWarning;delete r.inputReason;r.pid=null;r.state=failed?'error':'stopped';r.error=failed?'A CLI encerrou. Retome a conversa salva no Obsidian.':null;r.recoveryAvailable=!r.sessionId;this.touch(r);this.save(r);return;
   }
   if(event.type==='UserPromptSubmit'&&workId(event.requestKey)&&!this.live.get(id)?.pendingDelivery){r.artifactRequestKey=event.requestKey;r.pendingArtifacts=[];}
   return super.accept(id,event,options);
