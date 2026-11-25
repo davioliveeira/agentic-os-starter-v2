@@ -34,7 +34,7 @@ export class LiveAnswers {
   if(this.call.paused||!this.call.socket)return;
   for(const event of this.held.splice(0)){
    if(!tasks&&event.delegation_id===null)this.held.push(event);
-   else if(recentInput&&event.delegation_id===null&&!event.content.startsWith('By the way, '))this.send({...event,content:liveText('By the way, '+event.content)});
+   else if(recentInput&&event.delegation_id===null&&!/^(?:Aliás, |By the way, )/.test(event.content))this.send({...event,content:liveText('Aliás, '+event.content)});
    else this.send(event);
   }
  }

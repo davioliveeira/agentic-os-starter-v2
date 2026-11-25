@@ -58,7 +58,7 @@ Quando o compartilhamento do resumo da manhã está ativado, o resumo inteiro su
 - Rode `node aos.mjs live-context show` para listar o que entra no contexto. Use `node aos.mjs live-context show --full` para ver exatamente o que seria enviado agora.
 - Desative uma seção com `node aos.mjs live-context section radar off`. As outras seções configuráveis são `today`, `inbox`, `numbers` e `news`. Se você ainda não usa o fluxo que preenche uma seção, ela fica vazia.
 - Adicione suas notas com `node aos.mjs live-context add "projects/goals.md" --label "Metas"`. Ao apontar para uma pasta, o sistema usa a nota mais recente. Você pode adicionar até seis entradas. Cada uma é lida até cerca de 6.000 caracteres.
-- Guarde informações duradouras na seção Sobre mim, detalhes de hoje na nota diária e outros materiais de referência nas notas adicionadas ao contexto. Claude e Codex leem essa seção do `AGENTS.md` do cofre. A voz ao vivo recebe até 2.000 bytes. Rode `node aos.mjs about show` para conferir o texto.
+- Guarde informações duradouras na seção Sobre mim, detalhes de hoje na nota diária e outros materiais de referência nas notas adicionadas ao contexto. Claude e Codex leem essa seção do `AGENTS.md` do cofre. O título `## About me` também funciona em cofres existentes. A saudação usa seu primeiro nome quando você o informa na seção. A voz ao vivo recebe até 2.000 bytes. Rode `node aos.mjs about show` para conferir o texto.
 
 Pedidos digitados seguem o fluxo normal do Agentic OS. O GPT-Live recebe os resultados curtos das tarefas que ele delegou. Com **Ao vivo** selecionado, as atualizações dessas tarefas continuam na tela depois de encerrar a chamada.
 

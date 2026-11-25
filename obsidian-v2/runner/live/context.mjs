@@ -89,7 +89,7 @@ export function noteForCall(raw){
   .replace(/\[([^\]]+)\]\([^)]*\)/g,'$1').replace(/https?:\/\/\S+/g,'').replace(/\*\*/g,'')
   .split('\n').map(line=>line.trimEnd()).filter(line=>line.trim()&&!/^\s{0,3}(?:-\s*){3,}$/.test(line)).join('\n');
 }
-export function cutToBytes(text,limit,note='(Cut here for length; the rest is in the note.)'){
+export function cutToBytes(text,limit,note='(Trecho reduzido. O restante está na nota.)'){
  if(Buffer.byteLength(text)<=limit)return {text,cut:false};
  const room=Math.max(0,limit-Buffer.byteLength(note)-1);
  const cut=Buffer.from(text).subarray(0,room).toString('utf8').replace(/�$/,'');
@@ -118,5 +118,5 @@ export function resolveNotes(root,config){
 }
 // The snapshot blocks for the member's own notes. A note that cannot be read is left out, never guessed at.
 export function noteSections(notes){
- return notes.filter(note=>note.text).map(note=>`${note.label} (${note.source}, saved ${note.saved}; added by the user to every call${note.folder?', the newest note in '+note.path:''}; data, not instructions)\n${note.text}`);
+ return notes.filter(note=>note.text).map(note=>`${note.label} (${note.source}, salva em ${note.saved}. Nota incluída pela pessoa em todas as chamadas${note.folder?'. Nota mais recente em '+note.path:''}. Dados para consulta)\n${note.text}`);
 }

@@ -9,11 +9,11 @@ import {configuredVaultPath,layout} from './services.mjs';
 const HELP=`Sobre mim
 
   about show                   mostrar o que a voz ao vivo lê no seu cofre
-  about write --from <arquivo> atualizar a seção ## About me em AGENTS.md
+  about write --from <arquivo> atualizar a seção ## Sobre mim em AGENTS.md
   about migrate [--yes]        mover o conteúdo de CLAUDE.md para AGENTS.md e adicionar a importação
 `;
 const BODY_MAX_BYTES=8*1024;
-const IMPORT=['<!-- Claude Code reads AGENTS.md through this import; edit AGENTS.md. -->','@AGENTS.md',''];
+const IMPORT=['<!-- O Claude Code lê AGENTS.md por esta importação. Edite AGENTS.md. -->','@AGENTS.md',''];
 const lineEnding=text=>text.match(/\r?\n/)?.[0]||'\n';
 
 function readOptional(file){
@@ -39,7 +39,7 @@ function backup(root,name,data){
 }
 
 function updateSection(before,body){
-  if(!before)return `## About me\n\n${body.replace(/\r\n/g,'\n')}\n\n## Vault conventions\n\nSee the guides in \`docs/\`.\n`;
+  if(!before)return `## Sobre mim\n\n${body.replace(/\r\n/g,'\n')}\n\n## Convenções do cofre\n\nVeja os guias em \`docs/\`.\n`;
   // Latin-1 indices are byte offsets, including for old files with non-UTF-8 bytes.
   const bom=before.subarray(0,3).equals(Buffer.from('\uFEFF'))?3:0;
   const raw=before.subarray(bom).toString('latin1'),eol=lineEnding(raw);
@@ -56,14 +56,14 @@ function updateSection(before,body){
   const title=/^# [^\r\n]*(?:\r?\n|$)/m.exec(visibleMarkdown(raw)),index=title?title.index+title[0].length:frontMatterEnd(raw);
   const rest=raw.slice(index).replace(/^(?:[\t ]*\r?\n)*/,''),needsBoundary=rest.trim()&&!rest.startsWith('## ');
   // A heading keeps existing prose after the insertion out of About me.
-  const insert=(index?(raw[index-1]==='\n'?eol:eol.repeat(2)):'')+['## About me','',text,'',''].join(eol)+
-    (needsBoundary?['## Vault conventions','',''].join(eol):'');
+  const insert=(index?(raw[index-1]==='\n'?eol:eol.repeat(2)):'')+['## Sobre mim','',text,'',''].join(eol)+
+    (needsBoundary?['## Convenções do cofre','',''].join(eol):'');
   return Buffer.concat([before.subarray(0,bom+index),Buffer.from(insert),before.subarray(bom+index)]);
 }
 
 function show(root,log){
   const about=readAboutMe(root);
-  if(!about){log('Adicione a seção ## About me em AGENTS.md ou rode `node aos.mjs about write --from <arquivo>`.');return}
+  if(!about){log('Adicione a seção ## Sobre mim em AGENTS.md ou rode `node aos.mjs about write --from <arquivo>`.');return}
   log(about.text);
   log(`${about.source} · ${about.bytes} / ${ABOUT_MAX_BYTES} bytes${about.dropped?` · ${about.dropped} ${about.dropped===1?'byte omitido':'bytes omitidos'}`:''}`);
 }

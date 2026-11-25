@@ -521,10 +521,10 @@ test('the startup carry summary contains only earlier Live receipts from today a
  save('OTHER-APP-MARKER',{appScope:'native'});save('YESTERDAY-MARKER',{ts:Date.now()-86400000});save('TEST-RECEIPT-MARKER',{origin:'test'});
  await f.start();
  const {session}=f.creates[0];assert.equal(session.input,undefined);
- const summary=session.instructions.slice(session.instructions.indexOf('Earlier calls today'));
+ const summary=session.instructions.slice(session.instructions.indexOf('Chamadas anteriores de hoje'));
  assert.match(summary,/Carry this Live request/);assert.doesNotMatch(summary,/(?:LOCAL-HISTORY|OTHER-APP|YESTERDAY|TEST-RECEIPT)-MARKER/);
  assert.ok(Buffer.byteLength(summary)<=1000);
- assert.match(session.instructions,/They ask to stop, cancel or drop work/);
+ assert.match(session.instructions,/A pessoa pedir para interromper ou cancelar trabalho/);
 });
 
 function speechFixture(){

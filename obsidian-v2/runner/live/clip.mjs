@@ -18,7 +18,7 @@ export const APPEND_MAX_BYTES=1000;
 export function appendParts(section,limit=APPEND_MAX_BYTES){
  const text=String(section??'');
  if(Buffer.byteLength(text)<=limit)return [text];
- const [first,...rows]=text.split('\n'),header=clip(first,Math.floor(limit/3)),again=header+' (continued)',room=limit-Buffer.byteLength(again)-1;
+ const [first,...rows]=text.split('\n'),header=clip(first,Math.floor(limit/3)),again=header+' (continuação)',room=limit-Buffer.byteLength(again)-1;
  const parts=[];let current=header;
  for(const row of rows){
   const line=Buffer.byteLength(row)>room?clip(row,room):row;

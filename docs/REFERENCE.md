@@ -28,7 +28,7 @@ Rode os comandos na pasta raiz do Agentic OS. Para uma instalação guiada, cons
 | `node aos.mjs schedule` | Agenda a execução automática de um fluxo incluído, como em `schedule add plan-today 07:00 --days weekdays`. Cada agendamento precisa ser adicionado por você. Consulte as regras em `node aos.mjs schedule help`. |
 | `node aos.mjs voice` | Mostra e ajusta as respostas em voz alta, a voz, a velocidade da fala, o tempo para começar a responder e as palavras reconhecidas. Consulte `node aos.mjs voice help` ou abra o menu de voz em um dos painéis. |
 | `node aos.mjs about show` | Mostra o texto de Sobre mim que a voz ao vivo recebe e quantos dos 2.000 bytes disponíveis ele ocupa. |
-| `node aos.mjs about write --from <file>` | Faz uma cópia de segurança do `AGENTS.md`, se o arquivo já existir, e grava a seção Sobre mim (`## About me`) a partir de um arquivo. |
+| `node aos.mjs about write --from <file>` | Faz uma cópia de segurança do `AGENTS.md`, se o arquivo já existir, e grava a seção Sobre mim (`## Sobre mim`) a partir de um arquivo. |
 | `node aos.mjs live-context show [--full]` | Lista o que a voz ao vivo lê no início da chamada. `--full` mostra exatamente o que seria enviado agora. |
 | `node aos.mjs live-context add <path> [--label "…"]` | Inclui em todas as chamadas uma nota sua ou a nota mais recente de uma pasta de relatórios. Você pode adicionar até seis entradas. |
 | `node aos.mjs live-context remove <path or number>` | Remove uma nota ou pasta da lista. |

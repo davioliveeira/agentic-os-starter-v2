@@ -6,7 +6,7 @@ import path from 'node:path';
 import {main} from '../scripts/aos.mjs';
 import {aboutCommand} from '../scripts/aos/about.mjs';
 
-const IMPORT='<!-- Claude Code reads AGENTS.md through this import; edit AGENTS.md. -->';
+const IMPORT='<!-- O Claude Code lê AGENTS.md por esta importação. Edite AGENTS.md. -->';
 const IMPORT_LINE='@AGENTS.md';
 function fixture(t){
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'aos-about-')),vault=path.join(dir,'vault');
@@ -28,7 +28,7 @@ for(const eol of ['\r\n','\n'])test(`about write replaces only the section and b
   const {put,write,get,saved}=fixture(t);
   const prefix=['\uFEFF# Vault','<!-- preface -->','','## AbOuT me  ',''].join(eol)+eol;
   const suffix=eol+eol+['## Conventions','Keep café  ','<!-- untouched -->','No newline at end'].join(eol);
-  const before=prefix+'Old About me'+suffix,claude=IMPORT+eol+'@AGENTS.md'+eol;
+  const before=prefix+'Old About me'+suffix,claude='<!-- Claude Code reads AGENTS.md through this import; edit AGENTS.md. -->'+eol+'@AGENTS.md'+eol;
   put('AGENTS.md',before);put('CLAUDE.md',claude);
   const output=write('## About me\n\nI work with [[team/Sam|Sam]].\nUse short replies.\n');
   assert.equal(get('AGENTS.md'),prefix+['I work with [[team/Sam|Sam]].','Use short replies.'].join(eol)+suffix);
@@ -40,7 +40,7 @@ test('about write creates the canonical file and import in an empty vault',t=>{
   const {write,get,files}=fixture(t);
   const output=write('A short biography.');
   assert.deepEqual(files(),['AGENTS.md','CLAUDE.md']);
-  assert.equal(get('AGENTS.md'),'## About me\n\nA short biography.\n\n## Vault conventions\n\nSee the guides in `docs/`.\n');
+  assert.equal(get('AGENTS.md'),'## Sobre mim\n\nA short biography.\n\n## Convenções do cofre\n\nVeja os guias em `docs/`.\n');
   assert.equal(get('CLAUDE.md'),[IMPORT,IMPORT_LINE,''].join('\n'));
   assert.equal(output[0],'A short biography.');
 });
@@ -50,12 +50,12 @@ test('about write inserts after a title or at the top and keeps existing prose p
   const title='<!-- # Commented title -->\r\n# Vault\r\n';
   put('AGENTS.md',title+rest);
   write('About body');
-  assert.equal(get('AGENTS.md'),title+'\r\n## About me\r\n\r\nAbout body\r\n\r\n## Vault conventions\r\n\r\n'+rest);
+  assert.equal(get('AGENTS.md'),title+'\r\n## Sobre mim\r\n\r\nAbout body\r\n\r\n## Convenções do cofre\r\n\r\n'+rest);
   assert.equal(run('show')[0],'About body');
   const noTitle='## Existing\nKeep these bytes.\n';put('AGENTS.md',noTitle);
-  write('New bio');assert.equal(get('AGENTS.md'),'## About me\n\nNew bio\n\n'+noTitle);
+  write('New bio');assert.equal(get('AGENTS.md'),'## Sobre mim\n\nNew bio\n\n'+noTitle);
   const metadata='---\nprivate: example\n---\n';put('AGENTS.md',metadata+noTitle);
-  write('New bio');assert.equal(get('AGENTS.md'),metadata+'\n## About me\n\nNew bio\n\n'+noTitle);
+  write('New bio');assert.equal(get('AGENTS.md'),metadata+'\n## Sobre mim\n\nNew bio\n\n'+noTitle);
   assert.equal(run('show')[0],'New bio');
 });
 
@@ -101,7 +101,7 @@ test('about write rejects an oversized body or another section before any write'
 
 test('about show prints a one-line how-to or the cleaned text with the byte counts',t=>{
   const {put,run}=fixture(t);
-  const missing=run('show');assert.equal(missing.length,1);assert.match(missing[0],/Adicione a seção ## About me.*about write/);
+  const missing=run('show');assert.equal(missing.length,1);assert.match(missing[0],/Adicione a seção ## Sobre mim.*about write/);
   const text='é'.repeat(1000);put('CLAUDE.md',`## About me\n${text}\n1234`);
   assert.deepEqual(run('show'),[text,'CLAUDE.md · 2000 / 2000 bytes · 5 bytes omitidos']);
 });

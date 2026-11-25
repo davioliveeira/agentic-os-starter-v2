@@ -120,7 +120,7 @@ test('the Live snapshot keeps dated sections and excludes private inbox text, ru
  write(root,`inbox/research/outlier-radar/${date}.md`,'- **[Demo video](x)** — **8x** | [Channel](y)');
  write(root,'system/v2/runs/fixture.json','{"summary":"RUN_SENTINEL"}');write(root,'system/v2/queue/fixture.json','{"title":"QUEUE_SENTINEL"}');
  const text=await liveSnapshot(root,{now,usage:{claude:async options=>{assert.equal(options.cachedOnly,true);return {checkedAt:now.toISOString(),windows:[{windowDurationMins:300,usedPercent:42}]}},codex:async()=>({windows:[]})}});
- for(const label of ['Today','Numbers','News','Radar','Record a demo','Work block','Public headline','Public X highlight','owner/repo','A public repository summary','Demo video','42%',date])assert.equal(text.includes(label),true,label);
+ for(const label of ['Hoje','Números','Notícias','Radar','Record a demo','Work block','Public headline','Public X highlight','owner/repo','A public repository summary','Demo video','42%',date])assert.equal(text.includes(label),true,label);
  assert.ok(Buffer.byteLength(text)<=SNAPSHOT_MAX_BYTES);assert.doesNotMatch(text,/INBOX_SENTINEL|RUN_SENTINEL|QUEUE_SENTINEL|REPORT_BODY_SENTINEL/);
  const receipt={appScope:'web',ts:+now,origin:'live',reply:'Fixture'};
  for(const [id,transport]of [['00000000-0000-4000-8000-000000000001','local'],['00000000-0000-4000-8000-000000000002','live']])

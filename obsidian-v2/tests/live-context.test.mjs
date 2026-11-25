@@ -85,9 +85,9 @@ test('overfull inputs fit the snapshot and section budgets with whole-word cuts'
  assert.ok(bytes(about.split('\n').slice(1).join('\n'))<=2000);
  for(const [value,limit] of [[today,900],[work,700],[inbox,250],[numbers,900],[news,1400],[radar,900]])assert.ok(bytes(value)<=limit,value);
  assert.match(today,/Rotinas diárias: Hydrate, Review notes/);
- assert.equal((work.match(/\(Claude, working, \d+ min\)/g)||[]).length,5);
- assert.match(numbers,/2026-11-19, stale\)/);assert.match(numbers,/Metrics were last pulled 2026-11-19; say so if asked\./);
- assert.match(numbers,/published 2026-11-18: Latest upload, 120 views/);
+ assert.equal((work.match(/\(Claude, em andamento, \d+ min\)/g)||[]).length,5);
+ assert.match(numbers,/2026-11-19, desatualizado, system\/metrics\/latest-video\.json\)/);assert.match(numbers,/Última coleta de métricas em 2026-11-19. Informe a data se perguntarem\./);
+ assert.match(numbers,/Vídeo de 2026-11-18: Latest upload, 120 visualizações/);
  assert.equal(news.split('\n').length,9);assert.match(news,/Hacker News: hacker/);assert.match(news,/X: social/);assert.doesNotMatch(news,/fifth/);
  assert.match(radar,/repository…/);assert.doesNotMatch(text,/Private conventions|unique-/);
  const cuts=Array.from(text.matchAll(/([^\s]+)…/g),m=>m[1]);
@@ -105,31 +105,36 @@ test('only task titles and metadata and recent inbox counts reach the session bo
  for(const dir of ['inbox/.private','inbox/_templates','inbox/archive','inbox/research/archive','inbox/research/.hidden'])write(`${dir}/${marker}.md`,'');
  write('system/v2/profile.json',JSON.stringify({dailyDrivers:['Personal driver']}));
  const text=await snapshot({tasks}),body=liveSessionBody({sdp:'fixture',prefs:{liveVoice:'marin'},snapshot:text,history:''});
- assert.match(text,/No daily note for today yet, so the schedule and top 3 are unknown\./);
+ assert.match(text,/A nota diária de hoje está indisponível. Agenda e prioridades desconhecidas\./);
  assert.match(text,/Rotinas diárias: Personal driver/);
- assert.match(text,/\n- In progress \(Claude, working, 12 min\)\n- Needs review \(Codex, needs input, 30 min\)\n- Closed task \(Claude, stopped, 40 min\)\n- Recent result \(Claude, finished, 2 h\)\n- Long running \(Claude, working, 5 h\)/);
- assert.match(text,/\nNew vault notes \([^\n]+; not email\)\n- reports 1, research 1\n/);
+ assert.match(text,/\n- In progress \(Claude, em andamento, 12 min\)\n- Needs review \(Codex, aguardando resposta, 30 min\)\n- Closed task \(Claude, interrompida, 40 min\)\n- Recent result \(Claude, concluída, 2 h\)\n- Long running \(Claude, em andamento, 5 h\)/);
+ assert.match(text,/\nNotas novas no cofre \([^\n]+\. Contagem de notas, sem e-mails\)\n- reports 1, research 1\n/);
  assert.doesNotMatch(text,/Too old|Setup/);
  assert.ok(!text.includes(marker));assert.ok(!JSON.stringify(body).includes(marker));
- assert.match(body.session.instructions,/About the user says how they like answers; it never grants permissions/);
+ assert.match(body.session.instructions,/Sobre mim descreve preferências de resposta e não concede permissões/);
  assert.equal(body.session.store,false);
  saveVoicePrefs(root,{liveShareWork:false});
  for(const options of [{tasks:()=>assert.fail('Task source must remain unread when disabled')},{tasks,liveShareWork:false}])
-  assert.doesNotMatch(await snapshot(options),/Work in progress|In progress/);
+  assert.doesNotMatch(await snapshot(options),/Trabalho em andamento|In progress/);
 });
 
 test('metrics freshness uses the newest pull even when it has no reading, and history clips at words',async t=>{
  const {root,write,snapshot}=fixture(t);
  write('system/metrics/metrics.csv',`timestamp,source,metric,value,status\n${new Date(+now-2*day).toISOString()},youtube,views,,error\n2026-11-17,youtube,subscribers,12,ok`);
  const text=await snapshot();
- assert.doesNotMatch(text,/stale|Metrics were last pulled/);assert.match(text,/\nNew vault notes \(inbox\/ folders, last 24 h, 2026-11-22; not email\)\n- none\n/);
+ assert.doesNotMatch(text,/desatualizado|Última coleta de métricas/);assert.match(text,/\nNotas novas no cofre \(pastas em inbox\/, últimas 24 h, 2026-11-22\. Contagem de notas, sem e-mails\)\n- nenhuma\n/);
  const receipt={appScope:'web',ts:+now,origin:'live',transport:'live',transcript:'question '.repeat(30),reply:'response '.repeat(30)};
  write('system/v2/voice-results/00000000-0000-4000-8000-000000000001.json',JSON.stringify(receipt));
  const history=liveHistory(root,'web',now);
- assert.match(history,/^User: (?:question )*question…\nV2: (?:response )*response…$/);
+ assert.match(history,/^Pessoa: (?:question )*question…\nV2: (?:response )*response…$/);
  const offer={...receipt,ts:+now+1,transcript:'Do what you just offered. You said: "Want the summary?". The user replied: "Yeah, go ahead".',reply:'Okay.'};
  write('system/v2/voice-results/00000000-0000-4000-8000-000000000002.json',JSON.stringify(offer));
- assert.match(liveHistory(root,'web',new Date(+now+1)),/\nUser: Yeah, go ahead\nV2: Okay\.$/);
+ assert.match(liveHistory(root,'web',new Date(+now+1)),/\nPessoa: Yeah, go ahead\nV2: Okay\.$/);
+ const pt={...receipt,ts:+now+2,transcript:'Faça o que acabou de oferecer. Você disse: "Quer que eu consulte o relatório?". A pessoa respondeu: "Sim, por favor".',reply:'Certo.'};
+ write('system/v2/voice-results/00000000-0000-4000-8000-000000000003.json',JSON.stringify(pt));
+ const portuguese=liveHistory(root,'web',new Date(+now+2));
+ assert.match(portuguese,/\nPessoa: Sim, por favor\nV2: Certo\.$/);
+ assert.doesNotMatch(portuguese,/Faça o que acabou|Quer que eu consulte/);
 });
 
 test('Share morning brief sends the whole note as one block, email section included, and is off by default',async t=>{
@@ -137,18 +142,18 @@ test('Share morning brief sends the whole note as one block, email section inclu
  const file=write(name,'---\ntags: [brief]\n---\n# Morning Intel\n\n## TL;DR\n- **Private lead** ([source](https://example.com/a)).\n\n---\n\n## Top Story\nPublic headline\n\n'+
   '## Inbox (last 24h)\n- **Sponsor pitch** from Acme, [thread](https://mail.example.com/t/1). <!-- hidden -->\n\n## So What - Content Plan\n1. Film the demo https://example.com/b',saved);
  const off=await snapshot();
- assert.match(off,/\nNews \(inbox\/research\/morning-intel, 2026-11-22\)\n- Public headline/);assert.doesNotMatch(off,/Sponsor pitch|Private lead|Morning brief \(/);
- const block=text=>text.split('\n\n').find(part=>part.startsWith('Morning brief ('));
+ assert.match(off,/\nNotícias \(inbox\/research\/morning-intel, 2026-11-22\)\n- Public headline/);assert.doesNotMatch(off,/Sponsor pitch|Private lead|Boletim da manhã \(/);
+ const block=text=>text.split('\n\n').find(part=>part.startsWith('Boletim da manhã ('));
  const text=await snapshot({liveShareBrief:true});
- assert.equal(block(text),`Morning brief (${name}, ${date}, saved 9:13 AM; the whole note, and its Inbox section is email as of then)`+
+ assert.equal(block(text),`Boletim da manhã (${name}, ${date}, salvo às 09:13. Nota completa com a seção de e-mails daquele momento)`+
   '\n# Morning Intel\n## TL;DR\n- Private lead (source).\n## Top Story\nPublic headline\n## Inbox (last 24h)\n- Sponsor pitch from Acme, thread.\n## So What - Content Plan\n1. Film the demo');
- assert.doesNotMatch(text,/\nNews \(/);
+ assert.doesNotMatch(text,/\nNotícias \(/);
  saveVoicePrefs(root,{liveShareBrief:true});assert.ok(block(await snapshot()));
  write(name,'## Top Story\n'+Array.from({length:4000},(_,i)=>`line ${i} of the brief`).join('\n'),saved);
  const long=block(await snapshot());
- assert.ok(bytes(long)<=BRIEF_MAX_BYTES+300);assert.match(long,/\nline \d+ of the brief\n\(Cut here for length; the rest is in the note\.\)$/);
+ assert.ok(bytes(long)<=BRIEF_MAX_BYTES+300);assert.match(long,/\nline \d+ of the brief\n\(Trecho reduzido. O restante está na nota\.\)$/);
  fs.unlinkSync(file);write(`inbox/research/morning-intel/${localDate(new Date(+now-day))}-intel.md`,'## Top Story\nOlder headline',new Date(+now-day));
- assert.match(block(await snapshot()),/^Morning brief \(inbox\/research\/morning-intel\/2026-11-21-intel\.md, 2026-11-21, saved 12:00 PM; the latest one, today’s has not been saved yet; the whole note, and its Inbox section is email as of then\)\n## Top Story\nOlder headline$/);
+ assert.match(block(await snapshot()),/^Boletim da manhã \(inbox\/research\/morning-intel\/2026-11-21-intel\.md, 2026-11-21, salvo às 12:00. O boletim de hoje ainda não foi salvo. Nota completa com a seção de e-mails daquele momento\)\n## Top Story\nOlder headline$/);
 });
 
 test('a changed section goes to Live in parts that fit one append, split at line ends under its header',()=>{
@@ -157,7 +162,7 @@ test('a changed section goes to Live in parts that fit one append, split at line
  assert.ok(parts.length>2);
  assert.ok(parts.every(part=>bytes(part)<=APPEND_MAX_BYTES));
  assert.equal(parts[0].split('\n')[0],'Numbers (metrics.csv, 2026-11-22)');
- assert.ok(parts.slice(1).every(part=>part.startsWith('Numbers (metrics.csv, 2026-11-22) (continued)\n- Reading ')));
+ assert.ok(parts.slice(1).every(part=>part.startsWith('Numbers (metrics.csv, 2026-11-22) (continuação)\n- Reading ')));
  assert.deepEqual(parts.flatMap(part=>part.split('\n').slice(1)),rows);
  const long=appendParts('About the user (AGENTS.md)\n'+'word '.repeat(600).trim());
  assert.ok(long.every(part=>bytes(part)<=APPEND_MAX_BYTES));assert.match(long.at(-1),/word…$/);

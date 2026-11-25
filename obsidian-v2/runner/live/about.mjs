@@ -6,7 +6,7 @@ export const ABOUT_MAX_BYTES=2000;
 const FILE_MAX_BYTES=256*1024;
 const frontMatter=/(?<![\s\S])\uFEFF?---[\t ]*\r?\n[\s\S]*?^(?:---|\.\.\.)[\t ]*(?:\r?\n|$)/m;
 const comments=/<!--[\s\S]*?-->/g;
-export const aboutHeading=/^## About me[\t ]*(?:\r?\n|$)/im;
+export const aboutHeading=/^## (?:Sobre mim|About me)[\t ]*(?:\r?\n|$)/im;
 export const agentsImport=text=>text.replace(comments,'').trim()==='@AGENTS.md';
 const mask=text=>text.replace(/[^\r\n]/g,' ');
 export const visibleMarkdown=text=>text.replace(frontMatter,mask).replace(comments,mask);

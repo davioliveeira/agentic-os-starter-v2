@@ -4,7 +4,7 @@ import {LiveRecovery} from './recovery.mjs';
 import {LiveUsage,liveEstimate} from './usage.mjs';
 import {LiveUpdates} from './updates.mjs';
 import {createLiveTransport,LiveCreateRejected,validLiveSessionId} from './transport.mjs';
-import {liveHistory,liveSessionBody,liveSnapshot} from './snapshot.mjs';
+import {liveHistory,liveSessionBody,liveSnapshot,SNAPSHOT_NAMES} from './snapshot.mjs';
 import {appendParts,APPEND_MAX_BYTES} from './clip.mjs';
 import {greetingCue,liveGreeting} from './greeting.mjs';
 import {LiveTurns} from './turns.mjs';
@@ -21,13 +21,16 @@ const expiry=value=>{
  const parsed=typeof value==='string'?Date.parse(value):NaN;return Number.isFinite(parsed)?parsed:null;
 };
 const deferred=()=>{let resolve;const promise=new Promise(done=>{resolve=done});return {promise,resolve}};
-const sectionName=/^(About the user|Today|Work in progress|New vault notes|Numbers|News|Morning brief|Radar) \(/;
-function sections(text){
- const blocks=String(text??'').split('\n\n');
- const about=blocks.findIndex(block=>block.startsWith('About the user (')),today=blocks.findLastIndex(block=>block.startsWith('Today ('));
+const oldSectionNames=['About the user','Today','Work in progress','New vault notes','Numbers','News','Morning brief'];
+const hasHeading=(block,...names)=>names.some(name=>block.startsWith(name+' ('));
+function sections(snapshot){
+ if(typeof snapshot!=='string')return snapshot?.sections??[];
+ const blocks=snapshot.split('\n\n');
+ const about=blocks.findIndex(block=>hasHeading(block,SNAPSHOT_NAMES.about,'About the user'));
+ const today=blocks.findLastIndex(block=>hasHeading(block,SNAPSHOT_NAMES.today,'Today'));
  // Only About me can contain blank lines. Its prose can look like another section header.
  if(about>=0&&today>about)blocks.splice(about,today-about,blocks.slice(about,today).join('\n\n'));
- return blocks.filter(block=>sectionName.test(block));
+ return blocks.filter(block=>hasHeading(block,...Object.values(SNAPSHOT_NAMES),...oldSectionNames));
 }
 const scheduleTimer=(run,ms)=>{
  const handle=setTimeout(run,ms);
@@ -81,7 +84,7 @@ export class LiveCalls {
    throw new Error(['A chamada terminou antes de conectar.','Não foi possível concluir a conexão da chamada.','Não foi possível confirmar a criação da sessão ao vivo. Aguarde alguns instantes e tente de novo.','A conexão auxiliar da chamada excedeu o tempo limite.',speechUpdate,speechBusy,speechRestarted].includes(message)||String(message).startsWith('A OpenAI recusou a solicitação de sessão ao vivo')?message:'Não foi possível iniciar a chamada ao vivo.');
   }finally{call.done.resolve()}
  }
- readSnapshot(call,now,prefs){return this.snapshot(this.root,{now,tasks:()=>this.tasks(call.appScope),liveShareWork:prefs.liveShareWork,liveShareBrief:prefs.liveShareBrief})}
+ readSnapshot(call,now,prefs){return this.snapshot(this.root,{now,tasks:()=>this.tasks(call.appScope),liveShareWork:prefs.liveShareWork,liveShareBrief:prefs.liveShareBrief,structured:true})}
  async connectUpstream(call,sdp,prefs,key){
    const now=new Date(this.now()),snapshot=await this.readSnapshot(call,now,prefs);
    call.snapshotSections=sections(snapshot);call.refreshAt=this.now()+this.limits.snapshotRefresh;
@@ -96,7 +99,7 @@ export class LiveCalls {
    let created;
    try{
     created=await bounded(this.schedule,this.limits.create,'Live session creation timed out.',signal=>{
-     const result=this.transport.create(key,liveSessionBody({sdp,prefs,snapshot,history,continued:!!call.from}),signal);
+     const result=this.transport.create(key,liveSessionBody({sdp,prefs,snapshot:typeof snapshot==='string'?snapshot:snapshot?.text??'',history,continued:!!call.from}),signal);
      void Promise.resolve(result).then(late=>{if(timedOut&&validLiveSessionId(late?.id))void this.lateCreate(call,late.id,key)},()=>{});
      return result;
     });
@@ -278,10 +281,11 @@ export class LiveCalls {
    if(!this.current(call)||call.routing||call.staged||this.localBusy())return;
    // The whole brief is too long for one update, so a change to it is reported, not resent.
    const next=sections(snapshot),changed=next.filter(section=>!call.snapshotSections.includes(section))
-    .map(section=>section.startsWith('Morning brief (')?section.split('\n')[0]+'\nThis note changed during the call, so the copy from the start of the call may be out of date.':section);
-   for(const name of ['About the user','Work in progress','Morning brief']){
-    if(call.snapshotSections.some(section=>section.startsWith(name+' ('))&&!next.some(section=>section.startsWith(name+' (')))
-     changed.push(`${name} is no longer in the vault snapshot. Stop using the earlier entries from that section.`);
+    .map(section=>hasHeading(section,SNAPSHOT_NAMES.brief,'Morning brief')?section.split('\n')[0]+'\nA nota mudou durante a chamada. A cópia do início pode estar desatualizada.':section);
+   for(const [name,legacy] of [[SNAPSHOT_NAMES.about,'About the user'],[SNAPSHOT_NAMES.work,'Work in progress'],[SNAPSHOT_NAMES.brief,'Morning brief']]){
+    const same=section=>hasHeading(section,name,legacy);
+    if(call.snapshotSections.some(same)&&!next.some(same))
+     changed.push(`A seção ${name} foi retirada do contexto do cofre. Pare de usar os dados anteriores dessa seção.`);
    }
    call.snapshotSections=next;
    // One update per changed section, each within OpenAI's size limit: an update over it is rejected and Live keeps the old reading.
@@ -303,7 +307,7 @@ export class LiveCalls {
   if(!this.current(call)||call.provider===provider)return;
   call.provider=provider;if(this.replacement?.from===call)this.replacement.provider=provider;
   this.delegations?.clear(call,'staged-cancelled');
-  call.answers?.append('thinking',null,`The user switched hand-offs to ${provider==='codex'?'Codex':'Claude'}. New requests go there; work already running continues where it started.`);
+  call.answers?.append('thinking',null,`A pessoa escolheu encaminhar novos pedidos ao ${provider==='codex'?'Codex':'Claude'}. Tarefas já iniciadas continuam no provedor de origem.`);
  }
  invalidate(reason){
   const call=this.call;if(!call||call.state==='closing')return Promise.resolve();

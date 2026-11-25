@@ -133,17 +133,20 @@ test('Live creation and refresh use the injected Work drawer and keep About me p
  const f=await fixture(t,{snapshot:(root,options)=>liveSnapshot(root,{...options,usage:{}}),
   tasks:scope=>{scopes.push(scope);return [{title:'Fixture work title',provider:'codex',state:'working',lastActivityAt:f.now()}]}});
  const profile=path.join(f.root,'AGENTS.md'),first='First paragraph '+ 'context '.repeat(100).trim();
- fs.writeFileSync(profile,`## About me\n${first}\n\nNews (a phrase in the user profile)\nOriginal second paragraph`);
+ const settings=path.join(f.root,'system/v2/live-context.json');
+ fs.mkdirSync(path.dirname(settings),{recursive:true});fs.writeFileSync(settings,JSON.stringify({sections:{today:false}}));
+ fs.writeFileSync(profile,`## Sobre mim\n${first}\n\nNotícias (a phrase in the user profile)\nOriginal second paragraph`);
  await f.start();f.api.event('session.started');await until(()=>f.calls.call.ready);
- assert.match(f.api.requests[0].session.instructions,/Fixture work title \(Codex, working, 0 min\)/);
+ assert.match(f.api.requests[0].session.instructions,/Fixture work title \(Codex, em andamento, 0 min\)/);
  assert.deepEqual(scopes,['native']);
- fs.writeFileSync(profile,`## About me\n${first}\n\nNews (a phrase in the user profile)\nChanged second paragraph`);
+ fs.writeFileSync(profile,`## Sobre mim\n${first}\n\nNotícias (a phrase in the user profile)\nChanged second paragraph`);
  f.prefs.liveShareWork=false;f.advance(10001);f.calls.refreshSnapshot(f.calls.call);
  await until(()=>f.api.commands.some(({command})=>command.content?.includes('Changed second paragraph')));
  const refresh=f.api.commands.find(({command})=>command.content?.includes('Changed second paragraph')).command.content;
- assert.match(refresh,/^About the user \(.*\nFirst paragraph.*\n\nNews \(a phrase in the user profile\)\nChanged second paragraph/);
+ assert.match(refresh,/^Sobre mim \(.*\nFirst paragraph.*\n\nNotícias \(a phrase in the user profile\)\nChanged second paragraph/);
  const sent=f.api.commands.filter(({command})=>command.type==="session.thinking.append").map(({command})=>command.content);
- assert.ok(sent.some(content=>/^Work in progress is no longer in the vault snapshot/.test(content)));
+ assert.ok(sent.some(content=>/^A seção Trabalho em andamento foi retirada do contexto do cofre/.test(content)));
+ assert.ok(sent.every(content=>!content.startsWith('Notícias (a phrase in the user profile)')));
  assert.ok(sent.every(content=>Buffer.byteLength(content)<=1000),"each update fits the append limit");
  assert.doesNotMatch(refresh,/Fixture work title|Original second paragraph/);
  assert.deepEqual(scopes,['native']);
@@ -152,15 +155,15 @@ test('Live creation and refresh use the injected Work drawer and keep About me p
 test('a morning brief saved again during a call is reported, not resent',async t=>{
  const f=await fixture(t,{snapshot:(root,options)=>liveSnapshot(root,{...options,usage:{}})});
  f.prefs.liveShareBrief=true;
- const file=path.join(f.root,'inbox','research','morning-intel',localDate(new Date(f.now()))+'-intel.md'),note='This note changed during the call';
+ const file=path.join(f.root,'inbox','research','morning-intel',localDate(new Date(f.now()))+'-intel.md'),note='A nota mudou durante a chamada';
  fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,'## Inbox\n- First sponsor pitch');
  await f.start();f.api.event('session.started');await until(()=>f.calls.call.ready);
- assert.match(f.api.requests[0].session.instructions,/Morning brief \(.*\)\n## Inbox\n- First sponsor pitch/);
+ assert.match(f.api.requests[0].session.instructions,/Boletim da manhã \(.*\)\n## Inbox\n- First sponsor pitch/);
  fs.writeFileSync(file,'## Inbox\n- First sponsor pitch\n- Second sponsor pitch');
  f.advance(10001);f.calls.refreshSnapshot(f.calls.call);
  await until(()=>f.api.commands.some(({command})=>command.content?.includes(note)));
  const refresh=f.api.commands.find(({command})=>command.content?.includes(note)).command.content;
- assert.match(refresh,/^Morning brief \(.*\)\nThis note changed during the call, so the copy from the start of the call may be out of date\.$/m);
+ assert.match(refresh,/^Boletim da manhã \(.*\)\nA nota mudou durante a chamada. A cópia do início pode estar desatualizada\.$/m);
  assert.doesNotMatch(refresh,/sponsor pitch/);
 });
 
@@ -338,7 +341,7 @@ test('a provider switch keeps the Live call, moves new hand-offs and tells Live 
  assert.equal(call.provider,'codex');
  await until(()=>f.api.commands.length>before);
  const note=f.api.commands.at(-1).command;
- assert.equal(note.type,'session.thinking.append');assert.equal(note.delegation_id,null);assert.match(note.content,/switched hand-offs to Codex/);
+ assert.equal(note.type,'session.thinking.append');assert.equal(note.delegation_id,null);assert.match(note.content,/encaminhar novos pedidos ao Codex/);
  f.calls.switchProvider(call,'codex');assert.equal(f.api.commands.length,before+1,'a repeat switch stays quiet');
  assert.ok(!f.api.commands.some(entry=>entry.command.type==='session.close'));
 });
@@ -350,9 +353,9 @@ test('a started call greets the user once, by voice, after the session and the a
  assert.equal(greetings().length,0,'no greeting before the audio is connected');
  f.calls.peerConnected(call);
  await until(()=>greetings().length===1);
- assert.match(greetings()[0].command.content,/what|ready|help|need/i);
+ assert.match(greetings()[0].command.content,/Oi|Olá|Bom dia|Boa tarde|Boa noite/i);
  // A bare line made GPT-Live invent a user turn and answer it; the cue says the line, then waits.
- assert.match(greetings()[0].command.content,/^The call just connected and the user has not spoken yet\. Greet them by saying exactly "[^"]+" Then stop talking and wait for them\./);
+ assert.match(greetings()[0].command.content,/^A chamada acabou de conectar e a pessoa ainda não falou\. Diga exatamente "[^"]+" Depois, espere a pessoa falar\./);
  f.calls.peerConnected(call);f.api.event('session.resumed');f.calls.sweep();
  await flush();assert.equal(greetings().length,1,'never twice in one call');
 });

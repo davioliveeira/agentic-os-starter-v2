@@ -3,20 +3,24 @@ import {readAboutMe} from './about.mjs';
 // Spoken once when a call the user started is connected and has audio, so they hear it is live
 // before they say anything. Several variations, never the same one twice in a row.
 const ANY = [
- name => `Hey${name}, what do you want to work on today?`,
- name => `Hi${name}, what are we tackling?`,
- name => `Hey${name}, what's on your mind?`,
- name => `Hey${name}, I'm here. What do you need?`,
- name => `Hi${name}, ready when you are. What's up?`
+ name => `Oi${name}. No que vamos trabalhar hoje?`,
+ name => `Olá${name}. Por onde começamos?`,
+ name => `Oi${name}. O que você tem em mente?`,
+ name => `Oi${name}. Como posso ajudar?`,
+ name => `Olá${name}. Pode falar.`
 ];
-const MORNING = [name => `Morning${name}. What's first today?`, name => `Good morning${name}. What do you want to get done?`];
-const AFTERNOON = [name => `Good afternoon${name}. What can I help with?`];
-const EVENING = [name => `Evening${name}. What are we working on?`, name => `Hey${name}, still at it? What do you need?`];
+const MORNING = [name => `Bom dia${name}. O que vem primeiro hoje?`, name => `Bom dia${name}. O que você quer resolver hoje?`];
+const AFTERNOON = [name => `Boa tarde${name}. Como posso ajudar?`];
+const EVENING = [name => `Boa noite${name}. No que vamos trabalhar?`, name => `Boa noite${name}. O que você precisa?`];
 
 // The name the user gave in About me ("I'm Chase.", "My name is Chase", "Name: Chase").
 export function userName(text) {
- const hit = /(?:^|[\s.!])(?:I['’]m|I am|my name is|name:)\s+([\p{Lu}][\p{L}'’-]{0,30})/iu.exec(String(text ?? ''));
- return hit && !/^(?:a|an|the|not|here|in|on|at|from|working|building|running)$/i.test(hit[1]) ? hit[1] : null;
+ const profile=String(text??'').normalize('NFC');
+ const explicit=/(?:^|[\s.!])(?:my name is|name:|meu nome [eé]|me chamo|nome:)\s+([\p{L}][\p{L}'’-]{0,30})/iu.exec(profile);
+ const intro=/(?:^|[\s.!])(?:I['’]m|I am|(?:eu )?sou)\s+([\p{L}][\p{L}'’-]{0,30})/iu.exec(profile);
+ const name=explicit?.[1]??intro?.[1];
+ if(!name||(!explicit&&!/^\p{Lu}/u.test(name))||/^(?:a|an|the|not|here|in|on|at|from|working|building|running|o|um|uma)$/i.test(name))return null;
+ return name;
 }
 
 export function greetingOptions(now = new Date()) {
@@ -39,7 +43,7 @@ export function pickGreeting({name = null, now = new Date(), random = Math.rando
 // photosynthesis work?…", the Riemann monologues, 2026-11-22). Worded as a cue, it says the line
 // and then waits: 3 of 3 silent test calls, against 2 of 2 invented turns for the bare line.
 export function greetingCue(line) {
- return `The call just connected and the user has not spoken yet. Greet them by saying exactly "${line}" Then stop talking and wait for them. Do not ask or answer anything else.`;
+ return `A chamada acabou de conectar e a pessoa ainda não falou. Diga exatamente ${JSON.stringify(line)} Depois, espere a pessoa falar. Não acrescente perguntas ou respostas.`;
 }
 
 export function liveGreeting(root, options = {}) {
