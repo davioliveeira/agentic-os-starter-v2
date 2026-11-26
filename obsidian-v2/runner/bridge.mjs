@@ -150,9 +150,13 @@ setImmediate(scheduleLook);
 const integrations=createIntegrationInventory(root);
 const wispr=createWisprSync(root,{call:async(connection,tool,args,signal)=>{
  const listed=await integrations.read(connection.provider);
- const server=listed.find(row=>row.name===connection.server&&row.wispr);
+ const server=listed.find(row=>(row.server||row.name)===connection.server&&row.wispr);
  if(!server||server.status==='desativada')throw new Error('A conexão do Wispr Flow não está disponível.');
  if(connection.provider!=='codex')throw new Error('Use o Codex para acessar o Wispr Flow em segundo plano.');
+ if(server.server){
+  if(server.status!=='conectada')throw new Error('O aplicativo Wispr Flow está indisponível no Codex.');
+  return callWisprWithCodex(root,'codex_apps',`wispr_flow.${tool}`,args,signal);
+ }
  return callWisprWithCodex(root,server.name,tool,args,signal);
 }});
 const wisprLook=()=>{void wispr.tick()?.catch(()=>{})};

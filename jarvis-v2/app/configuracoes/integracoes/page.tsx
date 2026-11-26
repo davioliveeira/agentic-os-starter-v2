@@ -6,7 +6,7 @@ import styles from './integrations.module.css';
 
 type Provider = 'claude'|'codex';
 type Connection = {
- provider:Provider; name:string; status:string; scope:string|null;
+ provider:Provider; name:string; server?:string; status:string; scope:string|null;
  actions:('login'|'logout'|'remove')[]; manageUrl?:string|null; wispr:boolean;
 };
 type Inventory = {
@@ -15,7 +15,7 @@ type Inventory = {
   last?:{status:string;at:string;imported?:number;message?:string}};
 };
 const labels={login:'Conectar',logout:'Sair',remove:'Remover'};
-const connectionKey=(item:{provider?:Provider;name?:string})=>JSON.stringify([item.provider,item.name]);
+const connectionKey=(item:{provider?:Provider;name?:string;server?:string})=>JSON.stringify([item.provider,item.server||item.name]);
 
 export default function Integrations() {
  const [state,setState]=useState<Inventory|null>(null);
@@ -63,7 +63,7 @@ export default function Integrations() {
  }
  function toggle() {
   if(active)void act({action:'configure',enabled:false},'Importação pausada.');
-  else if(source)void act({action:'configure',provider:source.provider,server:source.name,enabled:true},'Importação automática ativada.');
+  else if(source)void act({action:'configure',provider:source.provider,server:source.server||source.name,enabled:true},'Importação automática ativada.');
  }
  return <main className={styles.page}>
   <Link href="/">← Voltar ao Jarvis</Link>
@@ -88,7 +88,7 @@ export default function Integrations() {
       void act({action:'connect-wispr'},'Wispr Flow adicionado ao Codex.');
       setMessage('Aguardando a configuração do Codex. Conclua a autorização no navegador caso seja solicitada.');
      }}>Conectar pelo Codex</button>}
-     <button disabled={!source||pending} onClick={()=>source&&void act({action:'probe',provider:source.provider,server:source.name},'Conexão com o Wispr Flow verificada.')}>Testar conexão</button>
+     <button disabled={!source||pending} onClick={()=>source&&void act({action:'probe',provider:source.provider,server:source.server||source.name},'Conexão com o Wispr Flow verificada.')}>Testar conexão</button>
      <button disabled={pending||(!active&&!source)} onClick={toggle}>{active?'Pausar importação':'Ativar importação automática'}</button>
      <button disabled={!active||pending||wispr?.running} onClick={()=>void act({action:'sync'},'Sincronização concluída.')}>Sincronizar agora</button>
     </div>

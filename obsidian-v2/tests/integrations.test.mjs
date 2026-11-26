@@ -41,3 +41,21 @@ test('adds the official Wispr endpoint only when there is no existing Codex conn
  await assert.rejects(inventory.connectWispr(),/já foi adicionado/);
  assert.equal(calls.filter(args=>args.includes('add')).length,1);
 });
+
+test('surfaces the already installed Codex app and reuses its authenticated Wispr tools',async()=>{
+ const inventory=createIntegrationInventory('/vault',{
+  invoke:async(_root,provider)=>provider==='codex'?'[]':'',
+  readApps:async()=>[
+   {id:'app_wispr',runtimeName:'Wispr Flow',enabled:true,callable:true},
+   {id:'app_disabled',runtimeName:'Calendar',enabled:false,callable:false}
+  ]
+ });
+ const [codex]=await inventory.list();
+ const wispr=codex.connections.find(row=>row.wispr);
+ assert.equal(wispr.name,'Wispr Flow');
+ assert.equal(wispr.server,'app:app_wispr');
+ assert.equal(wispr.status,'conectada');
+ assert.equal(wispr.scope,'Conta Codex');
+ assert.equal(codex.connections[1].status,'desativada');
+ await assert.rejects(inventory.connectWispr(),/já está disponível/);
+});

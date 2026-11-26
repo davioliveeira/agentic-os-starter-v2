@@ -1,6 +1,7 @@
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {findCli} from './cli-runtime.mjs';
+import {withCodexRpc} from './wispr-mcp.mjs';
 import {withoutOpenAIKey} from './child-env.mjs';
 
 const execute=promisify(execFile);
@@ -65,8 +66,25 @@ export function parseIntegrations(provider,stdout){
  return rows;
 }
 
-export function createIntegrationInventory(root,{invoke=integrationCli}={}){
- const read=async provider=>parseIntegrations(provider,await invoke(root,provider,provider==='codex'?['mcp','list','--json']:['mcp','list']));
+async function codexApps(root) {
+ const result=await withCodexRpc(root,AbortSignal.timeout(10000),call=>call('app/installed',{}));
+ return Array.isArray(result?.apps)?result.apps:[];
+}
+
+export function createIntegrationInventory(root,{invoke=integrationCli,readApps=invoke===integrationCli?codexApps:async()=>[]}={}){
+ async function read(provider){
+  if(provider==='claude')return parseIntegrations(provider,await invoke(root,provider,['mcp','list']));
+  const [servers,installed]=await Promise.all([
+   invoke(root,provider,['mcp','list','--json']),
+   readApps(root).catch(()=>[])
+  ]);
+  const apps=installed.filter(app=>typeof app.runtimeName==='string'&&typeof app.id==='string').map(app=>({
+   provider,name:app.runtimeName,server:`app:${app.id}`,scope:'Conta Codex',
+   status:app.enabled?(app.callable?'conectada':'indisponível'):'desativada',
+   actions:[],manageUrl:'https://chatgpt.com/apps',wispr:wisprName.test(app.runtimeName)
+  }));
+  return [...apps,...parseIntegrations(provider,servers)];
+ }
  async function list(){
   return Promise.all(Object.keys(names).map(async provider=>{
    try{return {provider,label:names[provider],connections:await read(provider)}}
@@ -75,7 +93,7 @@ export function createIntegrationInventory(root,{invoke=integrationCli}={}){
  }
  async function change({provider,name,action}){
   if(!Object.hasOwn(names,provider)||typeof name!=='string'||!name||name.startsWith('-')||!['login','logout','remove'].includes(action))throw new Error('Ação de integração inválida.');
-  const connection=(await read(provider)).find(row=>row.name===name);
+  const connection=(await read(provider)).find(row=>!row.server&&row.name===name);
   if(!connection?.actions.includes(action))throw new Error('Esta ação não está disponível para a conexão.');
   await invoke(root,provider,['mcp',action,name],{timeout:action==='login'?300000:30000,wisprAuthorization:action==='login'&&connection.wispr});
   return {ok:true};
@@ -86,6 +104,7 @@ export function createIntegrationInventory(root,{invoke=integrationCli}={}){
   connecting=true;
   try {
    const existing=await read('codex');
+   if(existing.some(row=>row.wispr&&row.server))throw new Error('O Wispr já está disponível nos aplicativos do Codex. Selecione essa conexão.');
    if(existing.some(row=>row.wispr))throw new Error('O Wispr já foi adicionado ao Codex. Use a conexão existente.');
    if(existing.some(row=>row.name==='wispr-flow'))throw new Error('Já existe uma integração chamada wispr-flow no Codex.');
    await invoke(root,'codex',['mcp','add','wispr-flow','--url',wisprEndpoint],{timeout:300000,wisprAuthorization:true});
