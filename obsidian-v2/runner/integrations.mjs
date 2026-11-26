@@ -18,7 +18,7 @@ const wisprName=/\bwispr[\s_-]*flow\b/i;
 function isWispr(endpoint){
  try {
   const url=new URL(endpoint);
-  return url.protocol==='https:'&&['mcp.wisprflow.ai','mcp.wispr.com'].includes(url.hostname);
+  return url.protocol==='https:'&&url.hostname==='api.wisprflow.ai';
  }catch{return false}
 }
 export function parseIntegrations(provider,stdout){

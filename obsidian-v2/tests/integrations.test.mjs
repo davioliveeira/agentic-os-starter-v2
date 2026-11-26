@@ -4,7 +4,7 @@ import {createIntegrationInventory,parseIntegrations} from '../runner/integratio
 
 test('lists Claude account and Codex MCP connections without transport secrets',async()=>{
  const inventory=createIntegrationInventory('/vault',{invoke:async(_root,provider)=>provider==='claude'?
-  'Checking MCP server health…\n\nclaude.ai Wispr Flow: https://mcp.wisprflow.ai/mcp?token=example-secret - ✔ Connected\nUnapproved: https://example.com/mcp - ⏸ Pending approval':
+  'Checking MCP server health…\n\nclaude.ai Wispr Flow: https://api.wisprflow.ai/mcp?token=example-secret - ✔ Connected\nUnapproved: https://example.com/mcp - ⏸ Pending approval':
   JSON.stringify([{name:'docs',enabled:true,auth_status:'oauth',transport:{type:'streamable_http',url:'https://example.com/mcp?token=example-secret'}}])});
  const [codex,claude]=await inventory.list();
  assert.equal(codex.connections[0].status,'conectada');
