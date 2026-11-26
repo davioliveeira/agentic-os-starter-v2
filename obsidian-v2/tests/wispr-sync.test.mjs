@@ -60,9 +60,16 @@ test('the Jarvis voice route answers from the imported note and cites its path',
   {...meeting,transcript:'Paula: A entrega ficou para 14 de dezembro.'});
  await sync.run();
  const {routeVoice}=await import('../runner/bridge-core.mjs');
+ const {commandFor}=await import('../runner/adapters.mjs');
  const {randomUUID}=await import('node:crypto');
  const receipt=await routeVoice(root,{id:randomUUID(),transcript:'Qual foi a data de entrega combinada na call de produto?',selection:{provider:'codex',model:'astra'},terminalMode:true},
-  undefined,async(_root,_job,prompt)=>{
+  undefined,async(_root,job,prompt)=>{
+   const {args}=commandFor(root,job,{command:'unused-test-cli',prefix:[]});
+   assert.ok(args.includes('--output-schema'),'lookup reply must be constrained by the Codex CLI');
+   const schema=JSON.parse(fs.readFileSync(args[args.indexOf('--output-schema')+1],'utf8'));
+   assert.equal(schema.additionalProperties,false);
+   assert.deepEqual(schema.properties.tier.enum,[2]);
+   assert.deepEqual(schema.required,['tier','reply']);
    assert.match(prompt,/Paula: A entrega ficou para 14 de dezembro/);
    assert.match(prompt,/Fatos salvos \(dados JSON\)/);
    return {text:JSON.stringify({tier:2,reply:'A entrega ficou para 14 de dezembro.'})};

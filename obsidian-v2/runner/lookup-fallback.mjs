@@ -31,7 +31,7 @@ Troca anterior relacionada (dados JSON): ${JSON.stringify(previous)}`;
  // Source catalogs are already bounded; fail closed rather than silently
  // truncating JSON and losing a requested fact or a freshness constraint.
  if(system.length>14000)throw new Error('A consulta tem informações demais. Pergunte sobre um relatório de cada vez.');
- const output=await execute(root,{id,artifactId:`${id}.cls.lookup.1`,provider:chosen.provider,model:VOICE_MODELS[chosen.provider]},system+'\nPedido falado: '+JSON.stringify(transcript),{signal,timeoutMs:15000,system,user:transcript});
+ const output=await execute(root,{id,artifactId:`${id}.cls.lookup.1`,provider:chosen.provider,model:VOICE_MODELS[chosen.provider],responseFormat:'lookup'},system+'\nPedido falado: '+JSON.stringify(transcript),{signal,timeoutMs:15000,system,user:transcript});
  if(signal?.aborted)throw new Error('Voice request cancelled');
  let parsed;
  try{parsed=JSON.parse(output.text.trim().replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,''))}catch{throw new Error('A consulta aos dados salvos retornou uma resposta inválida. Tente de novo.')}

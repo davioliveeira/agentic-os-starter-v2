@@ -161,3 +161,10 @@ test('the two tested speed-ups are on by default, the third is off, and each has
   fs.writeFileSync(file, '{"earlyAnswer":"yes","streamSpeech":0}');
   assert.deepEqual(voiceSpeed({file, now: () => Date.now() + 10000}), VOICE_SPEED_DEFAULTS, 'only true and false count');
 });
+
+
+test('structured Claude lookups use the validated payload in the completed CLI result',()=>{
+ const expected={tier:2,reply:'O primeiro assunto foi o planejamento da semana.'};
+ const stream=answerStream('claude',true);
+ assert.deepEqual(stream.push(line({type:'result',is_error:false,result:'Texto livre.',structured_output:expected})),{text:JSON.stringify(expected)});
+});

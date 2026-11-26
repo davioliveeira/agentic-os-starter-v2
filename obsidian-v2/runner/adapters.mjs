@@ -10,6 +10,8 @@ import {projectRoot} from './runtime.mjs';
 import {stopCliProcessTree} from './cli-process-tree.mjs';
 import {useStoredSignIn,SIGN_IN_TOKEN} from './claude-stored-signin.mjs';
 const resultSchema=fs.readFileSync(path.join(projectRoot,'runner/result-schema.json'),'utf8');
+const lookupSchemaPath=path.join(projectRoot,'runner/lookup-response-schema.json');
+const lookupSchema=fs.readFileSync(lookupSchemaPath,'utf8');
 const classifierInstructions=fs.readFileSync(path.join(projectRoot,'runner/voice-classifier-instructions.md'),'utf8');
 // A background Claude worker runs with --print: nobody is there to approve a tool, so a tool that is not pre-approved
 // (here, or by the user's own Claude permission settings) is refused. The claude.ai Google connectors were not, which
@@ -58,6 +60,10 @@ export function commandFor(root,job,cli=findCli(job.provider)){
   '-c','features.shell_tool=false','-c','features.multi_agent=false','-c','apps._default.enabled=false',
   '-c','web_search="disabled"','-c',`model_instructions_file=${JSON.stringify(path.join(projectRoot,'runner/voice-classifier-instructions.md'))}`,
   '-c',`model_reasoning_effort="${modelFamily('codex',job.model)==='luna'?'medium':'low'}"`);
+ if(restricted&&job.responseFormat==='lookup'){
+  if(job.provider==='codex')args.splice(1,0,'--output-schema',lookupSchemaPath);
+  else args.push('--json-schema',lookupSchema);
+ }
  if(!restricted&&job.provider==='codex')args.splice(1,0,'-c','sandbox_workspace_write.network_access=true','-c','approval_policy="never"','-c','web_search="live"');
  // --effort low: MAX_THINKING_TOKENS=0 alone does not stop Haiku 5.5 from thinking (it thought on 28 of 36
  // replayed real voice requests, 2026-11-19). With low effort the median answer came 3.0 s -> 1.6 s, routing was
@@ -79,7 +85,10 @@ export function commandFor(root,job,cli=findCli(job.provider)){
 // then "turn.completed", then closes. On a busy or slow machine closing alone takes one to three seconds,
 // which the person waiting for a spoken reply never needed. The answer is taken from that closing line and
 // never from anything earlier: text the model wrote before a turn that then failed must not be acted on.
-export function answerStream(provider){
+function claudeAnswer(result,structured){
+ return structured&&result.structured_output!=null?JSON.stringify(result.structured_output):result.result;
+}
+export function answerStream(provider,structured=false){
  let buffer='',last='',result=null,events=0;
  return {
   push(chunk){
@@ -92,7 +101,7 @@ export function answerStream(provider){
     events++;
     if(provider==='claude'){
      // The last word on the turn. An error result is kept for the ordinary failure path and is never an answer.
-     if(event.type==='result'){result=event;found=!event.is_error&&typeof event.result==='string'?{text:event.result}:null}
+     if(event.type==='result'){result=event;const text=claudeAnswer(event,structured);found=!event.is_error&&typeof text==='string'?{text}:null}
     }else if(event.type==='item.completed'&&event.item?.type==='agent_message'&&typeof event.item.text==='string')last=event.item.text;
     else if(event.type==='turn.failed'||event.type==='error'){last='';found=null}
     else if(event.type==='turn.completed'&&last)found={text:last};
@@ -137,7 +146,8 @@ export function prestartCli(root,job,{launch=spawn,resolveCommand=commandFor,sto
 export function executeCli(root,job,prompt,{signal,timeoutMs=job.skill?1200000:60000,launch=spawn,resolveCommand=commandFor,stopTree=stopCliProcessTree,early=false,onDetached=()=>{},prestarted=null}={}){
  if(signal?.aborted){prestarted?.discard();return Promise.reject(new Error('Voice request cancelled'))}
  const streaming=early===true&&(!job.skill||job.restricted);
- const stream=streaming?answerStream(job.provider):null;
+ const structured=job.responseFormat==='lookup';
+ const stream=streaming?answerStream(job.provider,structured):null;
  const spec=resolveCommand(root,streaming?{...job,stream:true}:job);const log=vaultPath(root,`${ROOT}/logs/${job.artifactId||job.id}.log`);fs.mkdirSync(path.dirname(log),{recursive:true});
  return new Promise((resolve,reject)=>{
   const adopted=prestarted&&streaming&&!prestarted.taken&&!prestarted.gone&&!prestarted.inputClosed&&prestarted.out.length===0&&prestarted.signature===JSON.stringify([spec.command,spec.args])?prestarted:null;
@@ -194,7 +204,7 @@ export function executeCli(root,job,prompt,{signal,timeoutMs=job.skill?1200000:6
    }
    try{
     if(job.provider==='codex'){const text=fs.readFileSync(spec.final,'utf8');return finish(null,job.skill&&!job.restricted?parseWorkerResult(text):{text})}
-    const result=stream?stream.result():JSON.parse(stdout);if(!result)throw Object.assign(new Error('Claude closed without a result.'),stream&&stdout===''?{noOutput:true}:{});if(result.is_error)throw new Error(String(result.result||'Claude run failed'));finish(null,job.skill&&!job.restricted?parseWorkerResult(result.structured_output||result.result):{text:result.result});
+    const result=stream?stream.result():JSON.parse(stdout);if(!result)throw Object.assign(new Error('Claude closed without a result.'),stream&&stdout===''?{noOutput:true}:{});if(result.is_error)throw new Error(String(result.result||'Claude run failed'));finish(null,job.skill&&!job.restricted?parseWorkerResult(result.structured_output||result.result):{text:claudeAnswer(result,structured)});
    }catch(e){finish(e)}
   });
   if(signal?.aborted)cancelled();

@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "tier": { "type": "integer", "enum": [2] },
+    "reply": { "type": "string" }
+  },
+  "required": ["tier", "reply"]
+}
