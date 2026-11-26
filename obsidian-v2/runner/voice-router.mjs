@@ -10,6 +10,7 @@ import {withVoiceContext} from './voice-context.mjs';
 import {inspectBriefRequest,readBriefLookupReply,readBriefSectionReply,getBriefCatalog,localDate} from './brief-voice.mjs';
 import {inspectBriefSectionRequest} from './brief-section-intent.mjs';
 import {inspectLocalLookup,answerLocalLookup,getLookupContext} from './lookup-catalog.mjs';
+import {findWisprNote} from './wispr-lookup.mjs';
 import {explainLookup,GAP_REPLY,directGeneralWork,compoundWork,compoundHint} from './lookup-fallback.mjs';
 import {selectedTaskContext} from './voice-task-context.mjs';
 import {SPOKEN_REPLY_STYLE} from './spoken-answer.mjs';
@@ -286,6 +287,14 @@ async function classify(root,{id,transcript,chosen,terminals,workTarget,appScope
  const compound=deferredDailyEdit||!separateTasks&&compoundHint(transcript);
  // The saved ranking already contains this answer. Read only its source;
  // conversation history, metrics and background work are irrelevant here.
+ if(!compound){
+  const meeting=findWisprNote(root,transcript);
+  if(meeting?.ambiguous)return via('lookup.wispr',{tier:2,engine:'rules',reply:`Encontrei mais de uma transcrição chamada ${meeting.title}. Qual delas você quer consultar?`,context:'',lookupRoute:'clarification'});
+  if(meeting){
+   const answer=await explainLookup(root,{id,transcript,chosen,source:'Transcrição de reunião do Wispr Flow',facts:meeting,signal,execute,transport});
+   return via('lookup.wispr',{...answer,reply:`${answer.reply} Fonte: ${meeting.title}.`,deliverable:meeting.path,panels:['documents']},'lookup-explain',{source:'model',fallbackModel:VOICE_MODELS[chosen.provider]});
+  }
+ }
  const directSection=inspectBriefSectionRequest(transcript),directBrief=inspectBriefRequest(transcript),directLocal=inspectLocalLookup(transcript);
  const sectionAnswer=request=>{const answer=readBriefSectionReply(root,request);return {tier:2,engine:'rules',...answer,deliverable:answer.briefSource,panels:['documents'],context:'',lookupRoute:'local'}};
  if(!compound&&directSection.kind==='lookup')return via('lookup.section',sectionAnswer(directSection));

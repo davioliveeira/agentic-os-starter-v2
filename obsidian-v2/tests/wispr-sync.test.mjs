@@ -54,3 +54,45 @@ test('a failed transcript page leaves the meeting retryable and pausing prevents
  assert.equal(fs.existsSync(target),false);
  assert.equal((await sync.run()).status,'paused');
 });
+
+test('the Jarvis voice route answers from the imported note and cites its path',async t=>{
+ const {sync,notes,root}=fixture(t,async (_connection,tool)=>tool==='search_meetings'?{meetings:[meeting]}:
+  {...meeting,transcript:'Paula: A entrega ficou para 14 de dezembro.'});
+ await sync.run();
+ const {routeVoice}=await import('../runner/bridge-core.mjs');
+ const {randomUUID}=await import('node:crypto');
+ const receipt=await routeVoice(root,{id:randomUUID(),transcript:'Qual foi a data de entrega combinada na call de produto?',selection:{provider:'codex',model:'astra'},terminalMode:true},
+  undefined,async(_root,_job,prompt)=>{
+   assert.match(prompt,/Paula: A entrega ficou para 14 de dezembro/);
+   assert.match(prompt,/Fatos salvos \(dados JSON\)/);
+   return {text:JSON.stringify({tier:2,reply:'A entrega ficou para 14 de dezembro.'})};
+  },{live:new Map(),list:()=>[]},{resolveCli:()=>({command:'unused-test-cli',prefix:[]}),updateCurrent:()=>{}});
+ assert.equal(receipt.decision.rule,'lookup.wispr');
+ assert.equal(receipt.deliverable,'inbox/reunioes/wispr/'+notes()[0]);
+ assert.match(receipt.reply,/Fonte: Call de produto/);
+});
+
+test('a restarted bridge enumerates the activation window and catches up before its next interval',async t=>{
+ let now=start,listed=0,windowStart;
+ const {sync,root}=fixture(t,async()=>({meetings:[]}));
+ await sync.run();
+ now+=3*60*60*1000;
+ const restarted=createWisprSync(root,{now:()=>now,call:async(_connection,tool,args)=>{
+  if(tool==='search_meetings'){listed++;windowStart=args.since;return {meetings:[meeting]}}
+  return {...meeting,transcript:'Esta call foi finalizada enquanto o Jarvis estava desligado.'};
+ }});
+ assert.equal((await restarted.tick()).imported,1);
+ assert.equal(windowStart,new Date(start).toISOString());
+ assert.equal(restarted.tick(),undefined);
+ now+=15*60*1000;
+ assert.equal((await restarted.tick()).imported,0);
+ assert.equal(listed,2);
+});
+
+test('pausing and resuming the same connection preserves the activation window',async t=>{
+ const {sync}=fixture(t,async()=>({meetings:[]}));
+ const before=sync.view().since;
+ sync.configure({enabled:false});
+ sync.configure({enabled:true});
+ assert.equal(sync.view().since,before);
+});
