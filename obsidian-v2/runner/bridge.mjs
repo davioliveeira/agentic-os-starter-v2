@@ -43,6 +43,9 @@ import {readVoicePrefs,saveVoicePrefs,speakPrefsQuery,voiceChoices} from './voic
 import {writeVoiceWords,saveVoiceWords} from './voice-words.mjs';
 import {scheduleTick,scheduleView,editSchedule} from './schedule.mjs';
 import {taskLabel} from './task-updates.mjs';
+import {createIntegrationInventory} from './integrations.mjs';
+import {createWisprSync} from './wispr-sync.mjs';
+import {callWisprWithCodex} from './wispr-mcp.mjs';
 import {completionLabel} from './voice-conversation-cues.mjs';
 const base=path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const root=assertVault(configuredVault());
@@ -144,6 +147,18 @@ const scheduleTimer=setInterval(scheduleLook,30000);scheduleTimer.unref();
 // And once as soon as the bridge has finished starting, so one that comes up in the last seconds before
 // midnight still catches that day's last job.
 setImmediate(scheduleLook);
+const integrations=createIntegrationInventory(root);
+const wispr=createWisprSync(root,{call:async(connection,tool,args,signal)=>{
+ const listed=await integrations.read(connection.provider);
+ const server=listed.find(row=>row.name===connection.server&&row.wispr);
+ if(!server||server.status==='desativada')throw new Error('A conexão do Wispr Flow não está disponível.');
+ if(connection.provider!=='codex')throw new Error('Use o Codex para acessar o Wispr Flow em segundo plano.');
+ return callWisprWithCodex(root,server.name,tool,args,signal);
+}});
+const wisprLook=()=>{void wispr.tick()?.catch(()=>{})};
+const wisprTimer=setInterval(wisprLook,30000);
+wisprTimer.unref();
+setImmediate(wisprLook);
 async function speechHealth(){try{const r=await fetch(`${speech}/health`,{signal:AbortSignal.timeout(1500)});return r.ok?await r.json():null}catch{return null}}
 function providerHealth(){return Object.fromEntries(['codex','claude'].map(provider=>[provider,cliStatus(provider)]))}
 function bridgeStatus(){const providers=providerHealth();return {selection:selection(root),health:{ts:new Date().toISOString(),pid:process.pid,busy:[...terminals.live.keys()].some(id=>['working','starting'].includes(terminals.get(id).state)),active:terminals.live.size,pending:0,providers},providers,vault:root}}
@@ -166,6 +181,25 @@ server.on('request',async(req,res)=>{
   const verifySurface=id=>liveBridge?.verifySurface(id,appScope,req.headers['x-v2-surface-secret']);
   // Dashboard configuration is shared between surfaces. These routes retain the
   // bridge's existing origin, authentication and native/web ownership guards.
+  if(url.pathname==='/integrations'&&req.method==='GET'){
+   if(!bridgeAuth.accepts('POST',req.headers))return json({error:'Autenticação da ponte necessária.'},401);
+   return json({providers:await integrations.list(),wispr:wispr.view()});
+  }
+  if(url.pathname==='/integrations'&&req.method==='POST'){
+   const input=JSON.parse((await body(req)).toString());
+   if(input.action==='configure'){
+    if(input.enabled===true)await wispr.check(input);
+    const state=wispr.configure(input);
+    queueMicrotask(wisprLook);
+    return json(state);
+   }
+   if(input.action==='probe')return json(await wispr.check(input));
+   if(input.action==='sync')return json(await wispr.run());
+   const result=await integrations.change(input);
+   const current=wispr.view();
+   if(input.provider===current.provider&&input.name===current.server&&['logout','remove'].includes(input.action))wispr.configure({enabled:false});
+   return json(result);
+  }
   if(url.pathname==='/dashboard'&&req.method==='GET')return json(readDashboard(root));
   if(url.pathname==='/dashboard/discover'&&req.method==='GET')return json(discoverDashboardSkills(root,{provider:url.searchParams.get('provider')}));
   if(url.pathname==='/dashboard'&&req.method==='POST')return json(saveDashboard(root,JSON.parse((await body(req)).toString())));
@@ -272,7 +306,7 @@ server.on('request',async(req,res)=>{
    if([...terminals.live.keys()].some(id=>terminals.get(id).execution!=='native')||active.size||classifierProcesses().total)return json({error:'Encerre as tarefas ativas do terminal e os pedidos de voz. As conversas salvas e os rascunhos foram preservados.'},409);
    // Persist intent before releasing the port so recovery cannot undo an explicit Stop.
    fs.writeFileSync(path.join(base,'.runtime/services-paused.json'),JSON.stringify({ts:new Date().toISOString(),reason:'idle shutdown request'}));
-   json({ok:true});lifecycle?.stop('idle shutdown request');dropPreparedJev();closeClaudeSignIn();void liveBridge?.calls.shutdown();terminals.close();clearInterval(artifactTimer);clearInterval(scheduleTimer);clearInterval(liveTimer);speechLink.stop();for(const response of listeners.values())response.end();server.close();setTimeout(()=>server.closeAllConnections(),500).unref();return;
+   json({ok:true});lifecycle?.stop('idle shutdown request');dropPreparedJev();closeClaudeSignIn();void liveBridge?.calls.shutdown();terminals.close();clearInterval(artifactTimer);clearInterval(scheduleTimer);clearInterval(wisprTimer);wispr.stop();clearInterval(liveTimer);speechLink.stop();for(const response of listeners.values())response.end();server.close();setTimeout(()=>server.closeAllConnections(),500).unref();return;
   }
   if(url.pathname==='/status'&&req.method==='GET')return json(bridgeStatus());
   if(url.pathname==='/state'&&req.method==='GET')return json({...bridgeStatus(),runs:list('runs').sort((a,b)=>(b.ts_started||'').localeCompare(a.ts_started||'')).slice(0,20),queue:[]});
@@ -342,4 +376,4 @@ server.on('request',async(req,res)=>{
 }
 process.on('uncaughtExceptionMonitor',error=>lifecycle?.mark('uncaught-exception',{code:error.code||error.name}));
 process.on('exit',code=>{if(code===0)lifecycle?.stop('process exit');else lifecycle?.mark('exit',{exitCode:code})});
-for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{{const open=classifierProcesses();if(open.total)lifecycle?.mark('classifiers-open-at-shutdown',{reason:`running=${open.running} detached=${open.detached}`})}lifecycle?.stop(signal);closeClaudeSignIn();void liveBridge.calls.shutdown();for(const c of active.values())c.abort();drainDetachedClassifiers({timeoutMs:12000}).then(drained=>{if(drained.remaining)console.error(`[shutdown] ${drained.remaining} classifier process(es) did not confirm closure.`)});terminals.close();clearInterval(artifactTimer);clearInterval(scheduleTimer);clearInterval(liveTimer);speechLink.stop();for(const response of listeners.values())response.end();server.close()});
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{{const open=classifierProcesses();if(open.total)lifecycle?.mark('classifiers-open-at-shutdown',{reason:`running=${open.running} detached=${open.detached}`})}lifecycle?.stop(signal);closeClaudeSignIn();void liveBridge.calls.shutdown();for(const c of active.values())c.abort();drainDetachedClassifiers({timeoutMs:12000}).then(drained=>{if(drained.remaining)console.error(`[shutdown] ${drained.remaining} classifier process(es) did not confirm closure.`)});terminals.close();clearInterval(artifactTimer);clearInterval(scheduleTimer);clearInterval(wisprTimer);wispr.stop();clearInterval(liveTimer);speechLink.stop();for(const response of listeners.values())response.end();server.close()});

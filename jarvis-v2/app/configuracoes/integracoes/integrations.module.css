@@ -1,0 +1,17 @@
+.page{max-width:52rem;margin:0 auto;padding:clamp(1rem,4vw,3rem);color:#e9edf5;font:1rem/1.5 system-ui,sans-serif}
+.page a{color:#bbc9ff;text-decoration:underline;text-underline-offset:.2em}
+.title,.connection{display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap}
+.title h1{font-size:2rem;margin:1rem 0}
+.card{border:1px solid #37415c;border-radius:12px;background:#141925;padding:1.25rem;margin-block:1rem}
+.card h2{font-size:1.2rem;margin:0}
+.card p{color:#bfc7d8;margin-block:.4rem .85rem}
+.card label{display:block;margin-bottom:.2rem}
+.actions{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+.connection{border-top:1px solid #37415c;padding-block:.85rem}
+.connection:first-of-type{margin-top:.75rem}
+.connection p{margin:0}
+.page button,.page select{border-radius:6px;background:#242d43;border:1px solid #536184;color:#f3f5fa;padding:.5rem .8rem;font:inherit}
+.page select{max-width:100%;margin-bottom:.8rem}
+.page button:disabled{opacity:.5;cursor:not-allowed}
+.page button:not(:disabled){cursor:pointer}
+.page .error{color:#ffb9ae}

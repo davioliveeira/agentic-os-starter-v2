@@ -1157,7 +1157,7 @@ export default function HUD() {
         <button aria-pressed={provider === "claude"} disabled={selecting} onClick={() => void chooseProvider("claude").catch(()=>{})}><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2v20M2 12h20M5 5l14 14M5 19 19 5M8 2l8 20M2 8l20 8M2 16l20-8M8 22l8-20" /></svg>Claude Code</button>
         <button aria-pressed={provider === "codex"} disabled={selecting} onClick={() => void chooseProvider("codex").catch(()=>{})}><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-2-15-4 18" /></svg>Codex</button>
       </nav>
-      <div className="preview-banner">V2 <span>·</span> Cofre conectado <span>·</span> Terminais compartilhados</div>
+      <div className="preview-banner">V2 <span>·</span> Cofre conectado <span>·</span> Terminais compartilhados <span>·</span> <a href="/configuracoes/integracoes">Integrações</a></div>
       {selectionError && <div role="alert" className="selection-error">{selectionError}</div>}
 
       <div className="scrim scrim-l" aria-hidden="true" />
