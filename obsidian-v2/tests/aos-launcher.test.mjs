@@ -292,10 +292,10 @@ test('the key page saves a well-formed key with the live settings, keeps tuned s
   const good = await fetch(address, form(FAKE_KEY)); assert.equal(good.status, 200); html += await good.text();
   assert.deepEqual(await pending, {saved: true});
   assert.match(html, /lang="pt-BR".*Chave do Jev/s);
-  assert.match(html, /Cole sua chave do OpenRouter.*Salvar chave.*Não foi possível salvar a chave.*Chave salva/s);
+  assert.match(html, /Configure o Jev.*OpenRouter.*TypeSafe.*Salvar chave.*Não foi possível salvar a chave.*Chave salva/s);
   assert.equal(html.includes(FAKE_KEY), false); assert.equal(html.includes('hello'), false);
   const saved = JSON.parse(fs.readFileSync(path.join(dir, 'jev.json'), 'utf8'));
-  assert.deepEqual(saved, {...JEV_DEFAULTS, theta: 0.95, key: FAKE_KEY});
+  assert.deepEqual(saved, {...JEV_DEFAULTS, theta: 0.95, backend: 'openrouter', key: FAKE_KEY});
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'voice-strict.json'), 'utf8')), {open: 'on', ui: 'on'});
   assert.equal(hasJevKey(dir), true);
   await assert.rejects(fetch(address), 'the page is gone once the key is saved');
