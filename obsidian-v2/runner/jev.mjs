@@ -1,3 +1,4 @@
+import {validJevKey} from '../shared/jev-provider.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import https from 'node:https';
@@ -14,6 +15,8 @@ export const JEV_MODEL='typesafe/jev-1.13';
 export const JEV_REVISION='typesafe/jev-1.13-20260917';
 export const JEV_ACK='Vou cuidar disso.';
 export const JEV_MODES=['off','shadow','fastpath'];
+const DIRECT_MODEL='jev-1.13.0';
+const endpoint=backend=>backend==='typesafe'?{hostname:'api.typesafe.ai',path:'/v1/systemone'}:{hostname:'openrouter.ai',path:'/api/alpha/decisions'};
 const MAX_DETACHED=2;
 const workflowEntries=Object.entries(SKILLS).filter(([id])=>id!=='voice-ask');
 const ROUTES=new Set(['tier2','tier3',...workflowEntries.map(([id])=>`workflow:${id}`)]);
@@ -26,10 +29,11 @@ let lastWarm=0;
 export function readJevConfig({env=process.env,file=path.join(projectRoot,'.runtime','jev.json'),read=target=>JSON.parse(fs.readFileSync(target,'utf8'))}={}){
  if(env.NODE_TEST_CONTEXT&&env===process.env)return {key:'',mode:{codex:'off',claude:'off'},theta:null,deadlineMs:600,tier2kind:false,rulebook:'v1',openVeto:false};
  let saved={};try{saved=read(file)||{}}catch{}
+ const backend=saved.backend==='typesafe'?'typesafe':'openrouter';
  const key=String(env.AOS_JEV_KEY||saved.key||'');
  const pick=provider=>{const value=env.AOS_JEV_MODE||(typeof saved.mode==='string'?saved.mode:saved.mode?.[provider]);return JEV_MODES.includes(value)?value:'off'};
  const theta=Number(env.AOS_JEV_THETA??saved.theta),deadline=Number(saved.deadlineMs);
- return {key:/^sk-or-[A-Za-z0-9_-]{10,490}$/.test(key)?key:'',mode:{codex:pick('codex'),claude:pick('claude')},
+ return {key:validJevKey(key,backend)?key:'',...(backend==='typesafe'?{backend}:{}),mode:{codex:pick('codex'),claude:pick('claude')},
   theta:Number.isFinite(theta)&&theta>0.5&&theta<=1?theta:null,
   deadlineMs:Number.isFinite(deadline)&&deadline>=100&&deadline<=3000?deadline:600,tier2kind:saved.tier2kind===true,
   // Both default to today's behaviour: the frozen v1 rulebook, and no extra exclusion.
@@ -67,7 +71,7 @@ const KIND_INSTRUCTIONS='Only if the request is a quick (Tier 2) request, say wh
 // artifact are work; seeing an existing item, asking about a tool and declining an offer are not.
 const V2_TIER3=" It also covers asking for something NEW to be produced with a tool or in a format (an image, graphic, diagram, visual explainer, document, one-pager, slides, table, script or draft), however softly it is worded: 'use your X tool to explain Y', 'give me a graphic of Y', 'are you able to put together Y', 'I need a Y for Z'. What matters is that a new artifact is to be made, not which verb is used.";
 const V2_TIER2=" Asking what something is or how it works, when nothing is to be produced beyond the answer itself, stays here. So does asking whether, how or how fast a tool could do something, and any mention of making something later, hypothetically or not at all. Asking to see, open, show, bring up or pull up something that already exists (a note, image, file, report, plan or piece of research) is never a request to make it, even when its title contains words such as image, research, build or rewrite. Declining an offer ('no thanks', 'no, that is okay') is never work.";
-export function jevRequestBody(state,{tier2kind=false,rulebook='v1'}={}){
+export function jevRequestBody(state,{tier2kind=false,rulebook='v1',backend}={}){
  if(!state||typeof state.transcript!=='string'||!state.transcript.trim())throw new Error('Missing transcript');
  const criteria={
   tier2:'Quick answer, clarification, supported local UI/navigation/daily-note action, or an independent factual/capability/hypothetical question. No general worker delegation. Missing information alone does not justify a worker.',
@@ -80,10 +84,10 @@ export function jevRequestBody(state,{tier2kind=false,rulebook='v1'}={}){
   'local-ack':'A bare acknowledgement, thanks or decline that needs only a fixed short reply.',
   'local-open':'Open, show or pull up an existing note, report, file or saved output. Nothing needs to be written.',
   'local-ui':'A workspace or UI placement/navigation action such as showing a panel in a sidebar, splitting, or going back.'}};
- return {model:JEV_MODEL,state,questions,provider:{allow_fallbacks:false}};
+ return backend==='typesafe'?{model:DIRECT_MODEL,state,questions}:{model:JEV_MODEL,state,questions,provider:{allow_fallbacks:false}};
 }
 const probability=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=1?value:null;
-export function parseJevResult(payload){
+export function parseJevResult(payload,backend){
  const answer=payload?.answers?.route;
  if(answer?.type!=='choice'||!ROUTES.has(answer.choice))throw new Error('Invalid Jev route');
  const route=answer.choice,skill=route.startsWith('workflow:')?route.slice(9):null;
@@ -103,7 +107,7 @@ export function parseJevResult(payload){
   if(kinds&&(kp===null||Object.values(kinds).some(value=>probability(value)===null||value>kp+1e-6)))kp=null;
  }
  return {route,tier:skill?1:route==='tier2'?2:3,skill,p,kind,kp,
-  revision:String(payload.model||'').slice(0,80),pinned:payload.model===JEV_REVISION};
+  revision:String(payload.model||'').slice(0,80),pinned:payload.model===(backend==='typesafe'?DIRECT_MODEL:JEV_REVISION)};
 }
 // A request opened while speech is being transcribed and not yet sent: TLS is up, nothing has left the machine and
 // the key is not attached. classifyJev adds the key and the body at routing time; because the socket is already
@@ -124,7 +128,7 @@ export function prepareJev({config,provider,now=performance.now(),request=https.
  const current=config||readJevConfig();
  // Nothing is opened for a provider whose Jev mode is off (or, when the provider is unknown, when every mode is off).
  const wanted=provider?(current.mode[provider]||'off')!=='off':Object.values(current.mode).some(mode=>mode!=='off');
- if(!current.key||!wanted){dropPrepared(prepared);return false}
+ if(!current.key||!wanted||current.backend==='typesafe'){dropPrepared(prepared);return false}
  dropPrepared(prepared);
  const entry={at:now,ready:false,dead:null,taken:false,agent:null,req:null,socket:null,timer:null};
  try{
@@ -160,10 +164,10 @@ export function takePreparedJev(now=performance.now()){
 export const dropPreparedJev=()=>dropPrepared(prepared);
 // Nothing secret: whether a prepared request exists and whether it could be used.
 export const preparedJevState=()=>prepared?{ready:prepared.ready,dead:prepared.dead,taken:prepared.taken}:null;
-export function classifyJev(state,{key,deadlineMs=600,tier2kind=false,rulebook='v1',signal,request=https.request,agent:connection=agent,
+export function classifyJev(state,{key,backend,deadlineMs=600,tier2kind=false,rulebook='v1',signal,request=https.request,agent:connection=agent,
  // The prepared request belongs to the real transport only; an injected transport or agent never sees it.
  takePrepared=request===https.request&&connection===agent?takePreparedJev:null}={}){
- const raw=JSON.stringify(jevRequestBody(state,{tier2kind,rulebook}));
+ const raw=JSON.stringify(jevRequestBody(state,{tier2kind,rulebook,backend}));
  if(Buffer.byteLength(raw)>32768)return Promise.reject(new Error('Jev request too large'));
  const started=performance.now();lastWarm=Date.now();
  return new Promise((resolve,reject)=>{
@@ -179,13 +183,13 @@ export function classifyJev(state,{key,deadlineMs=600,tier2kind=false,rulebook='
     if(response.statusCode!==200){response.resume();return fail(`Jev HTTP ${response.statusCode}`)}
     const chunks=[];let size=0;
     response.on('data',chunk=>{size+=chunk.length;if(size>262144)return fail('Jev oversized response');chunks.push(chunk)});
-    response.on('end',()=>{if(settled)return;try{const result=parseJevResult(JSON.parse(Buffer.concat(chunks).toString('utf8')));settled=true;clearTimeout(timer);signal?.removeEventListener('abort',cancelled);release();resolve({...result,ms:Math.round((performance.now()-started)*10)/10,socketReused:!!req.reusedSocket,prepared:!!entry,bytes:Buffer.byteLength(raw)})}catch(error){fail(String(error.message||'Jev invalid response'))}});
+    response.on('end',()=>{if(settled)return;try{const result=parseJevResult(JSON.parse(Buffer.concat(chunks).toString('utf8')),backend);settled=true;clearTimeout(timer);signal?.removeEventListener('abort',cancelled);release();resolve({...result,ms:Math.round((performance.now()-started)*10)/10,socketReused:!!req.reusedSocket,prepared:!!entry,bytes:Buffer.byteLength(raw)})}catch(error){fail(String(error.message||'Jev invalid response'))}});
     response.on('error',()=>fail('Jev response error'));
    };
    const headers={Authorization:`Bearer ${key}`,'Content-Type':'application/json','Content-Length':Buffer.byteLength(raw)};
-   entry=takePrepared?.()||null;
+   entry=backend==='typesafe'?null:takePrepared?.()||null;
    if(entry){req=entry.req;req.on('response',onResponse);for(const [name,value] of Object.entries(headers))req.setHeader(name,value)}
-   else req=request({hostname:'openrouter.ai',path:'/api/alpha/decisions',method:'POST',agent:connection,headers},onResponse);
+   else req=request({...endpoint(backend),method:'POST',agent:connection,headers},onResponse);
    req.on('error',()=>fail('Jev transport error'));
    req.end(raw);
   }catch{fail('Jev transport error')}
@@ -193,13 +197,13 @@ export function classifyJev(state,{key,deadlineMs=600,tier2kind=false,rulebook='
 }
 // One warm TLS socket while speech is being transcribed. Provider-agnostic,
 // idempotent and debounced, so repeated capture events cost nothing.
-let lastConfigCheck=0,preconnectEnabled=false;
+let lastConfigCheck=0,preconnectEnabled=false,preconnectBackend;
 export function preconnectJev({config,now=Date.now(),request=https.request}={}){
  if(now-lastWarm<30000)return false;
- if(config||now-lastConfigCheck>=5000){const current=config||readJevConfig();lastConfigCheck=now;preconnectEnabled=!!current.key&&Object.values(current.mode).some(mode=>mode!=='off')}
+ if(config||now-lastConfigCheck>=5000){const current=config||readJevConfig();lastConfigCheck=now;preconnectBackend=current.backend;preconnectEnabled=!!current.key&&Object.values(current.mode).some(mode=>mode!=='off')}
  if(!preconnectEnabled)return false;
  lastWarm=now;
- try{const req=request({hostname:'openrouter.ai',path:'/api/alpha/decisions',method:'HEAD',agent,timeout:3000},response=>response.resume());req.on('error',()=>{});req.on('timeout',()=>req.destroy());req.end()}catch{}
+ try{const req=request({...endpoint(preconnectBackend),method:'HEAD',agent,timeout:3000},response=>response.resume());req.on('error',()=>{});req.on('timeout',()=>req.destroy());req.end()}catch{}
  return true;
 }
 
@@ -304,7 +308,7 @@ export async function hedgeClassifier({root,id,provider,boundary='general',signa
  const outcomes=[],listeners=[];
  const cleanup=listener=>{listeners.push(listener);for(const outcome of outcomes)try{listener(outcome)}catch{}};
  const closedWith=outcome=>{outcomes.push(outcome);safeLog({loserCleanup:outcome});for(const listener of listeners)try{listener(outcome)}catch{}};
- const jev=(sent?classify(sent,{key:config.key,deadlineMs:config.deadlineMs,tier2kind:config.tier2kind,...(config.rulebook==='v2'?{rulebook:'v2'}:{}),signal}):Promise.reject(new Error('Jev state unavailable')))
+ const jev=(sent?classify(sent,{key:config.key,...(config.backend?{backend:config.backend}:{}),deadlineMs:config.deadlineMs,tier2kind:config.tier2kind,...(config.rulebook==='v2'?{rulebook:'v2'}:{}),signal}):Promise.reject(new Error('Jev state unavailable')))
   .then(value=>({value}),error=>({error:String(error?.message||error).slice(0,120),ms:error?.ms??Math.round(performance.now()-started),socketReused:error?.socketReused??null,prepared:error?.prepared??null})).then(result=>settled=result);
  const canExit=mode==='fastpath'&&!excluded.length&&typeof config.theta==='number'&&detached.size<MAX_DETACHED;
  const base={id,boundary,provider,mode,ts:new Date().toISOString(),theta:config.theta,...(config.rulebook==='v2'?{rulebook:'v2'}:{}),excluded,suspended:mode==='fastpath'&&detached.size>=MAX_DETACHED,state:sent};

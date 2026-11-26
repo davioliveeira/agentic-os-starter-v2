@@ -19,7 +19,7 @@ const HELP = `Agentic OS V2
   stop                parar os serviços quando não houver tarefas abertas
   status [--json]     mostrar os serviços e as tarefas abertas
   doctor [--full]     executar o diagnóstico, com um fluxo real se usar --full
-  jev-key             abrir uma página local para salvar a chave do OpenRouter, sem expô-la ao agente
+  jev-key             abrir uma página local para salvar a chave do OpenRouter ou da TypeSafe, sem expô-la ao agente
   openai-key          salvar a chave da OpenAI e a autorização para a voz ao vivo (consulte com --check)
   autostart on|off    ativar ou desativar a inicialização ao entrar no sistema
   update              baixar a versão mais recente e recompilar

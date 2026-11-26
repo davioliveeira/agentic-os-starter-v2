@@ -300,17 +300,17 @@ export async function doctor({root = projectRoot, ci = false, full = false, phas
     add(check.heard(text) ? 'PASS' : 'FAIL', VOICE_CHECKS[2], heard.ok ? text.slice(0, 60) || 'áudio sem transcrição' : `status ${heard.status}`, repair, {optional: true});
   }, {optional: true});
 
-  if (!hasJevKey(at.runtime)) add('SKIP', 'Roteamento rápido de voz com Jev', 'chave do OpenRouter opcional. Para salvar, use `node aos.mjs jev-key`');
+  if (!hasJevKey(at.runtime)) add('SKIP', 'Roteamento rápido de voz com Jev', 'chave do OpenRouter ou da TypeSafe opcional. Para salvar, use `node aos.mjs jev-key`');
   else if (ci) add('PASS', 'Chave do Jev salva');
   else await group(['Roteamento rápido de voz com Jev'], async () => {
     const {readJevConfig, jevState, classifyJev} = await import('../../runner/jev.mjs');
     const config = readJevConfig();
     try {
-      const result = await classifyJev(jevState({transcript: 'What is on my schedule today?'}), {key: config.key, deadlineMs: 8000, tier2kind: config.tier2kind, rulebook: config.rulebook});
+      const result = await classifyJev(jevState({transcript: 'What is on my schedule today?'}), {key: config.key, backend: config.backend, deadlineMs: 8000, tier2kind: config.tier2kind, rulebook: config.rulebook});
       add('PASS', 'Roteamento rápido de voz com Jev', `respondeu em ${Math.round(result.ms)} ms`);
     } catch (error) {
       // Timings differ per run; keep the detail stable so a repeat is recognised.
-      add('FAIL', 'Roteamento rápido de voz com Jev', String(error.message).replace(/\d+(\.\d+)? ?ms/g, 'N ms'), /HTTP 40[13]/.test(error.message) ? 'O OpenRouter recusou a chave. Rode `node aos.mjs jev-key` e informe uma chave atual de openrouter.ai/keys.' : /HTTP 402/.test(error.message) ? 'A conta do OpenRouter está sem saldo. Consulte openrouter.ai/credits.' : 'Confira a conexão com a internet. A voz continua disponível sem o Jev, com resposta mais lenta.', {optional: true});
+      add('FAIL', 'Roteamento rápido de voz com Jev', String(error.message).replace(/\d+(\.\d+)? ?ms/g, 'N ms'), /HTTP 40[13]/.test(error.message) ? 'O provedor recusou a chave. Rode `node aos.mjs jev-key` e informe uma chave atual do provedor selecionado.' : /HTTP 402/.test(error.message) ? 'Confira o saldo da conta no provedor selecionado.' : 'Confira a conexão com a internet. A voz continua disponível sem o Jev, com resposta mais lenta.', {optional: true});
     }
   }, {optional: true});
 

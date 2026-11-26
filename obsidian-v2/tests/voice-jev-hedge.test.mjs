@@ -248,3 +248,24 @@ test('the confidence of the second answer is recorded only when it is usable',()
  // Jev has one job. Whatever kind it reports, no configuration gives that kind authority.
  assert.deepEqual(Object.keys(readJevConfig({env:{},read:()=>({labels:{localOpen:'fastpath'},labelTheta:{localOpen:0.9}})})).sort(),['deadlineMs','key','mode','openVeto','rulebook','theta','tier2kind']);
 });
+
+test('TypeSafe sends a direct System One request and skips any prepared OpenRouter request',async()=>{
+ const state={transcript:'Crie um guia'};
+ const backend='typesafe',key='fake-typesafe-key';
+ const body={model:'jev-1.13.0',answers:{route:{type:'choice',choice:'tier3',confidence:0.95,probabilities:{tier2:0.05,tier3:0.95}}}};
+ const result=await classifyJev(state,{key,backend,takePrepared:()=>assert.fail('OpenRouter connection reused'),request:(options,callback)=>{
+  assert.equal(options.hostname,'api.typesafe.ai');
+  assert.equal(options.path,'/v1/systemone');
+  const request=fakeRequest({body})(options,callback),end=request.end;
+  request.end=raw=>{
+   const input=JSON.parse(raw);
+   assert.equal(input.model,'jev-1.13.0');
+   assert.deepEqual(input.state,state);
+   assert.equal(input.provider,undefined);
+   end();
+  };
+  return request;
+ }});
+ assert.equal(result.pinned,true);
+ assert.equal(result.route,'tier3');
+});

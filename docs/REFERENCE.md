@@ -18,7 +18,7 @@ Rode os comandos na pasta raiz do Agentic OS. Para uma instalação guiada, cons
 | `node aos.mjs setup` | Compila e instala o sistema com o cofre e as opções escolhidos no roteiro de instalação. |
 | `node aos.mjs upgrade` | Localiza instalações existentes e mostra as opções de atualização em uma consulta somente leitura. |
 | `node aos.mjs update` | Atualiza e recompila uma cópia reconhecida e sem modificações, instalando a versão completa. |
-| `node aos.mjs jev-key` | Adiciona ou substitui uma chave do OpenRouter em uma página local do navegador. |
+| `node aos.mjs jev-key` | Adiciona ou substitui uma chave do OpenRouter ou da TypeSafe em uma página local do navegador. |
 | `node aos.mjs openai-key` | Adiciona ou substitui a chave da API da OpenAI e registra sua autorização para a [voz ao vivo](LIVE-VOICE.md). A página verifica a chave na OpenAI antes de salvá-la. |
 | `node aos.mjs openai-key --check` | Informa se a chave e a autorização estão salvas, mantendo a chave oculta. |
 | `node aos.mjs autostart on\|off` | Ativa ou desativa o início automático desta instalação ao entrar na sessão. |
@@ -93,7 +93,7 @@ No modo **Local**, o reconhecimento e a síntese de voz rodam no seu computador,
 
 A [voz ao vivo](LIVE-VOICE.md) é opcional e usa a organização da API da OpenAI vinculada à sua chave. A barra da chamada estima US$ 0,05 por minuto ativo e US$ 0,02 por minuto em espera. Consulte a página de consumo da API para conferir a cobrança.
 
-O Jev é opcional e usa o OpenRouter para reduzir o tempo de encaminhamento dos pedidos de voz compatíveis. Seu papel é encaminhar o pedido. A voz também funciona com o encaminhamento pelo Claude Code ou Codex. O Jev envia o texto falado, trechos curtos de interações de voz recentes, o título e um trecho da conversa selecionada, além dos nomes dos relatórios. O pedido de encaminhamento inclui esses dados sem anexar notas inteiras. Se a conversa citar uma nota, a citação pode aparecer no trecho enviado. O OpenRouter cobra pelo uso separadamente. A velocidade e o custo variam.
+O Jev é opcional e usa o OpenRouter ou a API direta da TypeSafe para reduzir o tempo de encaminhamento dos pedidos de voz compatíveis. Seu papel é encaminhar o pedido. A voz também funciona com o encaminhamento pelo Claude Code ou Codex. O Jev envia o texto falado, trechos curtos de interações de voz recentes, o título e um trecho da conversa selecionada, além dos nomes dos relatórios. O pedido de encaminhamento inclui esses dados sem anexar notas inteiras. Se a conversa citar uma nota, a citação pode aparecer no trecho enviado. A cobrança pelo uso é feita pelo provedor escolhido. A velocidade e o custo variam.
 
 Informe as chaves somente na página local de configuração. Os fluxos incluídos recebem instruções para produzir apenas rascunhos e relatórios, sem enviar mensagens, publicar, agendar publicações ou apagar notas. Skills pessoais seguem as próprias instruções e as permissões do agente de código. Confira quais contas e ações externas cada skill exige antes de conectá-las.
 
