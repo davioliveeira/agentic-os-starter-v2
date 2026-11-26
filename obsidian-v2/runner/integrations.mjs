@@ -4,11 +4,29 @@ import {findCli} from './cli-runtime.mjs';
 import {withoutOpenAIKey} from './child-env.mjs';
 
 const execute=promisify(execFile);
-export async function integrationCli(root,provider,args,{signal,timeout=30000}={}){
+export async function integrationCli(root,provider,args,{signal,timeout=30000,wisprAuthorization=false}={}){
  const cli=findCli(provider);
  if(!cli)throw new Error('A ferramenta de código não está instalada.');
  try{
-  const {stdout}=await execute(cli.command,[...cli.prefix,...args],{cwd:root,env:withoutOpenAIKey(process.env),signal,timeout,maxBuffer:8*1024*1024,windowsHide:true});
+  const pending=execute(cli.command,[...cli.prefix,...args],{cwd:root,env:withoutOpenAIKey(process.env),signal,timeout,maxBuffer:8*1024*1024,windowsHide:true});
+  if(wisprAuthorization){
+   let buffer='',opened=false;
+   const see=chunk=>{
+    if(opened)return;
+    buffer=(buffer+chunk.toString()).slice(-32768);
+    const authorization=buffer.match(/https:\/\/mcp-auth\.wisprflow\.com\/oauth2\/authorize\?[^\s]+(?=\s)/)?.[0];
+    if(authorization){
+     opened=true;
+     const windows=process.platform==='win32';
+     const command=windows?'rundll32.exe':process.platform==='darwin'?'open':'xdg-open';
+     const options=windows?['url.dll,FileProtocolHandler',authorization]:[authorization];
+     void execute(command,options,{timeout:10000,windowsHide:true}).catch(()=>{});
+    }
+   };
+   pending.child.stdout.on('data',see);
+   pending.child.stderr.on('data',see);
+  }
+  const {stdout}=await pending;
   return stdout;
  }catch{throw new Error('O aplicativo não concluiu a operação da integração.')}
 }
@@ -59,7 +77,7 @@ export function createIntegrationInventory(root,{invoke=integrationCli}={}){
   if(!Object.hasOwn(names,provider)||typeof name!=='string'||!name||name.startsWith('-')||!['login','logout','remove'].includes(action))throw new Error('Ação de integração inválida.');
   const connection=(await read(provider)).find(row=>row.name===name);
   if(!connection?.actions.includes(action))throw new Error('Esta ação não está disponível para a conexão.');
-  await invoke(root,provider,['mcp',action,name],{timeout:action==='login'?300000:30000});
+  await invoke(root,provider,['mcp',action,name],{timeout:action==='login'?300000:30000,wisprAuthorization:action==='login'&&connection.wispr});
   return {ok:true};
  }
  let connecting=false;
@@ -70,7 +88,7 @@ export function createIntegrationInventory(root,{invoke=integrationCli}={}){
    const existing=await read('codex');
    if(existing.some(row=>row.wispr))throw new Error('O Wispr já foi adicionado ao Codex. Use a conexão existente.');
    if(existing.some(row=>row.name==='wispr-flow'))throw new Error('Já existe uma integração chamada wispr-flow no Codex.');
-   await invoke(root,'codex',['mcp','add','wispr-flow','--url',wisprEndpoint],{timeout:300000});
+   await invoke(root,'codex',['mcp','add','wispr-flow','--url',wisprEndpoint],{timeout:300000,wisprAuthorization:true});
    return {ok:true};
   } finally {connecting=false}
  }
