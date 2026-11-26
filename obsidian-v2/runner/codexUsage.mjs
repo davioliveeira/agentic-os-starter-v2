@@ -9,7 +9,7 @@ export function readAccountLimits() {
     return new Promise((resolve, reject) => {
         const cli = findCli('codex');
         if (!cli) {
-            reject(new Error('Codex CLI is not installed.'));
+            reject(new Error('A CLI do Codex não está instalada.'));
             return;
         }
         const proc = spawn(cli.command, [...cli.prefix, 'app-server', '--stdio'], { stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true, env: withoutOpenAIKey(process.env) });
@@ -20,11 +20,11 @@ export function readAccountLimits() {
             reject(error);
         else
             resolve(value); };
-        const timer = setTimeout(() => finish(new Error('Codex usage request timed out.')), 20000);
+        const timer = setTimeout(() => finish(new Error('A consulta de uso do Codex excedeu o tempo limite.')), 20000);
         const send = (message) => proc.stdin.write(JSON.stringify(message) + '\n');
-        proc.on('error', () => finish(new Error('Could not start the Codex usage reader.')));
-        proc.stdin.on('error', () => finish(new Error('Codex usage connection closed.')));
-        proc.on('exit', () => finish(new Error('Codex usage reader exited before responding.')));
+        proc.on('error', () => finish(new Error('Não foi possível iniciar a consulta de uso do Codex.')));
+        proc.stdin.on('error', () => finish(new Error('A conexão da consulta de uso do Codex foi encerrada.')));
+        proc.on('exit', () => finish(new Error('A consulta de uso do Codex terminou antes de responder.')));
         lines.on('line', line => {
             let m;
             try {
@@ -35,7 +35,7 @@ export function readAccountLimits() {
             }
             if (m.id === 0) {
                 if (m.error) {
-                    finish(new Error('Codex usage connection could not initialize.'));
+                    finish(new Error('Não foi possível abrir a conexão para consultar o uso do Codex.'));
                     return;
                 }
                 send({ method: 'initialized', params: {} });
@@ -43,7 +43,7 @@ export function readAccountLimits() {
             }
             if (m.id === 1) {
                 if (m.error)
-                    finish(new Error('Account usage is unavailable. Check the Codex CLI sign-in.'));
+                    finish(new Error('Os dados de uso estão indisponíveis. Confira a sessão da CLI do Codex.'));
                 else
                     finish(null, m.result);
             }
@@ -65,10 +65,10 @@ export async function getCodexUsage({ cachedOnly = false } = {}) {
     inflight = (async () => {
         try {
             const windows = codexWindows(await readAccountLimits());
-            cached = { status: windows.length ? 'ok' : 'unavailable', checkedAt: new Date().toISOString(), windows, ...(!windows.length ? { message: 'No general Codex quota window was reported for this sign-in.' } : {}) };
+            cached = { status: windows.length ? 'ok' : 'unavailable', checkedAt: new Date().toISOString(), windows, ...(!windows.length ? { message: 'O Codex não informou o limite geral de uso para esta conta.' } : {}) };
         }
         catch (e) {
-            cached = { status: cached?.windows.length ? 'stale' : 'unavailable', checkedAt: cached?.checkedAt || null, windows: cached?.windows || [], message: e instanceof Error ? e.message : 'Usage unavailable' };
+            cached = { status: cached?.windows.length ? 'stale' : 'unavailable', checkedAt: cached?.checkedAt || null, windows: cached?.windows || [], message: e instanceof Error ? e.message : 'Dados de uso indisponíveis.' };
         }
         finally {
             nextRead = Date.now() + 120000;

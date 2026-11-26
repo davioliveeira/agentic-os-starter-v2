@@ -13,14 +13,14 @@ test('Claude usage distinguishes refreshable expiry, rejected auth, denied acces
  const {getClaudeUsage}=await import('../runner/claudeUsage.mjs?auth-test='+crypto.randomUUID());
  const write=async auth=>{const bytes=JSON.stringify({claudeAiOauth:auth});await fs.writeFile(file,bytes);return bytes};
  const expired={accessToken:'fake-expired-access',expiresAt:now-1,refreshToken:'fake-refresh'};
- let before=await write(expired),result=await getClaudeUsage();assert.equal(result.status,'unavailable');assert.deepEqual(result.windows,[]);assert.match(result.message,/refresh its sign-in/);assert.doesNotMatch(result.message,/sign in again/);assert.equal(calls,0);assert.equal(await fs.readFile(file,'utf8'),before);
+ let before=await write(expired),result=await getClaudeUsage();assert.equal(result.status,'unavailable');assert.deepEqual(result.windows,[]);assert.match(result.message,/renovação da sessão/);assert.doesNotMatch(result.message,/entre novamente/);assert.equal(calls,0);assert.equal(await fs.readFile(file,'utf8'),before);
  before=await write({...expired,accessToken:'fake-renewed-access',expiresAt:now+100000});result=await getClaudeUsage();assert.equal(result.status,'ok');assert.equal(result.windows[0].usedPercent,23);assert.equal(calls,1);assert.equal(await fs.readFile(file,'utf8'),before);
- now+=100001;result=await getClaudeUsage();assert.equal(result.status,'unavailable');assert.match(result.message,/refresh its sign-in/);assert.equal(calls,1,'expired cached token must not call usage or refresh endpoints');
- await write({...expired,refreshTokenExpiresAt:now-1});result=await getClaudeUsage();assert.match(result.message,/sign in again/);assert.equal(calls,1);
- status=401;await write({accessToken:'fake-rejected-access',refreshToken:'fake-refresh'});result=await getClaudeUsage();assert.match(result.message,/refresh its sign-in/);
- await write({accessToken:'fake-rejected-without-refresh'});result=await getClaudeUsage();assert.match(result.message,/sign in again/);
- status=403;await write({accessToken:'fake-forbidden',refreshToken:'fake-refresh'});result=await getClaudeUsage();assert.match(result.message,/denied access/);assert.doesNotMatch(result.message,/expired|sign in again/);
- await fs.unlink(file);const count=calls;result=await getClaudeUsage({platform:'win32'});assert.match(result.message,/Sign in to Claude Code/);assert.equal(calls,count);assert.equal(JSON.stringify(result).includes('fake-'),false);
+ now+=100001;result=await getClaudeUsage();assert.equal(result.status,'unavailable');assert.match(result.message,/renovação da sessão/);assert.equal(calls,1,'expired cached token must not call usage or refresh endpoints');
+ await write({...expired,refreshTokenExpiresAt:now-1});result=await getClaudeUsage();assert.match(result.message,/entre novamente/);assert.equal(calls,1);
+ status=401;await write({accessToken:'fake-rejected-access',refreshToken:'fake-refresh'});result=await getClaudeUsage();assert.match(result.message,/renovação da sessão/);
+ await write({accessToken:'fake-rejected-without-refresh'});result=await getClaudeUsage();assert.match(result.message,/entre novamente/);
+ status=403;await write({accessToken:'fake-forbidden',refreshToken:'fake-refresh'});result=await getClaudeUsage();assert.match(result.message,/negou acesso/);assert.doesNotMatch(result.message,/expirou|entre novamente/);
+ await fs.unlink(file);const count=calls;result=await getClaudeUsage({platform:'win32'});assert.match(result.message,/Entre no Claude Code/);assert.equal(calls,count);assert.equal(JSON.stringify(result).includes('fake-'),false);
 });
 
 // Member report: on a Mac the meter said only 'Unavailable'. The sign-in is in the Keychain, which this reader never opens.
@@ -30,7 +30,7 @@ test('a Mac with no credentials file is told the sign-in is in the Keychain; a p
  t.mock.method(globalThis,'fetch',async()=>assert.fail('no sign-in means no request'));
  const {getClaudeUsage,KEYCHAIN_MESSAGE}=await import('../runner/claudeUsage.mjs?keychain-test='+crypto.randomUUID());
  let result=await getClaudeUsage({platform:'darwin'});assert.equal(result.status,'unavailable');assert.equal(result.message,KEYCHAIN_MESSAGE);assert.match(result.message,/Keychain/);assert.ok(result.message.includes(String.fromCharCode(47)+'usage'));
- result=await getClaudeUsage({platform:'win32'});assert.match(result.message,/Sign in to Claude Code/);
- result=await getClaudeUsage({platform:'linux'});assert.match(result.message,/Sign in to Claude Code/);
- await fs.writeFile(file,'{}');result=await getClaudeUsage({platform:'darwin'});assert.match(result.message,/Sign in to Claude Code/,'a file that exists but holds no sign-in is a signed-out Mac, not a Keychain one');
+ result=await getClaudeUsage({platform:'win32'});assert.match(result.message,/Entre no Claude Code/);
+ result=await getClaudeUsage({platform:'linux'});assert.match(result.message,/Entre no Claude Code/);
+ await fs.writeFile(file,'{}');result=await getClaudeUsage({platform:'darwin'});assert.match(result.message,/Entre no Claude Code/,'a file that exists but holds no sign-in is a signed-out Mac, not a Keychain one');
 });

@@ -143,7 +143,7 @@ test('requests stay text and reject control sequences, unknown IDs and unsupport
   assert.throws(() => prepareDashboardSkill(root,{...input,skill:'plan-today'},online),/instalada e registrada/);
   assert.throws(() => prepareDashboardSkill(root,{...input,request:'x'.repeat(6001)},online),/6\.000/);
   assert.throws(() => prepareDashboardSkill(root,{...input,request:'escape\x1b[1m'},online),/6\.000/);
-  assert.throws(() => prepareDashboardSkill(root,{...input,selection:{provider:'codex',model:'fake'}},online),/Unsupported/);
+  assert.throws(() => prepareDashboardSkill(root,{...input,selection:{provider:'codex',model:'fake'}},online),/combinação de provedor e modelo não é compatível/);
   const text = 'Literal `command` and $(command); never shell-interpolate this';
   assert.ok(prepareDashboardSkill(root,{...input,request:text},online).prompt.includes(text));
 });

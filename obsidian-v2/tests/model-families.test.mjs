@@ -24,8 +24,8 @@ test('older pinned selections are read as their family', () => {
  assert.deepEqual(validateSelection({provider: 'codex', model: 'gpt-5.6-luna'}), {provider: 'codex', model: 'luna'});
  assert.deepEqual(validateSelection({provider: 'claude', model: 'claude-fable-5-1'}), {provider: 'claude', model: 'fable'});
  assert.equal(modelFamily('codex', 'gpt-6.2-sol'), 'gpt-6.2-sol');
- assert.throws(() => validateSelection({provider: 'codex', model: 'opus'}), /Unsupported/);
- assert.throws(() => validateSelection({provider: 'claude', model: 'astra'}), /Unsupported/);
+ assert.throws(() => validateSelection({provider: 'codex', model: 'opus'}), /combinação de provedor e modelo não é compatível/);
+ assert.throws(() => validateSelection({provider: 'claude', model: 'astra'}), /combinação de provedor e modelo não é compatível/);
 });
 
 test('a Codex family resolves to the newest listed model of that family', () => {

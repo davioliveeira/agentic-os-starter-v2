@@ -69,13 +69,13 @@ test('a relative CLAUDE_CONFIG_DIR is resolved once, for the reader and the CLI 
 
 test('nothing is launched for a sign-in that is gone, a valid pass, a denial, a rate limit or a network failure',async t=>{
  let code=200;const b=await bench(t,{status:()=>code});
- b.write({...stale(),refreshToken:undefined});assert.match((await b.usage()).message,/sign in again/);
- b.write({...stale(),refreshTokenExpiresAt:Date.now()-1});assert.match((await b.usage()).message,/sign in again/);
+ b.write({...stale(),refreshToken:undefined});assert.match((await b.usage()).message,/entre novamente/);
+ b.write({...stale(),refreshTokenExpiresAt:Date.now()-1});assert.match((await b.usage()).message,/entre novamente/);
  b.write(fresh('fake-valid'));assert.equal((await b.usage()).status,'ok');
- for(const [next,name,expected] of [[403,'fake-denied',/denied access/],[429,'fake-limited',/could not be refreshed/],['network','fake-offline',/could not be refreshed/]]){
+ for(const [next,name,expected] of [[403,'fake-denied',/negou acesso/],[429,'fake-limited',/Não foi possível atualizar o uso/],['network','fake-offline',/Não foi possível atualizar o uso/]]){
   code=next;b.write(fresh(name));assert.match((await b.usage()).message,expected,String(next));
  }
- fs.rmSync(b.file);assert.match((await b.usage()).message,/Sign in to Claude Code|No Claude sign-in file was found/);
+ fs.rmSync(b.file);assert.match((await b.usage()).message,/Entre no Claude Code|Arquivo de sessão do Claude indisponível/);
  assert.equal(b.launches.length,0);
 });
 
@@ -86,10 +86,10 @@ test('a rejected pass (401) gets one renewal, one re-read and one retry, never a
  // The renewed pass is rejected as well: the answer is the message, with no further launch or fetch in that call.
  const c=await bench(t,{status:()=>401});
  c.write({accessToken:'fake-rejected',refreshToken:'fake-refresh'});c.cli.onLaunch=child=>{c.write(fresh('fake-also-rejected'));child.finish(0)};
- const result=await c.usage();assert.match(result.message,/refresh its sign-in/);assert.equal(c.fetches.length,2);assert.equal(c.launches.length,1);
+ const result=await c.usage();assert.match(result.message,/renovação da sessão/);assert.equal(c.fetches.length,2);assert.equal(c.launches.length,1);
  // A 401 without a renewal pass launches nothing.
  const d=await bench(t,{status:()=>401});d.write({accessToken:'fake-rejected-no-refresh'});
- assert.match((await d.usage()).message,/sign in again/);assert.equal(d.launches.length,0);
+ assert.match((await d.usage()).message,/entre novamente/);assert.equal(d.launches.length,0);
 });
 
 test('three meter reads at once share one renewal and all get the renewed reading',async t=>{
@@ -100,13 +100,13 @@ test('three meter reads at once share one renewal and all get the renewed readin
 
 test('success is a renewed credentials file, never an exit status',async t=>{
  const b=await bench(t);b.write(stale());b.cli.onLaunch=child=>child.finish(0);
- assert.match((await b.usage()).message,/refresh its sign-in/);assert.equal(b.signin.claudeSignInState().failures,1,'exit 0 with an unchanged file is a failure');
- assert.match((await b.usage()).message,/refresh its sign-in/);assert.equal(b.launches.length,1,'and the next read inside the backoff launches nothing');
+ assert.match((await b.usage()).message,/renovação da sessão/);assert.equal(b.signin.claudeSignInState().failures,1,'exit 0 with an unchanged file is a failure');
+ assert.match((await b.usage()).message,/renovação da sessão/);assert.equal(b.launches.length,1,'and the next read inside the backoff launches nothing');
  const c=await bench(t);c.write(stale());c.cli.onLaunch=child=>{c.write(fresh());child.finish(1)};
  assert.equal((await c.usage()).status,'ok','a renewed file counts even when the CLI exits non-zero');assert.equal(c.signin.claudeSignInState().failures,0);
  // A file that is unreadable after the renewal is answered like a missing sign-in, without throwing.
  const d=await bench(t);d.write(stale());d.cli.onLaunch=child=>{d.write('{ not json');child.finish(0)};
- assert.match((await d.usage()).message,/Sign in to Claude Code|No Claude sign-in file was found/);assert.equal(d.signin.claudeSignInState().failures,1);
+ assert.match((await d.usage()).message,/Entre no Claude Code|Arquivo de sessão do Claude indisponível/);assert.equal(d.signin.claudeSignInState().failures,1);
 });
 
 test('failures back off 10 min, 30 min, 2 h, then 8 h; a changed sign-in starts over; a CLI that cannot start counts',async t=>{
@@ -133,11 +133,11 @@ test('another CLI renews the file while ours is still running: success, and no s
 test('a caller waits only as long as its own patience; the renewal carries on and is never cancelled by a caller',async t=>{
  const b=await bench(t);b.write(stale());let child;b.cli.onLaunch=value=>{child=value};
  let started=performance.now();const slow=await b.usage({renewWaitMs:40});
- assert.match(slow.message,/refresh its sign-in/);assert.ok(performance.now()-started<4000);assert.equal(b.signin.claudeSignInState().renewing,true);
+ assert.match(slow.message,/renovação da sessão/);assert.ok(performance.now()-started<4000);assert.equal(b.signin.claudeSignInState().renewing,true);
  const gone=new AbortController();let joined=false;
  // Cancel once this caller has joined the renewal, after its asynchronous sign-in read.
  const renew=given=>{const flight=b.renew()(given);assert.ok(flight,'the caller joins the shared renewal');joined=true;started=performance.now();queueMicrotask(()=>gone.abort());return flight};
- assert.match((await b.usage({signal:gone.signal,renew})).message,/refresh its sign-in/);assert.equal(joined,true);assert.ok(performance.now()-started<1000,'an aborted caller stops waiting');
+ assert.match((await b.usage({signal:gone.signal,renew})).message,/renovação da sessão/);assert.equal(joined,true);assert.ok(performance.now()-started<1000,'an aborted caller stops waiting');
  assert.equal(b.stops.length,0,'and the shared renewal was not stopped');assert.equal(b.launches.length,1);
  b.write(fresh());child.finish(0);await tick(20);
  assert.equal((await b.usage()).status,'ok','the next read picks the renewed pass up');assert.equal(b.launches.length,1);
@@ -146,12 +146,12 @@ test('a caller waits only as long as its own patience; the renewal carries on an
 test('voice (wait:false) starts or joins the renewal and answers at once',async t=>{
  const b=await bench(t);b.write(stale());let child;b.cli.onLaunch=value=>{child=value};
  const started=performance.now(),first=await b.usage({wait:false}),second=await b.usage({wait:false});
- assert.ok(performance.now()-started<4000);assert.match(first.message,/refresh its sign-in/);assert.match(second.message,/refresh its sign-in/);assert.equal(b.launches.length,1);
+ assert.ok(performance.now()-started<4000);assert.match(first.message,/renovação da sessão/);assert.match(second.message,/renovação da sessão/);assert.equal(b.launches.length,1);
  child.finish(0);await tick(10);
  // A waiting caller's 401 started the renewal; a voice caller arriving meanwhile joins it.
  const c=await bench(t,{status:(n,token)=>token==='Bearer fake-good'?200:401});c.write({accessToken:'fake-rejected',refreshToken:'fake-refresh'});let open;c.cli.onLaunch=value=>{open=value};
  const meter=c.usage();await tick(30);assert.equal(c.launches.length,1);
- assert.match((await c.usage({wait:false})).message,/refresh its sign-in/);assert.equal(c.launches.length,1,'no second launch');
+ assert.match((await c.usage({wait:false})).message,/renovação da sessão/);assert.equal(c.launches.length,1,'no second launch');
  c.write(fresh('fake-good'));open.finish(0);assert.equal((await meter).status,'ok');
 });
 
@@ -162,17 +162,17 @@ test('a slow rejection still ends inside the overall budget: the retry only gets
  const c=await bench(t,{status:()=>401,delay:n=>n===1?300:0});
  c.write({accessToken:'fake-rejected',refreshToken:'fake-refresh'});c.cli.onLaunch=child=>setTimeout(()=>{c.write(fresh('fake-good'));child.finish(0)},40);
  started=performance.now();const result=await c.usage({budgetMs:1200});
- assert.match(result.message,/refresh its sign-in/);assert.equal(c.fetches.length,1,'with under a second left no retry is started');assert.equal(c.launches.length,0,'and no renewal either');assert.ok(performance.now()-started<1200+500);
+ assert.match(result.message,/renovação da sessão/);assert.equal(c.fetches.length,1,'with under a second left no retry is started');assert.equal(c.launches.length,0,'and no renewal either');assert.ok(performance.now()-started<1200+500);
  // The usage read itself outlasting the budget: the caller is answered, the shared read is left to finish.
  const d=await bench(t,{delay:()=>400});d.write(fresh('fake-valid'));
- started=performance.now();assert.match((await d.usage({budgetMs:100})).message,/taking longer than usual/);assert.ok(performance.now()-started<350);await tick(450);
+ started=performance.now();assert.match((await d.usage({budgetMs:100})).message,/demorando mais que o normal/);assert.ok(performance.now()-started<350);await tick(450);
  assert.equal((await d.usage()).status,'ok');assert.equal(d.fetches.length,1);
 });
 
 test('inspection round 1: a caller that is already gone starts nothing, for a stale pass and for a rejected one',async t=>{
  const gone=new AbortController();gone.abort();
  const b=await bench(t);b.write(stale());
- assert.match((await b.usage({signal:gone.signal})).message,/taking longer than usual/);assert.match((await b.usage({signal:gone.signal,wait:false})).message,/taking longer than usual/);
+ assert.match((await b.usage({signal:gone.signal})).message,/demorando mais que o normal/);assert.match((await b.usage({signal:gone.signal,wait:false})).message,/demorando mais que o normal/);
  const c=await bench(t,{status:()=>401});c.write({accessToken:'fake-rejected',refreshToken:'fake-refresh'});
  // Cancelled while the first read is under way: the rejection arrives for nobody, so nothing is renewed.
  const leaving=new AbortController();setTimeout(()=>leaving.abort(),20);
@@ -185,20 +185,20 @@ test('inspection round 1: a slow RETRY gets only what is left of the budget',asy
  const b=await bench(t,{status:(n,token)=>token==='Bearer fake-good'?200:401,delay:n=>n===2?2500:0});
  b.write({accessToken:'fake-rejected',refreshToken:'fake-refresh'});b.cli.onLaunch=child=>{b.write(fresh('fake-good'));child.finish(0)};
  const started=performance.now(),result=await b.usage({budgetMs:1500});
- assert.match(result.message,/taking longer than usual/);assert.ok(performance.now()-started<1500+400,'answered inside the budget');assert.equal(b.fetches.length,2);assert.equal(b.launches.length,1);
+ assert.match(result.message,/demorando mais que o normal/);assert.ok(performance.now()-started<1500+400,'answered inside the budget');assert.equal(b.fetches.length,2);assert.equal(b.launches.length,1);
  await tick(1200);assert.equal((await b.usage()).status,'ok','the shared read was left to finish and its reading is kept');assert.equal(b.fetches.length,2);
 });
 
 test('inspection round 1: a stalled credentials read cannot outlast the budget or a cancellation',async t=>{
  const b=await bench(t);b.write(stale());let reads=0;
  const {getClaudeUsage}=b;const stalled=()=>{reads++;return new Promise(resolve=>setTimeout(()=>resolve(null),3000).unref())};
- let started=performance.now();assert.match((await getClaudeUsage({read:stalled,budgetMs:150,renew:b.renew()})).message,/taking longer than usual/);assert.ok(performance.now()-started<4000);
+ let started=performance.now();assert.match((await getClaudeUsage({read:stalled,budgetMs:150,renew:b.renew()})).message,/demorando mais que o normal/);assert.ok(performance.now()-started<4000);
  const gone=new AbortController();setTimeout(()=>gone.abort(),40);started=performance.now();
- assert.match((await getClaudeUsage({read:stalled,signal:gone.signal,renew:b.renew()})).message,/taking longer than usual/);assert.ok(performance.now()-started<4000,'cancellation is not held by the disk');
+ assert.match((await getClaudeUsage({read:stalled,signal:gone.signal,renew:b.renew()})).message,/demorando mais que o normal/);assert.ok(performance.now()-started<4000,'cancellation is not held by the disk');
  // The re-read after a renewal is bounded the same way.
  const c=await bench(t);c.write(stale());let calls=0;
  const first=async()=>{calls++;if(calls===1){const auth=JSON.parse(fs.readFileSync(c.file,'utf8')).claudeAiOauth;return {token:auth.accessToken,expired:true,refreshable:true,key:'stale-key'}}return new Promise(resolve=>setTimeout(()=>resolve(null),3000).unref())};
- started=performance.now();assert.match((await c.getClaudeUsage({read:first,budgetMs:1300,renew:c.renew({verify:undefined})})).message,/taking longer than usual/);
+ started=performance.now();assert.match((await c.getClaudeUsage({read:first,budgetMs:1300,renew:c.renew({verify:undefined})})).message,/demorando mais que o normal/);
  assert.ok(performance.now()-started<1300+400);assert.equal(c.launches.length,1);assert.ok(calls>=2,'the re-read after the renewal was attempted and bounded');assert.ok(reads>=2);
 });
 
@@ -235,7 +235,7 @@ test('nothing is launched once shutdown has begun, even when it begins between t
  let looks=0;assert.equal(b.signin.renewClaudeSignIn({...b.options,identity:'x',draining:()=>++looks>1}),null,'drain began after the first check');assert.equal(looks,2);
  assert.equal(b.signin.renewClaudeSignIn({...b.options,identity:'y',draining:()=>true}),null);
  b.signin.closeClaudeSignIn();
- assert.equal(b.signin.renewClaudeSignIn({...b.options,identity:'z'}),null);assert.match((await b.usage()).message,/refresh its sign-in/);assert.equal(b.launches.length,0);
+ assert.equal(b.signin.renewClaudeSignIn({...b.options,identity:'z'}),null);assert.match((await b.usage()).message,/renovação da sessão/);assert.equal(b.launches.length,0);
  assert.equal(b.signin.claudeSignInState().closed,true);
 });
 
@@ -244,7 +244,7 @@ test('off switch, and off under the test runner unless a launcher is injected',a
  assert.equal(b.signin.renewClaudeSignIn({...b.options,identity:'x',env:{AOS_CLAUDE_SIGNIN_RENEWAL:'OFF'}}),null);
  const {launch,...withoutLauncher}=b.options;assert.ok(process.env.NODE_TEST_CONTEXT);
  assert.equal(b.signin.renewClaudeSignIn({...withoutLauncher,identity:'x'}),null);
- assert.match((await b.getClaudeUsage()).message,/refresh its sign-in/,'the default meter launches nothing in tests');assert.equal(b.launches.length,0);
+ assert.match((await b.getClaudeUsage()).message,/renovação da sessão/,'the default meter launches nothing in tests');assert.equal(b.launches.length,0);
 });
 
 test('the bridge closes renewals only after /shutdown passed its own guard, and on a signal; voice never waits',()=>{

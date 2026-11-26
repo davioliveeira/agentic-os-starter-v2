@@ -51,8 +51,9 @@ test('concurrent note edit is preserved; successful merge creates a byte-exact b
  assert.equal(ok.status,'ok');assert.equal(fs.readFileSync(path.join(root,`${ROOT}/backups/${j2.id}.md`),'utf8'),before);
 });
 test('all original workflows have deliverables and required args cannot be omitted or injected',()=>{
- for(const [id,spec] of Object.entries(SKILLS)){const args=spec.arg?{[spec.arg]:spec.arg==='url'?'https://example.com/video':'Test topic'}:{};const j=job(id,args);assert.equal(validateIntent(j),j);assert.ok(destinationFor(j).endsWith('.md'));if(spec.arg)assert.throws(()=>validateIntent(job(id)),/needs/)}
- assert.throws(()=>validateIntent(job('content-cascade',{url:'file:///secrets'})),/HTTP/);assert.throws(()=>validateIntent(job('voice-ask',{prompt:'Test',command:'delete'})),/Invalid workflow/);
+ const missing={url:'Informe o URL de origem.',topic:'Informe o tema do fluxo.',prompt:'Informe o pedido.'};
+ for(const [id,spec] of Object.entries(SKILLS)){const args=spec.arg?{[spec.arg]:spec.arg==='url'?'https://example.com/video':'Test topic'}:{};const j=job(id,args);assert.equal(validateIntent(j),j);assert.ok(destinationFor(j).endsWith('.md'));if(spec.arg)assert.throws(()=>validateIntent(job(id)),{message:missing[spec.arg]})}
+ assert.throws(()=>validateIntent(job('content-cascade',{url:'file:///secrets'})),/HTTP/);assert.throws(()=>validateIntent(job('voice-ask',{prompt:'Test',command:'delete'})),/Argumento inválido do fluxo de trabalho/);
 });
 test('open-ended voice reaches Astra with the original request and provider-scoped context',async()=>{
  const root=temp(),id=crypto.randomUUID();writeJson(root,`${ROOT}/runner-status.json`,{ts:new Date().toISOString(),busy:false});writeJson(root,`${ROOT}/voice-results/old.json`,{ts:Date.now()-1000,provider:'codex',transcript:'My topic is agents',reply:'Okay'});

@@ -44,7 +44,7 @@ test('fastpath exits early on a confident pinned tier 3 only after the candidate
  const m=model(),order=[];
  const {result,logs}=hedge({run:signal=>{order.push('run');return m.run(signal)},validate:text=>{order.push(m.seen.aborted?'validate-after-abort':'validate-before-abort');return JSON.parse(text).reply===JEV_ACK}});
  const value=await result;
- assert.equal(value.exited,true);assert.deepEqual(JSON.parse(value.output.text),{tier:3,reply:JEV_ACK});
+ assert.equal(value.exited,true);assert.deepEqual(JSON.parse(value.output.text),{tier:3,reply:'Vou cuidar disso.'});
  assert.deepEqual(order,['run','validate-before-abort']);assert.equal(m.seen.aborted,true);
  await tick(10);
  assert.equal(detachedClassifiers(),0);

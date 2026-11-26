@@ -12,7 +12,7 @@ import {openIntentGiven} from './voice-targets.mjs';
 // "fastpath" may end a request early for one qualified route: general work.
 export const JEV_MODEL='typesafe/jev-1.13';
 export const JEV_REVISION='typesafe/jev-1.13-20260917';
-export const JEV_ACK='Working on that.';
+export const JEV_ACK='Vou cuidar disso.';
 export const JEV_MODES=['off','shadow','fastpath'];
 const MAX_DETACHED=2;
 const workflowEntries=Object.entries(SKILLS).filter(([id])=>id!=='voice-ask');

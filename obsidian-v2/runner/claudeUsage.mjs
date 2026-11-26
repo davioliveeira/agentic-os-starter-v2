@@ -16,7 +16,7 @@ const configDir = () => process.env.CLAUDE_CONFIG_DIR ? path.resolve(process.env
 // On a Mac, Claude Code keeps its sign-in in the Keychain, so this file never exists there. This reader does
 // not open the Keychain (that would prompt the member for access to a secret), so it says so plainly.
 const credentialsOnDisk = async () => { try { await access(path.join(configDir() || path.join(homedir(), '.claude'), '.credentials.json')); return true; } catch { return false; } };
-export const KEYCHAIN_MESSAGE = 'No Claude sign-in file was found. On a Mac, Claude Code keeps its sign-in in the Keychain, which this meter does not read, so the meter stays blank even when you are signed in. Type /usage in Claude Code to see your usage.';
+export const KEYCHAIN_MESSAGE = 'Arquivo de sessão do Claude indisponível. No Mac, o Claude Code guarda a sessão nas Chaves (Keychain). O medidor fica em branco porque não consulta as Chaves. Digite /usage no Claude Code para ver seu uso.';
 async function readAuth() {
     try {
         const auth = JSON.parse(await readFile(path.join(configDir() || path.join(homedir(), '.claude'), '.credentials.json'), 'utf8')).claudeAiOauth;
@@ -53,17 +53,17 @@ function sharedRead(auth, renewalMessage) {
             const response = await fetch(endpoint, { headers: { Authorization: `Bearer ${auth.token}`, 'anthropic-beta': 'oauth-2025-04-20' }, redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(10000) });
             if (response.status === 401 || response.status === 403) {
                 rejected = response.status === 401;
-                result = { status: 'unavailable', checkedAt: null, windows: [], message: rejected ? renewalMessage : 'Claude denied access to account usage. Check the signed-in account and plan in Claude Code.' };
+                result = { status: 'unavailable', checkedAt: null, windows: [], message: rejected ? renewalMessage : 'O Claude negou acesso aos dados de uso. Confira a conta conectada e o plano no Claude Code.' };
             }
             else {
                 if (!response.ok)
-                    throw new Error(response.status === 429 ? 'Claude usage is temporarily rate limited. Retrying after the cache interval.' : 'Claude account usage could not be refreshed.');
+                    throw new Error(response.status === 429 ? 'Consulta de uso do Claude limitada temporariamente. Uma nova tentativa será feita após o intervalo de atualização.' : 'Não foi possível atualizar o uso do Claude.');
                 const windows = claudeWindows(await response.json());
-                result = { status: windows.length ? 'ok' : 'unavailable', checkedAt: new Date().toISOString(), windows, ...(!windows.length ? { message: 'Claude did not report subscription quota windows for this account.' } : {}) };
+                result = { status: windows.length ? 'ok' : 'unavailable', checkedAt: new Date().toISOString(), windows, ...(!windows.length ? { message: 'O Claude não informou os períodos e limites de uso deste plano.' } : {}) };
             }
         }
         catch {
-            result = { status: previous?.windows.length ? 'stale' : 'unavailable', checkedAt: previous?.checkedAt || null, windows: previous?.windows || [], message: 'Claude account usage could not be refreshed. Retrying in two minutes.' };
+            result = { status: previous?.windows.length ? 'stale' : 'unavailable', checkedAt: previous?.checkedAt || null, windows: previous?.windows || [], message: 'Não foi possível atualizar o uso do Claude. Uma nova tentativa será feita em dois minutos.' };
         }
         if (identity === key) {
             cached = result;
@@ -84,7 +84,7 @@ export async function getClaudeUsage({ wait = true, signal, renew = renewClaudeS
         return cached && Date.now() < nextRead ? cached : { status: 'unavailable', windows: [] };
     const started = performance.now(), left = () => budgetMs - (performance.now() - started);
     // The caller ran out of patience or went away: answered from what is known, nothing further is started.
-    const timedOut = () => ({ status: cached?.windows.length ? 'stale' : 'unavailable', checkedAt: cached?.checkedAt || null, windows: cached?.windows || [], message: 'Claude account usage is taking longer than usual. Try again in a moment.' });
+    const timedOut = () => ({ status: cached?.windows.length ? 'stale' : 'unavailable', checkedAt: cached?.checkedAt || null, windows: cached?.windows || [], message: 'A consulta de uso do Claude está demorando mais que o normal. Tente novamente em instantes.' });
     let renewed = false;
     for (;;) {
         // Reading the credentials is a step like any other: a stalled disk cannot outlast the budget or a cancellation.
@@ -96,7 +96,7 @@ export async function getClaudeUsage({ wait = true, signal, renew = renewClaudeS
             cached = null;
             cachedRejected = false;
             nextRead = 0;
-            return { status: 'unavailable', checkedAt: null, windows: [], message: platform === 'darwin' && !await onDisk() ? KEYCHAIN_MESSAGE : 'Claude CLI account sign-in is unavailable. Sign in to Claude Code to read plan usage.' };
+            return { status: 'unavailable', checkedAt: null, windows: [], message: platform === 'darwin' && !await onDisk() ? KEYCHAIN_MESSAGE : 'A sessão do Claude Code está indisponível. Entre no Claude Code para consultar o uso do plano.' };
         }
         if (auth.key !== identity) {
             identity = auth.key;
@@ -105,8 +105,8 @@ export async function getClaudeUsage({ wait = true, signal, renew = renewClaudeS
             nextRead = 0;
         }
         const renewalMessage = auth.refreshable
-            ? 'Claude usage is waiting for Claude Code to refresh its sign-in. Open Claude Code; sign in only if it asks.'
-            : 'Claude Code sign-in has expired or was rejected. Open Claude Code and sign in again.';
+            ? 'A consulta de uso aguarda a renovação da sessão pelo Claude Code. Abra o Claude Code e entre só se ele pedir.'
+            : 'A sessão do Claude Code expirou ou foi recusada. Abra o Claude Code e entre novamente.';
         // At most one renewal per call, and only where the CLI can renew: never for a sign-in that is really gone.
         // True means "look at the credentials once more"; the renewed pass is judged by that re-read alone.
         const renewal = async () => {

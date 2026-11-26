@@ -167,19 +167,19 @@ export const SKILLS = {
 export const DEFAULT_SELECTION={provider:'codex',model:'astra'};
 export function validateSelection(value){
  const model=value&&Object.hasOwn(MODELS,value.provider)?modelFamily(value.provider,value.model):null;
- if(!model || !MODELS[value.provider].includes(model)) throw new Error('Unsupported provider/model pair');
+ if(!model || !MODELS[value.provider].includes(model)) throw new Error('A combinação de provedor e modelo não é compatível.');
  return {provider:value.provider,model};
 }
 export function validateIntent(value){
  validateSelection(value);
- if(value.version!==2 || typeof value.id!=='string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value.id)) throw new Error('Invalid V2 job ID');
- if(!Object.hasOwn(SKILLS,value.skill)) throw new Error('Unknown workflow');
- if(!Number.isFinite(Date.parse(value.ts)) || value.from!=='plugin') throw new Error('Invalid job metadata');
- if(!value.args || typeof value.args!=='object' || Array.isArray(value.args)) throw new Error('Invalid workflow arguments');
+ if(value.version!==2 || typeof value.id!=='string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value.id)) throw new Error('O identificador da execução do V2 é inválido.');
+ if(!Object.hasOwn(SKILLS,value.skill)) throw new Error('Fluxo de trabalho desconhecido.');
+ if(!Number.isFinite(Date.parse(value.ts)) || value.from!=='plugin') throw new Error('Os metadados da execução são inválidos.');
+ if(!value.args || typeof value.args!=='object' || Array.isArray(value.args)) throw new Error('Os argumentos do fluxo de trabalho são inválidos.');
  const required=SKILLS[value.skill].arg;
  const allowed=required?[required,...(value.skill==='voice-ask'?['context']:[])]:[];
- for(const [key,text] of Object.entries(value.args))if(!allowed.includes(key)||typeof text!=='string'||!text.trim()||text.length>(key==='context'?12000:4000))throw new Error('Invalid workflow argument: '+key);
- if(required && !value.args[required]?.trim())throw new Error('This workflow needs '+required);
- if(required==='url'){let url;try{url=new URL(value.args.url)}catch{throw new Error('Enter a valid source URL')}if(!['https:','http:'].includes(url.protocol))throw new Error('Source URL must use HTTP or HTTPS');}
+ for(const [key,text] of Object.entries(value.args))if(!allowed.includes(key)||typeof text!=='string'||!text.trim()||text.length>(key==='context'?12000:4000))throw new Error('Argumento inválido do fluxo de trabalho: '+key);
+ if(required && !value.args[required]?.trim())throw new Error({url:'Informe o URL de origem.',topic:'Informe o tema do fluxo.',prompt:'Informe o pedido.'}[required]||'Preencha o campo obrigatório do fluxo.');
+ if(required==='url'){let url;try{url=new URL(value.args.url)}catch{throw new Error('Informe um URL de origem válido.')}if(!['https:','http:'].includes(url.protocol))throw new Error('Use HTTP ou HTTPS no URL de origem.');}
  return value;
 }

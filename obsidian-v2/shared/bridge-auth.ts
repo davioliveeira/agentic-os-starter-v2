@@ -9,9 +9,9 @@ export function createBrowserBridgeAuth(endpoint: string): BridgeAuthorization {
     if (token) return token;
     if (!flight) flight = (async () => {
       const response = await fetch(endpoint, { cache: 'no-store', signal: AbortSignal.timeout(5000) });
-      if (!response.ok) throw new Error('Bridge authentication is unavailable. Start V2 services and try again.');
+      if (!response.ok) throw new Error('A autenticação da ponte está indisponível. Inicie os serviços do V2 e tente novamente.');
       const result = await response.json();
-      if (!/^[a-f0-9]{64}$/.test(result.token)) throw new Error('Invalid bridge authentication response');
+      if (!/^[a-f0-9]{64}$/.test(result.token)) throw new Error('A ponte retornou uma resposta de autenticação inválida.');
       return token = result.token;
     })().finally(() => { flight = null; });
     return flight;
