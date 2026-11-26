@@ -181,8 +181,9 @@ server.on('request',async(req,res)=>{
   const verifySurface=id=>liveBridge?.verifySurface(id,appScope,req.headers['x-v2-surface-secret']);
   // Dashboard configuration is shared between surfaces. These routes retain the
   // bridge's existing origin, authentication and native/web ownership guards.
-  if(url.pathname==='/integrations'&&req.method==='GET'){
+  if(['/integrations','/integrations/status'].includes(url.pathname)&&req.method==='GET'){
    if(!bridgeAuth.accepts('POST',req.headers))return json({error:'Autenticação da ponte necessária.'},401);
+   if(url.pathname==='/integrations/status')return json(wispr.view());
    return json({providers:await integrations.list(),wispr:wispr.view()});
   }
   if(url.pathname==='/integrations'&&req.method==='POST'){

@@ -31,6 +31,21 @@ export default function Integrations() {
  },[]);
  useEffect(()=>{refresh().catch(e=>setError(e.message));},[refresh]);
  const wispr=state?.wispr;
+ const monitor=!!(wispr?.enabled||wispr?.running);
+ useEffect(()=>{
+  if(!monitor)return;
+  const controller=new AbortController();
+  const timer=setInterval(async()=>{
+   try{
+    const response=await fetch('/api/integrations?status=1',{cache:'no-store',signal:controller.signal});
+    if(response.ok){
+     const current=await response.json();
+     if(!controller.signal.aborted)setState(previous=>previous?{...previous,wispr:current}:previous);
+    }
+   }catch{/* Retain the last status until the connection comes back. */}
+  },5000);
+  return ()=>{clearInterval(timer);controller.abort();};
+ },[monitor]);
  const connections=state?.providers.flatMap(group=>group.connections).filter(item=>item.wispr)||[];
  const activeKey=wispr?.server?connectionKey({provider:wispr.provider,name:wispr.server}):'';
  const selectedKey=selected||activeKey||connectionKey(connections[0]||{});

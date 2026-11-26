@@ -5,7 +5,7 @@ const runtimeDir = () => path.resolve(process.cwd(), '../obsidian-v2/.runtime');
 export const serverBridgeToken = () => readBridgeToken(runtimeDir());
 
 export async function serverBridge(endpoint: string, body?: unknown, timeoutMs = 5000, method = body === undefined ? 'GET' : 'POST') {
-  const needsToken = needsBridgeToken(method) || endpoint === '/integrations';
+  const needsToken = needsBridgeToken(method) || ['/integrations','/integrations/status'].includes(endpoint);
   const send = () => fetch('http://127.0.0.1:3219' + endpoint, {
     method, headers: { 'Content-Type': 'application/json', ...(needsToken ? { 'X-V2-Token': serverBridgeToken() } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body), cache: 'no-store', signal: AbortSignal.timeout(timeoutMs),

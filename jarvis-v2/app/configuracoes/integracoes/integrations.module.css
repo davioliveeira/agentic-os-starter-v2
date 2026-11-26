@@ -1,4 +1,4 @@
-.page{max-width:52rem;margin:0 auto;padding:clamp(1rem,4vw,3rem);color:#e9edf5;font:1rem/1.5 system-ui,sans-serif}
+.page{height:100dvh;overflow-y:auto;box-sizing:border-box;max-width:52rem;margin:0 auto;padding:clamp(1rem,4vw,3rem);color:#e9edf5;font:1rem/1.5 system-ui,sans-serif}
 .page a{color:#bbc9ff;text-decoration:underline;text-underline-offset:.2em}
 .title,.connection{display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap}
 .title h1{font-size:2rem;margin:1rem 0}
