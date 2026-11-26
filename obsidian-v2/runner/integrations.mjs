@@ -66,9 +66,26 @@ export function parseIntegrations(provider,stdout){
  return rows;
 }
 
+export function connectorIconUrl(value){
+ try{
+  const url=new URL(value);
+  if(url.protocol!=='https:'||url.username||url.password||url.port||url.hash)return null;
+  const officialFile=url.hostname==='files.openai.com'&&url.pathname==='/content';
+  const officialBrand=url.hostname==='chatgpt.com'&&url.pathname.startsWith('/images/ecosystem/')&&!url.search;
+  return officialFile||officialBrand?url.href:null;
+ }catch{return null}
+}
+
 async function codexApps(root) {
- const result=await withCodexRpc(root,AbortSignal.timeout(10000),call=>call('app/installed',{}));
- return Array.isArray(result?.apps)?result.apps:[];
+ return withCodexRpc(root,AbortSignal.timeout(10000),async call=>{
+  const result=await call('app/installed',{});
+  if(!Array.isArray(result?.apps)||!result.apps.length)return [];
+  try{
+   const metadata=await call('app/read',{appIds:result.apps.slice(0,100).map(app=>app.id),includeTools:false});
+   const logos=new Map(metadata.apps.map(app=>[app.id,connectorIconUrl(app.iconUrlDark)||connectorIconUrl(app.iconUrl)]));
+   return result.apps.map(app=>({...app,iconUrl:logos.get(app.id)||null}));
+  }catch{return result.apps}
+ });
 }
 
 export function createIntegrationInventory(root,{invoke=integrationCli,readApps=invoke===integrationCli?codexApps:async()=>[]}={}){
@@ -81,7 +98,7 @@ export function createIntegrationInventory(root,{invoke=integrationCli,readApps=
   const apps=installed.filter(app=>typeof app.runtimeName==='string'&&typeof app.id==='string').map(app=>({
    provider,name:app.runtimeName,server:`app:${app.id}`,scope:'Conta Codex',
    status:app.enabled?(app.callable?'conectada':'indisponível'):'desativada',
-   actions:[],manageUrl:'https://chatgpt.com/apps',wispr:wisprName.test(app.runtimeName)
+   actions:[],manageUrl:'https://chatgpt.com/apps',iconUrl:connectorIconUrl(app.iconUrl),wispr:wisprName.test(app.runtimeName)
   }));
   return [...apps,...parseIntegrations(provider,servers)];
  }

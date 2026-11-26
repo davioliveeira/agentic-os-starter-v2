@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createIntegrationInventory,parseIntegrations} from '../runner/integrations.mjs';
+import {connectorIconUrl,createIntegrationInventory,parseIntegrations} from '../runner/integrations.mjs';
 
 test('lists Claude account and Codex MCP connections without transport secrets',async()=>{
  const inventory=createIntegrationInventory('/vault',{invoke:async(_root,provider)=>provider==='claude'?
@@ -70,4 +70,13 @@ test('Claude removals resolve their actual scope and leave account connections m
  await inventory.change({provider:'claude',name:'docs',action:'remove'});
  assert.deepEqual(calls.at(-1),['claude','mcp','remove','--scope','user','docs']);
  await assert.rejects(inventory.change({provider:'claude',name:'claude.ai Wispr Flow',action:'remove'}));
+});
+
+
+test('only vendor image endpoints are exposed for connector logos',()=>{
+ assert.equal(connectorIconUrl('https://chatgpt.com/images/ecosystem/gmail.png'),'https://chatgpt.com/images/ecosystem/gmail.png');
+ assert.equal(connectorIconUrl('https://files.openai.com/content?id=icon&sig=placeholder'),'https://files.openai.com/content?id=icon&sig=placeholder');
+ for(const invalid of ['javascript:alert(1)','http://127.0.0.1:3219/logo.png','https://chatgpt.com/api/logo',
+  'https://chatgpt.com/images/ecosystem/logo.png?secret=1','https://files.openai.com.evil.example/content','https://user@files.openai.com/content'])
+  assert.equal(connectorIconUrl(invalid),null);
 });

@@ -7,7 +7,7 @@ import styles from './integrations.module.css';
 type Provider = 'claude'|'codex';
 type Connection = {
  provider:Provider; name:string; server?:string; status:string; scope:string|null;
- actions:('login'|'logout'|'remove')[]; manageUrl?:string|null; wispr:boolean;
+ actions:('login'|'logout'|'remove')[]; manageUrl?:string|null; iconUrl?:string|null; wispr:boolean;
 };
 type Inventory = {
  providers:{provider:Provider;label:string;connections:Connection[];error?:string}[];
@@ -16,6 +16,22 @@ type Inventory = {
 };
 const labels={login:'Conectar',logout:'Sair',remove:'Remover'};
 const connectionKey=(item:{provider?:Provider;name?:string;server?:string})=>JSON.stringify([item.provider,item.server||item.name]);
+
+const brandKey=(name:string)=>name.toLowerCase().replace(/^claude\.ai\s+/,'').replace(/[^a-z0-9]+/g,' ').trim();
+const localLogos:Record<string,string>={
+ 'wispr flow':'wispr','claude code':'claude','claude docs':'claude','codex':'codex',
+ 'codex app':'codex','codex document control':'codex','aws mcp':'aws','brevo':'brevo',
+ 'hyperframes by heygen':'heygen','google docs':'google-docs','google sheets':'google-sheets','google slides':'google-slides'
+};
+const localLogo=(key:string)=>localLogos[key]?'/integrations/'+localLogos[key]+'.png':null;
+
+function Logo({name,src,large=false}:{name:string;src:string|null;large?:boolean}) {
+ const [failed,setFailed]=useState<string|null>(null);
+ const initials=name.replace(/^claude\.ai\s+/i,'').split(/[^\p{L}\p{N}]+/u).filter(Boolean).slice(0,2).map(word=>word[0]).join('').toUpperCase();
+ return <span className={large?styles.providerLogo:styles.logo} aria-hidden="true">
+  {src&&failed!==src?<img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={()=>setFailed(src)}/>:initials}
+ </span>;
+}
 
 export default function Integrations() {
  const [state,setState]=useState<Inventory|null>(null);
@@ -31,6 +47,7 @@ export default function Integrations() {
  },[]);
  useEffect(()=>{refresh().catch(e=>setError(e.message));},[refresh]);
  const wispr=state?.wispr;
+ const availableLogos=new Map(state?.providers.flatMap(group=>group.connections.flatMap(item=>item.iconUrl?[[brandKey(item.name),item.iconUrl] as const]:[]))||[]);
  const monitor=!!(wispr?.enabled||wispr?.running);
  useEffect(()=>{
   if(!monitor)return;
@@ -76,7 +93,7 @@ export default function Integrations() {
   {!state&&!error&&<p role="status">Carregando conexões…</p>}
   {state&&<>
    <section className={styles.card} aria-labelledby="wispr-heading">
-    <div className={styles.title}><h2 id="wispr-heading">Wispr Flow</h2><span>{active?'Importação ativa':'Importação pausada'}</span></div>
+    <div className={styles.title}><h2 id="wispr-heading" className={styles.brand}><Logo name="Wispr Flow" src={localLogo("wispr flow")} large/>Wispr Flow</h2><span>{active?'Importação ativa':'Importação pausada'}</span></div>
     <p>Importa novas calls próprias finalizadas a cada 15 minutos. As transcrições ficam em <code>{wispr?.folder}/</code> no cofre.</p>
     <label htmlFor="wispr-connection">Conexão usada na importação</label>
     <select id="wispr-connection" disabled={pending||active||!connections.length} value={source?selectedKey:''} onChange={e=>setSelected(e.currentTarget.value)}>
@@ -96,11 +113,14 @@ export default function Integrations() {
     {wispr?.last&&<p>Última sincronização em {new Date(wispr.last.at).toLocaleString('pt-BR')}. {wispr.last.imported??0} nova(s) reunião(ões). {wispr.last.message}</p>}
    </section>
    {state.providers.map(group=><section className={styles.card} key={group.provider}>
-    <h2>{group.label}</h2>
+    <h2 className={styles.brand}><Logo name={group.label} src={localLogo(brandKey(group.label))} large/>{group.label}</h2>
     {group.error&&<p>{group.error}</p>}
     {!group.error&&!group.connections.length&&<p>Nenhuma conexão encontrada.</p>}
     {group.connections.map(item=><div className={styles.connection} key={connectionKey(item)}>
-     <div><strong>{item.name}</strong><p>{[item.status,item.scope].filter(Boolean).join(' · ')}</p></div>
+     <div className={styles.brand}>
+      <Logo name={item.name} src={localLogo(brandKey(item.name))||item.iconUrl||availableLogos.get(brandKey(item.name))||null}/>
+      <div><strong>{item.name}</strong><p>{[item.status,item.scope].filter(Boolean).join(' · ')}</p></div>
+     </div>
      <div className={styles.actions}>
       {item.manageUrl&&<a href={item.manageUrl} target="_blank" rel="noreferrer">Gerenciar na conta</a>}
       {item.actions.map(action=><button key={action} disabled={pending} onClick={()=>{

@@ -38,6 +38,8 @@
 .provider-switch button[aria-pressed="true"] { background: #f1f1f4; color: #17181d; }
 .provider-switch button:not([aria-pressed="true"]):hover { background: #24262e; color: #fff; }
 .provider-switch button:disabled { cursor: progress; }
+.provider-switch .integrations-button { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 14px; border: 1px solid #849af9; border-radius: 8px; color: #f6f8ff; background: #2e417c; text-decoration: none; white-space: nowrap; font: 11px var(--font-mono), monospace; }
+.provider-switch .integrations-button:hover { background: #405aa5; }
 .provider-switch svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .preview-banner { position: absolute; z-index: 8; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; color: var(--ink-dim); font-size: 9px; white-space: nowrap; }
 .preview-banner span { opacity: .5; }
@@ -105,7 +107,9 @@
   .v2-stage .clock { font-size: 35px; }
   .v2-stage .clock-date { font-size: 8px; }
   .provider-switch { top: 97px; }
-  .provider-switch button { min-width: 135px; padding: 10px; font-size: 10px; }
+  .provider-switch button { min-width: 0; gap: 5px; padding: 10px 8px; white-space: nowrap; font-size: 10px; }
+  .provider-switch .integrations-button { padding: 0 8px; gap: 5px; font-size: 10px; }
+  .provider-switch svg { width: 15px; height: 15px; flex: none; }
   .v2-stage .status-line { top: 160px; font-size: 8px; gap: 8px; }
   .v2-stage .status-line .chip.pending { display: none; }
   .galaxy-core { top: 164px; left: -38px; right: -38px; bottom: auto; height: 390px; }
