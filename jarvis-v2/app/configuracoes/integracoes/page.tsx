@@ -69,6 +69,10 @@ export default function Integrations() {
      {connections.map(item=><option key={connectionKey(item)} value={connectionKey(item)}>{item.provider==='claude'?'Claude Code':'Codex'} · {item.name}</option>)}
     </select>
     <div className={styles.actions}>
+     {!connections.some(item=>item.provider==='codex')&&<button disabled={pending} onClick={()=>{
+      void act({action:'connect-wispr'},'Wispr Flow adicionado ao Codex.');
+      setMessage('Aguardando a configuração do Codex. Conclua a autorização no navegador caso seja solicitada.');
+     }}>Conectar pelo Codex</button>}
      <button disabled={!source||pending} onClick={()=>source&&void act({action:'probe',provider:source.provider,server:source.name},'Conexão com o Wispr Flow verificada.')}>Testar conexão</button>
      <button disabled={pending||(!active&&!source)} onClick={toggle}>{active?'Pausar importação':'Ativar importação automática'}</button>
      <button disabled={!active||pending||wispr?.running} onClick={()=>void act({action:'sync'},'Sincronização concluída.')}>Sincronizar agora</button>

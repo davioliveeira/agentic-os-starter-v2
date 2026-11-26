@@ -193,6 +193,7 @@ server.on('request',async(req,res)=>{
     queueMicrotask(wisprLook);
     return json(state);
    }
+   if(input.action==='connect-wispr')return json(await integrations.connectWispr());
    if(input.action==='probe')return json(await wispr.check(input));
    if(input.action==='sync')return json(await wispr.run());
    const result=await integrations.change(input);

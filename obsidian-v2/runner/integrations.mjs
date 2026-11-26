@@ -14,6 +14,7 @@ export async function integrationCli(root,provider,args,{signal,timeout=30000}={
 }
 
 const names={codex:'Codex',claude:'Claude Code'};
+const wisprEndpoint='https://api.wisprflow.ai/connect/mcp';
 const wisprName=/\bwispr[\s_-]*flow\b/i;
 function isWispr(endpoint){
  try {
@@ -61,5 +62,17 @@ export function createIntegrationInventory(root,{invoke=integrationCli}={}){
   await invoke(root,provider,['mcp',action,name],{timeout:action==='login'?300000:30000});
   return {ok:true};
  }
- return {list,read,change};
+ let connecting=false;
+ async function connectWispr(){
+  if(connecting)throw new Error('Já há uma conexão do Wispr em andamento.');
+  connecting=true;
+  try {
+   const existing=await read('codex');
+   if(existing.some(row=>row.wispr))throw new Error('O Wispr já foi adicionado ao Codex. Use a conexão existente.');
+   if(existing.some(row=>row.name==='wispr-flow'))throw new Error('Já existe uma integração chamada wispr-flow no Codex.');
+   await invoke(root,'codex',['mcp','add','wispr-flow','--url',wisprEndpoint],{timeout:300000});
+   return {ok:true};
+  } finally {connecting=false}
+ }
+ return {list,read,change,connectWispr};
 }

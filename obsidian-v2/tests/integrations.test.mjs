@@ -26,3 +26,18 @@ test('only connection actions advertised by the native inventory can execute',as
  assert.deepEqual(calls.at(-1),['codex','mcp','logout','docs']);
  assert.equal(parseIntegrations('claude','Nothing configured').length,0);
 });
+
+test('adds the official Wispr endpoint only when there is no existing Codex connection',async()=>{
+ const calls=[];
+ let existing=false;
+ const inventory=createIntegrationInventory('/vault',{invoke:async(_root,provider,args)=>{
+  calls.push([provider,...args]);
+  if(args.includes('list'))return existing?'[{"name":"other","transport":{"type":"streamable_http","url":"https://api.wisprflow.ai/connect/mcp"}}]':'[]';
+  existing=true;
+  return '';
+ }});
+ await inventory.connectWispr();
+ assert.deepEqual(calls.at(-1),['codex','mcp','add','wispr-flow','--url','https://api.wisprflow.ai/connect/mcp']);
+ await assert.rejects(inventory.connectWispr(),/já foi adicionado/);
+ assert.equal(calls.filter(args=>args.includes('add')).length,1);
+});
