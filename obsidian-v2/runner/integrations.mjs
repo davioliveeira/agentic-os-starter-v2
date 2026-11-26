@@ -59,7 +59,7 @@ export function parseIntegrations(provider,stdout){
   if(!match)continue;
   const [,name,endpoint,status]=match;
   const managed=name.startsWith('claude.ai ');
-  const actions=managed?[]:/^https?:\/\//i.test(endpoint)?['login','logout']:[]; // Claude removal needs a scope.
+  const actions=managed?[]:['remove',...(/^https?:\/\//i.test(endpoint)?['login','logout']:[])];
   rows.push({provider,name,status:statusMap[status.trim()]||'estado desconhecido',scope:managed?'Conta Claude':null,
    manageUrl:managed?'https://claude.ai/settings/connectors':null,actions,wispr:isWispr(endpoint.split(/\s/)[0])||managed&&wisprName.test(name)});
  }
@@ -95,7 +95,14 @@ export function createIntegrationInventory(root,{invoke=integrationCli,readApps=
   if(!Object.hasOwn(names,provider)||typeof name!=='string'||!name||name.startsWith('-')||!['login','logout','remove'].includes(action))throw new Error('Ação de integração inválida.');
   const connection=(await read(provider)).find(row=>!row.server&&row.name===name);
   if(!connection?.actions.includes(action))throw new Error('Esta ação não está disponível para a conexão.');
-  await invoke(root,provider,['mcp',action,name],{timeout:action==='login'?300000:30000,wisprAuthorization:action==='login'&&connection.wispr});
+  let args=['mcp',action,name];
+  if(provider==='claude'&&action==='remove'){
+   const details=await invoke(root,provider,['mcp','get',name]);
+   const scope=/^\s*Scope: (user|local|project) config\b/im.exec(details)?.[1].toLowerCase();
+   if(!scope)throw new Error('O Claude Code não confirmou um escopo que possa ser removido pelo Jarvis.');
+   args=['mcp',action,'--scope',scope,name];
+  }
+  await invoke(root,provider,args,{timeout:action==='login'?300000:30000,wisprAuthorization:action==='login'&&connection.wispr});
   return {ok:true};
  }
  let connecting=false;

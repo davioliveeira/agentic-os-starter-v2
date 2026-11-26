@@ -93,7 +93,7 @@ export default function Integrations() {
      <button disabled={!active||pending||wispr?.running} onClick={()=>void act({action:'sync'},'Sincronização concluída.')}>Sincronizar agora</button>
     </div>
     {wispr?.running&&<p>Sincronização em andamento.</p>}
-    {wispr?.last&&<p>Última sincronização em {new Date(wispr.last.at).toLocaleString('pt-BR')}. {wispr.last.message||`${wispr.last.imported??0} nova(s) reunião(ões).`}</p>}
+    {wispr?.last&&<p>Última sincronização em {new Date(wispr.last.at).toLocaleString('pt-BR')}. {wispr.last.imported??0} nova(s) reunião(ões). {wispr.last.message}</p>}
    </section>
    {state.providers.map(group=><section className={styles.card} key={group.provider}>
     <h2>{group.label}</h2>

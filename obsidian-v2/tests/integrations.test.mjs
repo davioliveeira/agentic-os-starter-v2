@@ -59,3 +59,15 @@ test('surfaces the already installed Codex app and reuses its authenticated Wisp
  assert.equal(codex.connections[1].status,'desativada');
  await assert.rejects(inventory.connectWispr(),/já está disponível/);
 });
+
+test('Claude removals resolve their actual scope and leave account connections managed by Claude',async()=>{
+ const calls=[];
+ const inventory=createIntegrationInventory('/vault',{invoke:async(_root,provider,args)=>{
+  calls.push([provider,...args]);
+  if(args[1]==='get')return 'docs:\n  Scope: User config (available in all your projects)\n  Status: ✔ Connected';
+  return 'docs: https://example.com/mcp - ✔ Connected\nclaude.ai Wispr Flow: https://api.wisprflow.ai/connect/mcp - ✔ Connected';
+ }});
+ await inventory.change({provider:'claude',name:'docs',action:'remove'});
+ assert.deepEqual(calls.at(-1),['claude','mcp','remove','--scope','user','docs']);
+ await assert.rejects(inventory.change({provider:'claude',name:'claude.ai Wispr Flow',action:'remove'}));
+});

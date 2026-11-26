@@ -66,8 +66,8 @@ export function createWisprSync(root,{call,now=Date.now}) {
   if(changed||!preferences.enabled)lastAttempt=null;
   return save({provider,server,enabled,since,...(changed?{last:null}:{})});
  }
- async function scan(connection,signal) {
-  let cursor,imported=0;
+ async function scan(connection,signal,counts) {
+  let cursor;
   const seen=new Set();
   for(let page=0;page<1000;page++){
    signal.throwIfAborted();
@@ -77,13 +77,18 @@ export function createWisprSync(root,{call,now=Date.now}) {
     signal.throwIfAborted();
     if(meeting.shared||meeting.finalized!==true||meeting.has_transcript!==true||
      !(Date.parse(meeting.start)>=Date.parse(connection.since))||typeof meeting.id!=='string'||!meeting.id)continue;
-    const file=notePath(root,meeting.id);
-    if(fs.existsSync(file))continue;
-    const transcript=await transcriptFor(call,connection,meeting.id,signal);
-    signal.throwIfAborted();
-    if(saveNote(file,meeting,transcript))imported++;
+    try{
+     const file=notePath(root,meeting.id);
+     if(fs.existsSync(file))continue;
+     const transcript=await transcriptFor(call,connection,meeting.id,signal);
+     signal.throwIfAborted();
+     if(saveNote(file,meeting,transcript))counts.imported++;
+    }catch{
+     signal.throwIfAborted();
+     counts.failed++;
+    }
    }
-   if(!result.has_more)return imported;
+   if(!result.has_more)return;
    cursor=result.next_cursor;
    if(typeof cursor!=='string'||!cursor||seen.has(cursor))throw new Error('Paginação da lista inválida.');
    seen.add(cursor);
@@ -96,9 +101,14 @@ export function createWisprSync(root,{call,now=Date.now}) {
   const controller=new AbortController(),connection=preferences;
   lastAttempt=now();
   const promise=Promise.resolve().then(async()=>{
+   const counts={imported:0,failed:0};
    let result;
-   try {result={status:'ok',imported:await scan(connection,controller.signal)}}
-   catch {result=controller.signal.aborted?{status:'paused'}:{status:'error',message:'Não foi possível concluir a importação. Teste a conexão do Wispr Flow e tente novamente.'}}
+   try {
+    await scan(connection,controller.signal,counts);
+    result=counts.failed?{status:'error',...counts,message:'Algumas transcrições ficaram pendentes. A próxima sincronização tentará importá-las novamente.'}:{status:'ok',imported:counts.imported};
+   }catch{
+    result=controller.signal.aborted?{status:'paused'}:{status:'error',...counts,message:'Não foi possível concluir a importação. Teste a conexão do Wispr Flow e tente novamente.'};
+   }
    if(!controller.signal.aborted)save({last:{...result,at:new Date(now()).toISOString()}});
    return result;
   }).finally(()=>{active=null});
@@ -107,7 +117,7 @@ export function createWisprSync(root,{call,now=Date.now}) {
  }
  async function check(connection){
   if(!['codex','claude'].includes(connection?.provider)||typeof connection.server!=='string'||!connection.server)throw new Error('Selecione uma conexão do Wispr Flow.');
-  const result=await call(connection,'search_meetings',{page_size:1},AbortSignal.timeout(30000));
+  const result=await call(connection,'search_meetings',{page_size:1,since:new Date(now()).toISOString()},AbortSignal.timeout(30000));
   if(!Array.isArray(result?.meetings))throw new Error('A conexão não retornou reuniões do Wispr Flow.');
   return {ok:true};
  }

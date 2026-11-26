@@ -96,3 +96,20 @@ test('pausing and resuming the same connection preserves the activation window',
  sync.configure({enabled:true});
  assert.equal(sync.view().since,before);
 });
+
+test('a meeting with a temporary transcript failure does not hold up other calls',async t=>{
+ const next={...meeting,id:'m-2',title:'Próxima reunião'};
+ let available=false;
+ const {sync,notes}=fixture(t,async (_connection,tool,args)=>{
+  if(tool==='search_meetings')return {meetings:[meeting,next]};
+  if(args.meeting_id===meeting.id&&!available)throw new Error('erro temporário');
+  return {...(args.meeting_id===meeting.id?meeting:next),transcript:'Transcrição disponível.'};
+ });
+ const first=await sync.run();
+ assert.equal(first.imported,1);
+ assert.equal(first.status,'error');
+ assert.equal(notes().length,1);
+ available=true;
+ assert.equal((await sync.run()).imported,1);
+ assert.equal(notes().length,2);
+});
